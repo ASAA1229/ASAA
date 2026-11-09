@@ -181,3 +181,37 @@ At the end of the POC, stakeholders decide whether to:
 - Defer or stop the initiative.
 
 The decision must be based on observed POC results and confirmed requirements.
+
+
+## 12. Organization-wide preservation constraints
+
+The POC must prove that the platform can manage multiple projects without flattening or standardizing their individual structures.
+
+### Required behavior
+
+- Register at least two logically independent projects when suitable test data is available.
+- Associate each project with its own repository/repositories.
+- Discover each repository's actual default branch and branch list.
+- Preserve each repository's existing directory hierarchy.
+- Store specifications and requirements under the project to which they belong.
+- Allow projects to use different branch names, stacks, documentation formats and workflows.
+- Show cross-project dependencies as references between projects/components.
+- Keep analysis findings scoped to the exact project, repository, branch and revision.
+
+### Prohibited behavior
+
+- Do not rename or standardize branch names.
+- Do not move files or directories.
+- Do not combine repositories or project specifications.
+- Do not copy one project's requirements into another project as if they were shared.
+- Do not impose a common technology stack or development workflow.
+- Do not write to connected repositories in the POC.
+
+### Additional acceptance criteria
+
+13. Two projects with different branch conventions can be represented without modification.
+14. Two projects with different directory structures can be explored independently.
+15. A requirement created for one project is not visible as an approved requirement for another project unless explicitly shared and approved.
+16. A cross-project dependency identifies both the source and target project and its evidence/confirmation status.
+17. A project-specific specification can be versioned and reviewed without changing another project's specification.
+18. Organization-level reports aggregate information while retaining project-level provenance.
