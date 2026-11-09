@@ -4,6 +4,21 @@
 **Priority legend:** P0 = required for POC; P1 = valuable next; P2 = later enhancement.  
 **Note:** Stories are provisional until validated against the actual project directory, stakeholder requests and workflows.
 
+## Epic 0 — Preserve independent project ownership
+
+### US-000 — Preserve existing project repositories and specifications
+**Priority:** P0  
+As an ASAA organization/project owner, I want the platform to inspect and coordinate existing projects without changing their repositories, branches, specifications or workflows so that every project remains independently governed.
+
+**Acceptance criteria**
+- Existing repository names, locations and ownership are not changed.
+- Existing branch names, branch policies and branch contents are not changed.
+- Existing project-specific specifications and approved requirements are not rewritten or replaced.
+- Existing directory structures and development workflows are not standardized or reorganized by this platform.
+- Discovery and analysis are read-only and store results separately.
+- Every finding retains its source repository, branch and revision.
+- Suggested changes are recommendations only and require approval through the affected project's own process.
+
 ## Epic 1 — Workspace and project setup
 
 ### US-001 — Create a workspace
