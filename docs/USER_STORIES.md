@@ -246,7 +246,7 @@ As a workspace owner, I want to share approved project metadata with the ASAA Te
 
 ## POC story set
 
-The initial POC should prioritize: US-001 through US-006, US-008 through US-013, and US-016 through US-018. US-007 and US-014/015 are the next useful enhancements. US-019 through US-021 are future capabilities.
+The initial POC should prioritize: US-000, US-001 through US-006, US-008 through US-013, and US-016 through US-018. US-007 and US-014/015 are the next useful enhancements. US-019 through US-021 are future capabilities.
 
 ## Definition of Ready
 
