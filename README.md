@@ -25,6 +25,10 @@ This is a separate product and Git repository. It is not a module inside the ASA
 7. Map project dependencies and integration points manually in the first iteration.
 8. Produce a project/repository summary and an explicit list of unknowns and verification tasks.
 
+## Organization-wide preservation rule
+
+Every existing project under the ASAA1229 organization remains the authoritative owner of its own repository, branches, specifications, requirements and development workflow. This platform is an observational and coordination layer. It must not rename, restructure, merge, migrate, overwrite, standardize or otherwise modify existing project repositories, branches or approved specifications. Any future change to an existing project must be handled in that project's own approved workflow and repository, with explicit authorization from its owner.
+
 ## Guiding principles
 
 - Treat actual project scope and user requests as the source of truth.
