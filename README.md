@@ -43,6 +43,7 @@ Every existing project under the ASAA1229 organization remains the authoritative
 ## Documentation
 
 - [Project overview](docs/PROJECT_OVERVIEW.md)
+- [Organization preservation policy](docs/ORGANIZATION_PRESERVATION_POLICY.md)
 - [Proof of concept](docs/POC.md)
 - [User stories](docs/USER_STORIES.md)
 - [Initial roadmap](docs/ROADMAP.md)
