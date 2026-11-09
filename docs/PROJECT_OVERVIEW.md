@@ -167,3 +167,54 @@ A requirement must not become Verified solely because related code or documentat
 ## 13. Acceptance baseline
 
 The initial product definition is acceptable when stakeholders confirm the actual directory, scope, users, initial workflows, repository access model, data constraints and POC acceptance criteria. Until then, technology and implementation decisions remain provisional.
+
+
+## 13. ASAA organization model and project independence
+
+The platform manages multiple independent projects under the ASAA organization. Each project retains its own:
+- Project identity, business purpose, scope and stakeholders.
+- Git repository or repositories.
+- Branch names, branch policies and release strategy.
+- Directory and file structure.
+- Project-specific specifications, requirements and acceptance criteria.
+- Technology stack, build system, testing strategy and deployment lifecycle.
+- Access permissions, ownership and change approvals.
+
+The platform must discover and record these characteristics per project. It must not assume that branch names, directory layouts, technology choices or specification formats are uniform across the organization.
+
+### Mandatory preservation rules
+
+1. A registered project is a separate domain boundary.
+2. A repository may be linked to a project, but linking does not transfer ownership or modify it.
+3. Branches are discovered as they exist; the platform does not rename, standardize, create, delete or merge them during the POC.
+4. Project specifications remain project-specific. Organization-level guidance may define governance, but cannot silently replace a project's approved requirements.
+5. Cross-project dependencies are represented as relationships between independent projects/services, not by merging their repositories.
+6. Analysis records must identify the project, repository, branch and revision to which they apply.
+7. A project owner must approve any future change to that project's scope or specification.
+8. Read-only access is the default. Any future write capability requires a separate approved workflow, explicit authorization and audit trail.
+
+The organization dashboard may aggregate status and dependencies, but project-level source records remain authoritative within their own boundaries.
+
+## 14. Multi-project data hierarchy
+
+Conceptual hierarchy:
+
+```text
+ASAA Organization
+  └── Workspace / Portfolio
+       ├── Project A
+       │    ├── Project-specific specifications
+       │    ├── Repository A1
+       │    │    ├── Branches
+       │    │    └── Directories and files
+       │    └── Repository A2 (optional)
+       ├── Project B
+       │    ├── Project-specific specifications
+       │    └── Repository B1
+       └── Project C
+            └── Repository C1
+```
+
+This is a logical relationship model, not a requirement that every project have exactly one repository or that all projects use the same structure.
+
+See [Organization Model](ORGANIZATION_MODEL.md).
