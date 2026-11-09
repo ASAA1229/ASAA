@@ -6,11 +6,17 @@ Validate that ASAA can create a trustworthy, traceable understanding of a real s
 
 The POC is deliberately narrow. It validates discovery, evidence capture, requirement organization and reporting before attempting automated code integration or write operations.
 
-## 2. POC hypothesis
+## 2. Protected project boundaries
+
+The POC operates across independent ASAA projects without changing them. Existing repository names and locations, branch names and branch policies, project-specific specifications, approved requirements, directory structures and development workflows remain unchanged. Repository access is read-only. Discovery and analysis results are stored in this platform as separate metadata and evidence; they are not written back to source repositories.
+
+The POC must not create, rename or delete repositories or branches; push commits; modify project files; rewrite specifications; merge repositories; or trigger builds, tests or deployments. Findings that suggest a change are recommendations only and must be routed to the relevant project owner for action in that project's own workflow.
+
+## 3. POC hypothesis
 
 If project requests and repository evidence are captured in one structured workspace, project owners and technical teams can identify actual scope, implementation evidence, unknowns and cross-project dependencies more accurately than by relying on repository summaries alone.
 
-## 3. POC users
+## 4. POC users
 
 - One workspace owner.
 - One project owner.
@@ -19,7 +25,7 @@ If project requests and repository evidence are captured in one structured works
 
 These roles are placeholders until the actual operating model is confirmed.
 
-## 4. POC workflow
+## 5. POC workflow
 
 1. Create a workspace.
 2. Register one real project with its actual name, purpose and scope.
@@ -34,7 +40,7 @@ These roles are placeholders until the actual operating model is confirmed.
 11. Generate a project overview and evidence-based gap report.
 12. Ask the project owner/technical reviewer to validate the output.
 
-## 5. POC feature scope
+## 6. POC feature scope
 
 ### Must have
 
@@ -71,7 +77,7 @@ These roles are placeholders until the actual operating model is confirmed.
 - Fully automated AI decisions or approval.
 - Complex project scheduling and resource management.
 
-## 6. POC data capture
+## 7. POC data capture
 
 ### Project
 - Project name and description.
@@ -107,7 +113,7 @@ These roles are placeholders until the actual operating model is confirmed.
 - Confidence or reviewer assessment.
 - Review status and timestamp.
 
-## 7. Safety and access rules
+## 8. Safety and access rules
 
 - Repository access is read-only in the POC.
 - Request only the minimum provider permissions required.
@@ -118,7 +124,7 @@ These roles are placeholders until the actual operating model is confirmed.
 - Do not execute repository scripts, workflows or binaries during inspection.
 - No write action may be added without a separately approved requirement and explicit authorization.
 
-## 8. POC acceptance criteria
+## 9. POC acceptance criteria
 
 The POC is successful when:
 
@@ -135,7 +141,7 @@ The POC is successful when:
 11. No repository content is modified by the POC.
 12. Access and analysis actions are auditable.
 
-## 9. POC validation scenarios
+## 10. POC validation scenarios
 
 | ID | Scenario | Expected result |
 |---|---|---|
@@ -151,7 +157,7 @@ The POC is successful when:
 | POC-10 | Generate a report | Report distinguishes facts, assumptions and gaps |
 | POC-11 | Verify read-only behavior | No repository writes or mutations occur |
 
-## 10. Proposed POC deliverables
+## 11. Proposed POC deliverables
 
 - Running minimal application (after requirements and stack approval).
 - Project and repository registry.
@@ -164,7 +170,7 @@ The POC is successful when:
 
 This repository currently contains documentation only; the running application is not part of this commit.
 
-## 11. POC exit decision
+## 12. POC exit decision
 
 At the end of the POC, stakeholders decide whether to:
 - Proceed to a broader MVP.
