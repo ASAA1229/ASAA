@@ -21,11 +21,17 @@ When multiple software projects are distributed across repositories, branches, d
 
 A repository inspection alone cannot establish the complete product scope. Repository evidence is useful, but it must be reconciled with the actual project directory, business requests, stakeholder decisions and operational constraints.
 
-## 3. Product vision
+## 3. Organization-wide preservation boundary
+
+The ASAA organization may contain many independent projects. Each project retains its own repository or repositories, branch names and policies, directory structure, specifications, requirements, technology choices, release process and ownership. These are project-controlled assets and are not changed by this platform.
+
+The platform may discover, read, index, compare and report on authorized project assets. It must preserve the original repository/branch identity and revision when recording evidence. It must not rename or reorganize repositories, create/delete/rename branches, merge codebases, rewrite project specifications, impose a common branch strategy, or alter project workflows. Any future write capability must be separately scoped, explicitly authorized by the affected project owner, and executed through that project's existing governance process.
+
+## 4. Product vision
 
 Provide a traceable workspace where ASAA can register projects, connect repositories, understand their real structure and requirements, map dependencies, and progressively coordinate integration and delivery.
 
-## 4. Goals
+## 5. Goals
 
 1. Maintain a structured inventory of projects and repositories.
 2. Discover branches, directories and relevant files.
@@ -37,7 +43,7 @@ Provide a traceable workspace where ASAA can register projects, connect reposito
 8. Generate concise project reports and actionable gap lists.
 9. Preserve an audit trail of analysis and stakeholder decisions.
 
-## 5. Non-goals for the first POC
+## 6. Non-goals for the first POC
 
 - Automatically merging repositories or combining codebases.
 - Automatically changing source code or documentation.
@@ -50,7 +56,7 @@ Provide a traceable workspace where ASAA can register projects, connect reposito
 
 These may be considered later only after explicit scope, safety controls and approval workflows are defined.
 
-## 6. Primary users and roles
+## 7. Primary users and roles
 
 | Role | Responsibility |
 |---|---|
@@ -63,7 +69,7 @@ These may be considered later only after explicit scope, safety controls and app
 
 The exact role model is provisional and must be validated with the actual users.
 
-## 7. Core product areas
+## 8. Core product areas
 
 ### 7.1 Workspace and project registry
 Create workspaces and projects; record owners, business purpose, status, tags and links to repositories.
@@ -89,7 +95,7 @@ Represent services, APIs, databases, events, external systems, ownership and dep
 ### 7.8 Reports and audit
 Generate project summaries, repository inventories, open questions, risks, integration maps and change history.
 
-## 8. Key information model
+## 9. Key information model
 
 The initial conceptual entities are:
 
@@ -115,7 +121,7 @@ The initial conceptual entities are:
 
 Relationships and fields will be refined after actual workflows and data-retention needs are confirmed.
 
-## 9. Evidence and status vocabulary
+## 10. Evidence and status vocabulary
 
 Every recorded statement should be classified:
 
@@ -132,7 +138,7 @@ Suggested requirement states: Proposed, Under Review, Approved, In Progress, Imp
 
 A requirement must not become Verified solely because related code or documentation exists.
 
-## 10. Quality attributes
+## 11. Quality attributes
 
 - Security: least-privilege access, secure credential handling and auditable actions.
 - Privacy: minimize collected source content and protect sensitive project data.
@@ -143,7 +149,7 @@ A requirement must not become Verified solely because related code or documentat
 - Performance: incremental analysis and scoped retrieval for large repositories.
 - Portability: avoid unnecessary lock-in to one cloud or AI provider.
 
-## 11. Open questions
+## 12. Open questions
 
 1. What is the actual project directory and expected top-level folder structure?
 2. Which users and teams will use the platform?
@@ -158,6 +164,6 @@ A requirement must not become Verified solely because related code or documentat
 11. What is the intended hosting and deployment environment?
 12. What actions, if any, may be automated after the read-only phase?
 
-## 12. Acceptance baseline
+## 13. Acceptance baseline
 
 The initial product definition is acceptable when stakeholders confirm the actual directory, scope, users, initial workflows, repository access model, data constraints and POC acceptance criteria. Until then, technology and implementation decisions remain provisional.
