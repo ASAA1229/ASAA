@@ -55,3 +55,12 @@ The production technology stack, hosting model, database, exact Git provider int
 ## Current status
 
 This repository contains planning documentation only. No application code, integrations, tests or deployment configuration are included in this initial baseline.
+
+
+## Organization and project-preservation model
+
+ASAA is the organization-level workspace. Each software project registered under the ASAA organization remains an independent project with its own repository (or repositories), branch strategy, directory structure, specifications, requirements, technology choices, ownership and delivery lifecycle.
+
+The platform provides a centralized view across projects; it does not combine projects into one codebase or impose a universal project structure. Repository and project boundaries are preserved by default.
+
+See [Organization Model](docs/ORGANIZATION_MODEL.md) for the mandatory rules.
