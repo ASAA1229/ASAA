@@ -68,3 +68,18 @@ No stage should advance solely because code exists. Each stage requires:
 - Updated documentation.
 - Known limitations and open risks.
 - Project-owner acceptance.
+
+
+## Organization-wide invariant for every stage
+
+Every stage must preserve project independence. ASAA may provide a shared organization-level view, but each registered project keeps its own repository/repositories, branches, directory structure, specifications, requirements, technology choices, access controls and delivery lifecycle.
+
+The roadmap must not introduce a universal branch model, universal directory layout or universal project specification. Discovery is per project; cross-project relationships are explicit links only.
+
+### Additional Stage 0 exit checks
+
+- Confirm how projects are grouped under the ASAA organization.
+- Confirm project owners and project-level access boundaries.
+- Confirm that repositories can be associated with one or more projects where the real model requires it.
+- Confirm that specifications and requirements are versioned and scoped to the correct project.
+- Confirm the preservation/no-write policy for connected repositories.
