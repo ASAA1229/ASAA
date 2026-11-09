@@ -2,6 +2,8 @@
 
 This roadmap is a planning proposal, not a committed schedule. Priorities and sequencing must be confirmed after the actual project scope and directory are reviewed.
 
+**Non-negotiable boundary:** All existing ASAA organization projects retain their own repositories, branches, specifications, directory structures and workflows. The platform analyzes and coordinates; it does not alter those project assets.
+
 ## Stage 0 — Confirm the real project baseline
 - Identify the actual project directory and existing assets.
 - Confirm business purpose, target users and workflows.
