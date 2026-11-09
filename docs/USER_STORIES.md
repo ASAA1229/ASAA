@@ -267,3 +267,58 @@ A story is done only when:
 - Documentation is updated.
 - Evidence and verification results are recorded.
 - Reviewer approval is obtained where required.
+
+
+## Epic 8 — Organization-wide project independence
+
+### US-022 — Register independent projects under ASAA
+**Priority:** P0  
+As a workspace owner, I want to register multiple independent projects under the ASAA organization so that I can view the portfolio without combining project identities or repositories.
+
+**Acceptance criteria**
+- Each project has its own identifier, owner, scope and status.
+- Each project can link one or more repositories.
+- Projects can have different technologies, branch strategies and directory structures.
+- Project data is scoped and permission-controlled.
+- Organization views aggregate project information without overwriting project records.
+
+### US-023 — Preserve repository branch strategies
+**Priority:** P0  
+As a project owner, I want the platform to discover and preserve my project's existing branches so that our established development workflow is not changed.
+
+**Acceptance criteria**
+- Branch names and head revisions are read from the provider.
+- No common branch naming convention is imposed.
+- No branch is created, renamed, deleted or merged by the POC.
+- Branch comparisons remain read-only and identify exact revisions.
+
+### US-024 — Preserve project-specific specifications
+**Priority:** P0  
+As a project owner, I want specifications and requirements to remain attached to my project so that another project's scope cannot unintentionally replace or influence them.
+
+**Acceptance criteria**
+- Requirements and specifications are scoped to a project.
+- Each specification records its source and version/revision where available.
+- Organization-level standards are distinguishable from project-specific requirements.
+- Changes require authorization from the relevant project owner.
+- Cross-project reuse requires explicit approval and traceability.
+
+### US-025 — Map cross-project dependencies without merging projects
+**Priority:** P1  
+As a technical lead, I want to record dependencies between independent projects so that integrations are visible while each project remains separately maintained.
+
+**Acceptance criteria**
+- Dependency records identify source and target projects/components.
+- Integration type and evidence are recorded.
+- Unconfirmed dependencies are labelled as proposed or inferred.
+- Mapping a dependency does not modify either project or repository.
+
+### US-026 — Aggregate portfolio reporting safely
+**Priority:** P1  
+As an organization owner, I want an organization-level overview so that I can understand overall progress and risk while retaining drill-down to each project's own records.
+
+**Acceptance criteria**
+- Aggregated metrics identify their source projects.
+- Project-specific statuses are not silently normalized into unsupported claims.
+- Users can drill down to project, repository, branch and evidence.
+- Access permissions are enforced at project level.
