@@ -17,6 +17,7 @@ This roadmap is a planning proposal, not a committed schedule. Priorities and se
 - Workspace and project registry.
 - Git provider authorization.
 - Repository metadata and branch discovery.
+- Validation/reporting of the five default branch names (`main`, `dev`, `new`, `fix`, `test`) for each connected repository.
 - Directory and file inventory.
 - Documentation selection and references.
 
@@ -74,7 +75,7 @@ No stage should advance solely because code exists. Each stage requires:
 
 Every stage must preserve project independence. ASAA may provide a shared organization-level view, but each registered project keeps its own repository/repositories, branches, directory structure, specifications, requirements, technology choices, access controls and delivery lifecycle.
 
-The roadmap must not introduce a universal branch model, universal directory layout or universal project specification. Discovery is per project; cross-project relationships are explicit links only.
+The roadmap must apply the ASAA default branch-name baseline `main`, `dev`, `new`, `fix`, and `test` to every project, and report gaps without automatic branch creation. It must not introduce a universal directory layout, technology stack, specification or identical merge/release workflow. Discovery is per project; cross-project relationships are explicit links only.
 
 ### Additional Stage 0 exit checks
 
