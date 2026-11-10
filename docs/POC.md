@@ -8,7 +8,7 @@ The POC is deliberately narrow. It validates discovery, evidence capture, requir
 
 ## 2. Protected project boundaries
 
-The POC operates across independent ASAA projects without changing them. Existing repository names and locations, branch names and branch policies, project-specific specifications, approved requirements, directory structures and development workflows remain unchanged. Repository access is read-only. Discovery and analysis results are stored in this platform as separate metadata and evidence; they are not written back to source repositories.
+The POC operates across independent ASAA projects without changing them. Every project has the organization-wide default branch-name baseline `main`, `dev`, `new`, `fix`, and `test`. The POC discovers and reports whether these branches exist in each connected repository, while preserving all existing branch contents, protections, merge flows and additional branches. It does not create missing branches or otherwise write to repositories. Project-specific specifications, approved requirements, directory structures and workflows remain unchanged. Discovery results are stored separately as platform metadata and evidence.
 
 The POC must not create, rename or delete repositories or branches; push commits; modify project files; rewrite specifications; merge repositories; or trigger builds, tests or deployments. Findings that suggest a change are recommendations only and must be routed to the relevant project owner for action in that project's own workflow.
 
@@ -130,7 +130,7 @@ The POC is successful when:
 
 1. A user can register a real project and record its actual scope.
 2. An authorized repository can be connected without write permission.
-3. The system can list repository branches and directory structure.
+3. The system can list repository branches and directory structure, and compare the discovered branch names against `main`, `dev`, `new`, `fix`, and `test` without mutating the repository.
 4. Relevant documentation can be selected and referenced.
 5. Each finding can be traced to a repository, branch, revision and path.
 6. Stakeholder requirements can be stored with acceptance criteria.
@@ -194,13 +194,13 @@ The POC must prove that the platform can manage multiple projects without flatte
 - Discover each repository's actual default branch and branch list.
 - Preserve each repository's existing directory hierarchy.
 - Store specifications and requirements under the project to which they belong.
-- Allow projects to use different branch names, stacks, documentation formats and workflows.
+- Check the five organization-wide default branch names in each repository, while supporting project-specific additional branches, branch protections, merge flows, stacks, documentation formats and workflows.
 - Show cross-project dependencies as references between projects/components.
 - Keep analysis findings scoped to the exact project, repository, branch and revision.
 
 ### Prohibited behavior
 
-- Do not rename or standardize branch names.
+- Do not rename existing branches or automatically create missing default branches. Report branch-set gaps for owner-approved remediation.
 - Do not move files or directories.
 - Do not combine repositories or project specifications.
 - Do not copy one project's requirements into another project as if they were shared.
@@ -209,9 +209,11 @@ The POC must prove that the platform can manage multiple projects without flatte
 
 ### Additional acceptance criteria
 
-13. Two projects with different branch conventions can be represented without modification.
+13. Two projects can be represented independently, with the five organization-wide default branch names checked consistently and any project-specific additional branches preserved.
 14. Two projects with different directory structures can be explored independently.
 15. A requirement created for one project is not visible as an approved requirement for another project unless explicitly shared and approved.
 16. A cross-project dependency identifies both the source and target project and its evidence/confirmation status.
 17. A project-specific specification can be versioned and reviewed without changing another project's specification.
 18. Organization-level reports aggregate information while retaining project-level provenance.
+19. Branch inventory reports the presence or absence of each of the five default names for every connected repository.
+20. Missing default branches are reported as gaps; the POC never creates or changes branches.
