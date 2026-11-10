@@ -12,7 +12,9 @@ As an ASAA organization/project owner, I want the platform to inspect and coordi
 
 **Acceptance criteria**
 - Existing repository names, locations and ownership are not changed.
-- Existing branch names, branch policies and branch contents are not changed.
+- The organization-wide default branch-name set is `main`, `dev`, `new`, `fix`, and `test` for every project.
+- Existing branch contents, protections, merge flows and additional branches are not changed by the platform.
+- Missing default branches are reported, not created automatically.
 - Existing project-specific specifications and approved requirements are not rewritten or replaced.
 - Existing directory structures and development workflows are not standardized or reorganized by this platform.
 - Discovery and analysis are read-only and store results separately.
@@ -282,14 +284,17 @@ As a workspace owner, I want to register multiple independent projects under the
 - Project data is scoped and permission-controlled.
 - Organization views aggregate project information without overwriting project records.
 
-### US-023 — Preserve repository branch strategies
+### US-023 — Apply and monitor the ASAA default branch set
 **Priority:** P0  
-As a project owner, I want the platform to discover and preserve my project's existing branches so that our established development workflow is not changed.
+As an ASAA organization owner, I want every project to use the default branch names `main`, `dev`, `new`, `fix`, and `test` so that the organization has a consistent baseline while each project remains independently maintained.
 
 **Acceptance criteria**
-- Branch names and head revisions are read from the provider.
-- No common branch naming convention is imposed.
-- No branch is created, renamed, deleted or merged by the POC.
+- The five exact names are recorded as the organization-wide default branch set.
+- Each connected repository is checked for the presence and head revision of each default branch.
+- Missing branches are reported as compliance gaps; the platform does not create them.
+- Existing branch contents, protections, merge flows and additional branches are preserved.
+- No branch is renamed, deleted, merged or modified by the POC.
+- Project-specific branch policies and release workflows remain configurable and owner-governed.
 - Branch comparisons remain read-only and identify exact revisions.
 
 ### US-024 — Preserve project-specific specifications
@@ -322,3 +327,18 @@ As an organization owner, I want an organization-level overview so that I can un
 - Project-specific statuses are not silently normalized into unsupported claims.
 - Users can drill down to project, repository, branch and evidence.
 - Access permissions are enforced at project level.
+
+
+## Epic 9 — ASAA organization branch baseline
+
+### US-027 — View organization branch-baseline compliance
+**Priority:** P0  
+As an organization owner, I want a portfolio view showing whether each project repository contains the five default branches so that I can identify gaps without changing project repositories.
+
+**Acceptance criteria**
+- The expected branch set is exactly `main`, `dev`, `new`, `fix`, and `test`.
+- Compliance is calculated per repository and rolled up to its project.
+- Each result shows present/missing branches and the inspected revision/time.
+- Additional branches are allowed and are not treated as violations.
+- Missing branches are recommendations for owner-managed remediation, not automatic write actions.
+- Branch protection and merge-flow compliance are not inferred from branch-name presence.
