@@ -16,7 +16,7 @@ Each project retains its own:
 - Identity, name, purpose and business scope.
 - Project owner, stakeholders and approval authority.
 - Repository or repositories.
-- Branch names, branch policies and release lifecycle.
+- The organization-wide default branch names `main`, `dev`, `new`, `fix`, and `test`, plus any project-specific additional branches, branch policies and release lifecycle.
 - Directory structure and file organization.
 - Specifications, requirements and acceptance criteria.
 - Technology stack, frameworks and build tooling.
@@ -58,7 +58,11 @@ A platform finding may propose a change, but only an authorized project owner/re
 For the initial POC:
 
 - All repository connections are read-only.
-- Branches are discovered, not standardized.
+- Every project is expected to use the organization-wide default branch-name set: `main`, `dev`, `new`, `fix`, and `test`.
+- The platform discovers and reports the presence or absence of these five branches for each repository.
+- Missing default branches are compliance gaps for the project owner to address through the project's approved workflow; the platform does not create them.
+- Project-specific additional branches, branch protections, merge flows and release policies remain supported.
+- Branches are discovered and checked against the shared name baseline, not mutated.
 - Directory structures are inventoried, not reorganized.
 - Files are inspected, not modified.
 - No commits, pushes, merges, branch creation or deletion occur.
@@ -131,7 +135,7 @@ This is a conceptual model. The actual organization may have projects with multi
 ## 9. Required product behavior
 
 The platform must support:
-1. Heterogeneous branch strategies.
+1. The five organization-wide default branch names are consistently recognized, while project-specific branch policies, merge flows and additional branches are preserved.
 2. Heterogeneous directory structures.
 3. Different technology stacks.
 4. Different documentation and specification formats.
@@ -144,7 +148,7 @@ The platform must support:
 
 ## 10. Acceptance tests for the preservation model
 
-- Register two projects with different branch names; both remain unchanged.
+- Register two projects and verify that each is checked for `main`, `dev`, `new`, `fix`, and `test`; preserve any additional branches and do not mutate either repository.
 - Register two projects with different folder layouts; both are represented accurately.
 - Attach different specifications to each project; neither overwrites the other.
 - Record a dependency between projects; neither project is merged.
