@@ -27,7 +27,7 @@ This is a separate product and Git repository. It is not a module inside the ASA
 
 ## Organization-wide preservation rule
 
-Every existing project under the ASAA1229 organization remains the authoritative owner of its own repository, branches, specifications, requirements and development workflow. This platform is an observational and coordination layer. It must not rename, restructure, merge, migrate, overwrite, standardize or otherwise modify existing project repositories, branches or approved specifications. Any future change to an existing project must be handled in that project's own approved workflow and repository, with explicit authorization from its owner.
+Every project under ASAA1229 remains independently owned, with its own repositories, specifications, requirements, directory structure, technology choices and project-specific workflow. The organization-wide default branch set for every project is **`main`, `dev`, `new`, `fix`, and `test`**. These are common branch-name defaults; they do not make project code, requirements, folder layouts or project-specific workflows identical. The platform records whether each repository has the expected branches but does not create, rename, delete or modify branches. Any branch rollout or exception is handled through the affected project's approved process.
 
 ## Guiding principles
 
@@ -59,8 +59,8 @@ This repository contains planning documentation only. No application code, integ
 
 ## Organization and project-preservation model
 
-ASAA is the organization-level workspace. Each software project registered under the ASAA organization remains an independent project with its own repository (or repositories), branch strategy, directory structure, specifications, requirements, technology choices, ownership and delivery lifecycle.
+ASAA is the organization-level workspace. Each software project remains independent, with its own repository/repositories, directory structure, specifications, requirements, technology choices, ownership and delivery lifecycle. The shared branch-name baseline is `main`, `dev`, `new`, `fix`, and `test`; project-specific branch protections, merge flows and additional branches remain governed by each project's approved workflow.
 
-The platform provides a centralized view across projects; it does not combine projects into one codebase or impose a universal project structure. Repository and project boundaries are preserved by default.
+The platform provides a centralized view without combining codebases or imposing a universal project structure. It reports missing default branches but does not create or change them.
 
-See [Organization Model](docs/ORGANIZATION_MODEL.md) for the mandatory rules.
+See [Organization Model](docs/ORGANIZATION_MODEL.md) and [Branch Standard](docs/BRANCH_STANDARD.md) for the mandatory rules.
