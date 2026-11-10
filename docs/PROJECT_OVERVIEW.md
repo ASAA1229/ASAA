@@ -23,9 +23,9 @@ A repository inspection alone cannot establish the complete product scope. Repos
 
 ## 3. Organization-wide preservation boundary
 
-The ASAA organization may contain many independent projects. Each project retains its own repository or repositories, branch names and policies, directory structure, specifications, requirements, technology choices, release process and ownership. These are project-controlled assets and are not changed by this platform.
+The ASAA organization may contain many independent projects. Every project uses the organization-wide default branch-name set `main`, `dev`, `new`, `fix`, and `test`. Each project nevertheless retains its own branch contents, protection rules, merge flow, release process, repository/repositories, directory structure, specifications, requirements, technology choices and ownership. The platform checks and reports branch-set alignment but does not create, rename, delete or rewrite branches.
 
-The platform may discover, read, index, compare and report on authorized project assets. It must preserve the original repository/branch identity and revision when recording evidence. It must not rename or reorganize repositories, create/delete/rename branches, merge codebases, rewrite project specifications, impose a common branch strategy, or alter project workflows. Any future write capability must be separately scoped, explicitly authorized by the affected project owner, and executed through that project's existing governance process.
+The platform may discover, read, index, compare and report on authorized project assets. It must preserve the original repository/branch identity and revision when recording evidence. It must not rename or reorganize repositories, create/delete/rename branches, merge codebases, rewrite project specifications, or alter project workflows. The five organization-wide default branch names are a shared baseline, not permission for the platform to mutate repositories. Any branch creation or other future write capability must be separately scoped, explicitly authorized by the affected project owner, and executed through that project's existing governance process.
 
 ## 4. Product vision
 
