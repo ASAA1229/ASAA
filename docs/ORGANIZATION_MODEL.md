@@ -158,4 +158,4 @@ The platform must support:
 
 ## 11. Change-control rule
 
-No change to a project's scope, specification, repository, branch strategy or workflow may be applied by inference or organization-wide default. The change must be proposed, reviewed by the relevant project owner and explicitly approved. The platform records the decision and its effective version.
+No change to a project's scope, specification, repository, branch protection, merge strategy or workflow may be applied by inference or by treating the default branch-name baseline as permission to mutate a repository. The change must be proposed, reviewed by the relevant project owner and explicitly approved. The platform records the decision and its effective version.
