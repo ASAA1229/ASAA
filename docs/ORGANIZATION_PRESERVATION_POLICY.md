@@ -14,13 +14,13 @@ Each project retains control over:
 
 - Repository names, URLs, visibility and ownership.
 - Repository boundaries and repository-to-project relationships.
-- Branch names, branch policies, protections and contents.
+- The organization-wide default branch-name set `main`, `dev`, `new`, `fix`, and `test`, together with project-specific additional branches, branch policies, protections and contents.
 - Project-specific requirements, POC documents, specifications and approved decisions.
 - Directory structures, technology choices and architecture.
 - Release, review, testing and deployment workflows.
 - Project-specific access permissions and governance.
 
-The platform must not impose a common repository layout, branch naming convention, technology stack, specification format or release process across projects.
+The five default branch names are an explicit ASAA organization-wide baseline. This shared naming baseline does not impose identical branch protections, merge flows, release processes, repository layouts, technology stacks, specification formats or project requirements.
 
 ## 3. Permitted platform activities
 
@@ -78,7 +78,7 @@ Reports must distinguish stakeholder-confirmed requirements, documented statemen
 
 ## 7. Project independence
 
-Projects may have different repository counts, branch strategies, technologies, specification formats and workflows. These differences are valid and must be represented rather than normalized away.
+Projects may have different repository counts, additional branches, branch protections, merge flows, technologies, specification formats and workflows. Every project is expected to use the shared default branch names `main`, `dev`, `new`, `fix`, and `test`; project-specific differences beyond that naming baseline must be represented rather than normalized away.
 
 The platform's data model must support one project with multiple repositories and branches, and must not assume that a repository name or default branch fully defines project scope.
 
