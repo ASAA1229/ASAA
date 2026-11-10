@@ -174,19 +174,19 @@ The initial product definition is acceptable when stakeholders confirm the actua
 The platform manages multiple independent projects under the ASAA organization. Each project retains its own:
 - Project identity, business purpose, scope and stakeholders.
 - Git repository or repositories.
-- Branch names, branch policies and release strategy.
+- The organization-wide default branch names `main`, `dev`, `new`, `fix`, and `test`, plus project-specific additional branches, branch policies and release strategy.
 - Directory and file structure.
 - Project-specific specifications, requirements and acceptance criteria.
 - Technology stack, build system, testing strategy and deployment lifecycle.
 - Access permissions, ownership and change approvals.
 
-The platform must discover and record these characteristics per project. It must not assume that branch names, directory layouts, technology choices or specification formats are uniform across the organization.
+The platform must discover and record these characteristics per project. The five default branch names are uniform across ASAA; branch contents, additional branches, policies, merge flows, directory layouts, technology choices and specification formats remain project-specific.
 
 ### Mandatory preservation rules
 
 1. A registered project is a separate domain boundary.
 2. A repository may be linked to a project, but linking does not transfer ownership or modify it.
-3. Branches are discovered as they exist; the platform does not rename, standardize, create, delete or merge them during the POC.
+3. The five organization-wide default branch names are `main`, `dev`, `new`, `fix`, and `test`. The POC checks for their presence but does not create missing branches, rename, delete, merge or modify any branch.
 4. Project specifications remain project-specific. Organization-level guidance may define governance, but cannot silently replace a project's approved requirements.
 5. Cross-project dependencies are represented as relationships between independent projects/services, not by merging their repositories.
 6. Analysis records must identify the project, repository, branch and revision to which they apply.
