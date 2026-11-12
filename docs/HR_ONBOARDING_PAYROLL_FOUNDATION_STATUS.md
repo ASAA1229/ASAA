@@ -23,7 +23,6 @@ Implemented:
 - Audit events for employee and employment-record creation.
 
 Not yet implemented:
-- Employee profile editing and controlled lifecycle transitions.
 - Recruitment/candidate pipeline, offers and contract lifecycle.
 - Employee document vault, consent, retention and expiry workflows.
 - Attendance, leave, shifts, timesheets, performance, learning and employee relations.
