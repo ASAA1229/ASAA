@@ -443,3 +443,56 @@ As the organization owner, I want documented exports of key business records in 
 - Automated/manual verification evidence exists.
 - Documentation, known limitations and operational ownership are updated.
 - The story is not called complete merely because UI or code exists.
+
+
+## Organization hierarchy and department setup — detailed story expansion
+
+The full catalogue and rules are defined in `docs/ORGANIZATION_HIERARCHY_AND_DEPARTMENTS.md`.
+
+### ASAA-ORG-006 — Maintain department catalogue
+**Priority:** P0  
+As the organization owner, I want to activate, configure, combine, rename, split, deactivate and archive departments so that ASAA reflects the actual company and can grow without schema redesign.
+
+Acceptance criteria:
+- Department records include purpose, responsibilities, owner, parent unit, status and effective dates.
+- Departments may be planned, active, inactive or archived.
+- The system does not force all catalogue departments to exist.
+- Historical department membership and reports remain accurate after reorganizations.
+
+### ASAA-ORG-007 — Configure reporting relationships
+**Priority:** P0  
+As an organization administrator, I want primary, secondary, matrix and temporary reporting relationships so that formal HR management is distinct from project delivery coordination.
+
+Acceptance criteria:
+- Relationships have type, scope, effective start/end and history.
+- Temporary acting assignments expire or require renewal.
+- Matrix/project leads do not automatically gain HR, salary or confidential employee access.
+- Circular or invalid primary reporting relationships are rejected or explicitly reviewed.
+
+### ASAA-ORG-008 — Manage positions and job families
+**Priority:** P1  
+As an HR administrator, I want configurable positions, job families, grades and title conventions so that the company can define career and staffing structures without hard-coded rank assumptions.
+
+Acceptance criteria:
+- Job title, job family, grade, position, system role and approval authority remain distinct.
+- Position vacancies and assignments are tracked.
+- One person may hold multiple effective-dated assignments where approved.
+
+### ASAA-ORG-009 — View and validate organization chart
+**Priority:** P1  
+As the organization owner, I want an interactive organization chart and department directory so that I can inspect reporting lines, ownership gaps and organizational structure.
+
+Acceptance criteria:
+- Views can be filtered by entity, business unit, division, department and location.
+- Historical "as of date" views are supported.
+- Unassigned department ownership and vacant positions are visible.
+- Export and drill-down respect access permissions.
+
+### ASAA-ORG-010 — Preview effective permissions
+**Priority:** P0  
+As an organization/security administrator, I want to preview what a user can view and do before granting or changing access so that role assignments do not accidentally expose sensitive records.
+
+Acceptance criteria:
+- Preview considers role, scope, memberships, explicit grants and policy restrictions.
+- Sensitive data access is shown separately from general department visibility.
+- Access changes are audited and can be reviewed after assignment.
