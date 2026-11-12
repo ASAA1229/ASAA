@@ -36,3 +36,10 @@ jobs:
         run: python -m compileall -q src tests
       - name: Run automated API tests
         run: python -m pytest -q
+      - name: Verify migration upgrade and downgrade chain
+        env:
+          ASAA_AP_DATABASE_URL: sqlite:///./ci_migrations.db
+        run: |
+          python -m alembic upgrade head
+          python -m alembic downgrade -1
+          python -m alembic upgrade head
