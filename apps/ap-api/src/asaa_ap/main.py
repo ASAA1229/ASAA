@@ -1,13 +1,17 @@
 from fastapi import FastAPI
 from asaa_ap.api import router as ap_router
 from asaa_ap.ar_api import router as ar_router
+from asaa_people.api import hr_router, onboarding_router, payroll_router
 from asaa_ap.config import get_settings
 
-app = FastAPI(title=get_settings().app_name, version="0.2.0")
+app = FastAPI(title=get_settings().app_name, version="0.3.0")
 app.include_router(ap_router)
 app.include_router(ar_router)
+app.include_router(hr_router)
+app.include_router(onboarding_router)
+app.include_router(payroll_router)
 
 
 @app.get("/health", tags=["Operations"])
 def health():
-    return {"status": "ok", "service": "asaa-finance-api"}
+    return {"status": "ok", "service": "asaa-enterprise-api"}
