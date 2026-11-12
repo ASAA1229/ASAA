@@ -39,4 +39,4 @@ Salary/compensation claims are separate from general HR employee-read access. Do
 
 ## Migration and tests
 
-Run the existing Alembic migration chain, including `0003_people_foundation`, before using these endpoints. Tests are in `apps/ap-api/tests/test_people.py`. The repository CI workflow compiles the API and runs the full test suite; check the latest branch workflow result before treating the implementation as verified.
+Run the existing Alembic migration chain, including `0003_people_foundation` and `0004_onboarding_task_description`, before using these endpoints. Tests are in `apps/ap-api/tests/test_people.py`. The repository CI workflow compiles the API and runs the full test suite; check the latest branch workflow result before treating the implementation as verified.
