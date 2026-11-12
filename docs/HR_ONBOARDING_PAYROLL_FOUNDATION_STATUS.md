@@ -2,7 +2,7 @@
 
 **Repository:** ASAA1229/ASAA  
 **Branch:** new  
-**Implementation status:** Built Not Tested  
+**Implementation status:** Built — API suite and SQLite migration-chain CI passed; PostgreSQL integration, identity-provider integration and business-policy UAT remain pending  
 **Scope:** Initial domain foundation and API contracts; not a production-ready HR/payroll release.
 
 ## HR foundation
@@ -33,9 +33,9 @@ Not yet implemented:
 Implemented:
 - Reusable onboarding templates with ordered task definitions.
 - Template assignment to an employee.
-- Task snapshots created from the template at assignment time.
+- Task snapshots created from the template at assignment time, including task descriptions.
 - Task ownership role, required/optional flag, due date, evidence reference and status.
-- Assignment progress derived from required task completion.
+- Assignment progress derived from required task completion; optional-only assignments are marked complete without requiring optional tasks.
 - Audit events for template creation, assignment and task updates.
 
 Not yet implemented:
@@ -83,14 +83,14 @@ Important boundaries:
 ## Foundation hardening and remaining controls
 
 - Payroll-entry input validation now rejects deductions greater than gross and rejects a net amount that does not reconcile to gross minus deductions. This is arithmetic integrity validation only; ASAA still does not calculate statutory or policy-specific payroll.
-- Onboarding assignments with no required tasks can now reach Completed when their task states are all complete/waived; optional tasks no longer leave an assignment permanently In Progress.
+- Onboarding assignments with no required tasks are marked Completed at assignment time; optional tasks do not block completion. Task descriptions are preserved in immutable assignment snapshots.
 - Added API tests for employee profile updates, lifecycle history and payroll arithmetic rejection.
-- Remaining foundation work includes template lifecycle/versioning, task descriptions and richer assignment ownership/due-date controls, employee document/consent/retention handling, approval workflow integration, payroll input-source reconciliation and configurable calculation policies.
+- Remaining foundation work includes template lifecycle/versioning, richer assignment ownership/due-date controls, employee document/consent/retention handling, approval workflow integration, payroll input-source reconciliation and configurable calculation policies.
 
 ## Verification
 
-Six automated tests are now defined across HR employee/employment history, employee profile/lifecycle updates, onboarding template/assignment/task completion, payroll foundation creation, compensation permission separation and payroll arithmetic validation. They have **not been executed** in this environment. A GitHub Actions workflow (`.github/workflows/people-api-ci.yml`) now runs compile checks and the API test suite on relevant branch pushes and pull requests; no workflow run has been reported yet.
+Seven people-domain API tests are included in the full suite. GitHub Actions completed successfully: **26 tests passed** (one Starlette/httpx deprecation warning), source compilation passed, and the Alembic chain successfully upgraded through `0004_onboarding_task_description`, downgraded one revision and upgraded again using SQLite.
 
-Alembic revision `0003_people_foundation` follows `0002_ar_foundation`. Migration execution, PostgreSQL behavior, identity-provider claims, concurrency, privacy/security review and business UAT remain unverified.
+Alembic revision `0003_people_foundation` follows `0002_ar_foundation`; `0004_onboarding_task_description` adds the task-description snapshot field. The SQLite migration chain is verified in CI. PostgreSQL behavior, production database migration, identity-provider claims, concurrency under load, privacy/security review and business UAT remain unverified.
 
 Do not classify any capability as Passed until tests and migrations run successfully and ASAA-approved HR/payroll policies and acceptance criteria are available.
