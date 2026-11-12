@@ -36,7 +36,7 @@ pytest
 - `supplier:verify` — additionally required to activate a supplier.
 - `audit:read` — read organization-scoped audit events.
 
-All records are organization-scoped from the verified token claim. The API has no delete endpoint. Updates require `expected_version`; status changes are separate commands with a reason and a defined transition graph. Creation starts in `Draft`.
+All records are organization-scoped from the verified token claim. The API has no delete endpoint. Updates require `expected_version`; status changes are separate commands with a reason and a defined transition graph. Creation starts in `Draft`. The initial status-transition map is a configurable starter default; override it with `ASAA_AP_SUPPLIER_STATUS_TRANSITIONS_JSON` rather than treating it as a fixed ASAA policy.
 
 ## Scope boundaries
 
