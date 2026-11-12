@@ -53,9 +53,11 @@ def test_onboarding_template_assignment_and_task_completion(client):
     assert assigned["tasks"][0]["description"] == "Complete required employment paperwork"
     for task in assigned["tasks"]:
         updated = client.patch(f"/api/v1/onboarding/tasks/{task['id']}", json={
-            "status": "Completed", "evidence_reference": "evidence://onboarding/task"
+            "status": "Completed", "evidence_reference": "evidence://onboarding/task",
+            "due_date": "2026-12-08"
         })
         assert updated.status_code == 200
+        assert updated.json()["due_date"] == "2026-12-08"
     final_assignment = client.get("/api/v1/onboarding/assignments").json()[0]
     assert final_assignment["status"] == "Completed"
 
