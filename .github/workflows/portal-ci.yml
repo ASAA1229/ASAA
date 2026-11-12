@@ -1,26 +1,31 @@
-name: ASAA Portal CI
+name: ASAA Web CI
 
 on:
   push:
     branches: [main, dev, new, fix, test]
     paths:
-      - "apps/portal/**"
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "vite.config.js"
       - ".github/workflows/portal-ci.yml"
   pull_request:
     branches: [main, dev]
     paths:
-      - "apps/portal/**"
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "vite.config.js"
       - ".github/workflows/portal-ci.yml"
 
 permissions:
   contents: read
 
 jobs:
-  portal-build:
+  web-build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/portal
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
