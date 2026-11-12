@@ -19,7 +19,7 @@ from asaa_people.schemas import (
     LeaveRequestCreate, LeaveRequestReview, EmployeeExitCreate,
     OnboardingTemplateStatusUpdate, OnboardingTaskAssignment,
     CompensationDecision, PayrollRunReview, OnboardingTemplateReplace,
-    EmployeeDocumentStatusUpdate,
+    EmployeeDocumentStatusUpdate, PayrollEntryUpdate,
 )
 
 router = APIRouter(tags=["People Operations"])
@@ -583,3 +583,31 @@ def close_payroll_period(period_id: str, db: Db,
     db.commit()
     db.refresh(period)
     return serialize(period)
+
+
+@router.patch("/api/v1/payroll/entries/{entry_id}")
+def update_payroll_entry(entry_id: str, payload: PayrollEntryUpdate, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    row = db.scalar(select(PayrollEntry).where(
+        PayrollEntry.id == entry_id,
+        PayrollEntry.organization_id == principal.organization_id,
+    ))
+    if not row:
+        raise HTTPException(status_code=404, detail="Payroll entry not found")
+    run = db.scalar(select(PayrollRun).where(
+        PayrollRun.id == row.run_id,
+        PayrollRun.organization_id == principal.organization_id,
+    ))
+    if not run or run.status not in {"Draft", "Changes Requested"}:
+        raise HTTPException(status_code=409, detail={"code": "payroll_entry_not_editable"})
+    if payload.currency != run.currency:
+        raise HTTPException(status_code=409, detail={"code": "payroll_currency_mismatch"})
+    changes = payload.model_dump()
+    for field, value in changes.items():
+        setattr(row, field, value)
+    audit(db, principal, "payroll_entry.corrected", "payroll_entry", row.id,
+          {"run_id": run.id, "changed_fields": sorted(changes)}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return serialize(row)
