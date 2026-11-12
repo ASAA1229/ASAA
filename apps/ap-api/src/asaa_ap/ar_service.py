@@ -222,3 +222,102 @@ def create_receipt(db: Session, payload: ARReceiptCreate, principal: Principal, 
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail={"code": "receipt_allocation_conflict"}) from None
+
+
+def update_draft_invoice(db: Session, invoice_id: str, payload, principal: Principal, correlation_id: str | None):
+    row = db.scalar(select(ARInvoice).where(
+        ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id
+    ).with_for_update())
+    if not row:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if row.version != payload.expected_version:
+        raise HTTPException(status_code=409, detail={"code": "version_conflict", "current_version": row.version})
+    if row.status != "Draft":
+        raise HTTPException(status_code=409, detail={"code": "invoice_not_editable", "status": row.status})
+    subtotal = Decimal("0")
+    tax_total = Decimal("0")
+    prepared = []
+    for item in payload.lines:
+        net = money(item.quantity * item.unit_price)
+        tax = money(item.tax_amount)
+        subtotal += net
+        tax_total += tax
+        prepared.append((item, money(net + tax)))
+    row.issue_date = payload.issue_date
+    row.due_date = payload.due_date
+    row.notes = payload.notes
+    row.subtotal = money(subtotal)
+    row.tax_total = money(tax_total)
+    row.total = money(subtotal + tax_total)
+    try:
+        db.flush()
+        db.query(ARInvoiceLine).filter(ARInvoiceLine.invoice_id == row.id).delete(synchronize_session=False)
+        for item, line_total in prepared:
+            db.add(ARInvoiceLine(
+                invoice_id=row.id, description=item.description, quantity=item.quantity,
+                unit_price=item.unit_price, tax_amount=money(item.tax_amount), line_total=line_total,
+            ))
+        audit(db, principal, "invoice.draft_updated", "ar_invoice", row.id, {
+            "version": row.version, "line_count": len(prepared), "total": str(row.total)
+        }, correlation_id)
+        db.commit()
+        db.refresh(row)
+        return invoice_view(db, row)
+    except (StaleDataError, IntegrityError):
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "invoice_update_conflict"}) from None
+
+
+def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, amount: Decimal,
+                               principal: Principal, correlation_id: str | None):
+    receipt = db.scalar(select(ARReceipt).where(
+        ARReceipt.id == receipt_id, ARReceipt.organization_id == principal.organization_id
+    ).with_for_update())
+    if not receipt:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    if receipt.status != "Recorded":
+        raise HTTPException(status_code=409, detail={"code": "receipt_not_allocatable"})
+    invoice = db.scalar(select(ARInvoice).where(
+        ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id,
+        ARInvoice.customer_id == receipt.customer_id,
+    ).with_for_update())
+    if not invoice:
+        raise HTTPException(status_code=404, detail={"code": "invoice_not_found"})
+    if invoice.currency != receipt.currency:
+        raise HTTPException(status_code=409, detail={"code": "currency_mismatch"})
+    if invoice.status not in {"Issued", "Partially Paid"}:
+        raise HTTPException(status_code=409, detail={"code": "invoice_not_receivable"})
+    applied = db.scalar(select(func.coalesce(func.sum(ARReceiptAllocation.amount), 0)).where(
+        ARReceiptAllocation.receipt_id == receipt.id
+    ))
+    outstanding_receipt = money(receipt.amount - Decimal(applied or 0))
+    amount = money(amount)
+    if amount <= 0 or amount > outstanding_receipt:
+        raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_unapplied_receipt",
+                                                      "unapplied_amount": str(outstanding_receipt)})
+    already_paid = amount_paid(db, invoice.id)
+    if amount > money(invoice.total - already_paid):
+        raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_outstanding",
+                                                      "outstanding_amount": str(money(invoice.total - already_paid))})
+    existing = db.scalar(select(ARReceiptAllocation).where(
+        ARReceiptAllocation.receipt_id == receipt.id, ARReceiptAllocation.invoice_id == invoice.id
+    ))
+    if existing:
+        existing.amount = money(existing.amount + amount)
+    else:
+        db.add(ARReceiptAllocation(receipt_id=receipt.id, invoice_id=invoice.id, amount=amount))
+    invoice.status = "Paid" if money(already_paid + amount) == money(invoice.total) else "Partially Paid"
+    audit(db, principal, "receipt.reallocated", "ar_receipt", receipt.id, {
+        "invoice_id": invoice.id, "amount": str(amount),
+        "remaining_unapplied": str(money(outstanding_receipt - amount))
+    }, correlation_id)
+    try:
+        db.commit()
+        db.refresh(receipt)
+    except (StaleDataError, IntegrityError):
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "receipt_allocation_conflict"}) from None
+    return {
+        "receipt_id": receipt.id, "invoice_id": invoice.id, "allocated_amount": amount,
+        "remaining_unapplied": money(outstanding_receipt - amount), "invoice_status": invoice.status
+    }
