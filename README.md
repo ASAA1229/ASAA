@@ -38,6 +38,7 @@ The repository currently contains planning documentation. The enterprise-wide op
 ## Documentation
 
 - [Enterprise Operating Model](docs/ENTERPRISE_OPERATING_MODEL.md)
+- [Organization Hierarchy and Department Catalogue](docs/ORGANIZATION_HIERARCHY_AND_DEPARTMENTS.md)
 - [Enterprise User Story Map](docs/ENTERPRISE_USER_STORIES.md)
 - [Proof of Concept](docs/POC.md)
 - [User Stories](docs/USER_STORIES.md)
