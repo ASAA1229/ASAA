@@ -23,7 +23,7 @@ Implemented:
 - Organization-scoped employee creation, listing, detail and allow-listed profile editing.
 - Employee code uniqueness within an organization.
 - Effective-dated employment records with overlap prevention, previous-record closure and synchronization of current employee status/type.
-- Controlled operational lifecycle changes with reason, permission separation and audit events.
+- Controlled operational lifecycle changes with an explicit transition graph, reason, permission separation and audit events. Future-dated lifecycle scheduling is not enabled.
 - Document metadata with classification, issue/expiry dates and archive lifecycle. Binary content is not stored by this API; storage_reference must point to an approved private document service.
 - Asset issue/return records; an employee exit case cannot be completed while assets remain issued.
 - Leave requests with date validation, overlap prevention and independent reviewer decisions. The system does not calculate leave entitlement, accrual or balances.
@@ -126,7 +126,7 @@ People-domain migrations:
 - 0007_offboarding_checklists
 - 0008_onboarding_assignment_version
 
-CI compiles the source, runs the complete API test suite and exercises the Alembic upgrade/downgrade/upgrade chain on SQLite. This verifies API-level behavior and migration syntax against SQLite only. It does not certify PostgreSQL production migration, identity-provider claims, binary document storage, concurrency under load, legal compliance, security/privacy review or business-policy UAT.
+Latest GitHub Actions verification: **31 tests passed** (one Starlette/httpx deprecation warning), source compilation passed, and the complete Alembic chain through 0008 successfully upgraded, downgraded one revision and upgraded again on SQLite. This verifies API-level behavior and migration syntax against SQLite only. It does not certify PostgreSQL production migration, identity-provider claims, binary document storage, concurrency under load, legal compliance, security/privacy review or business-policy UAT.
 
 ## Release gates
 
