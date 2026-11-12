@@ -5,9 +5,9 @@ from asaa_ap.security import Principal, get_principal
 
 ALL_GOVERNANCE = {
     "governance:delegation:read", "governance:delegation:create",
-    "governance:delegation:approve", "governance:delegation:revoke",
+    "governance:delegation:approve", "governance:delegation:reject", "governance:delegation:revoke",
     "governance:decision:read", "governance:decision:create",
-    "governance:decision:approve",
+    "governance:decision:approve", "governance:decision:reject",
 }
 
 
