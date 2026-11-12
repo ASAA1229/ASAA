@@ -25,7 +25,7 @@ Supplier master records are structured, relational, organization-scoped and audi
 - Supplier code, legal/trading names, contacts, website, category, optional opaque registration reference, addresses and notes.
 - New suppliers start in `Draft`.
 - Normalized legal-name duplicate detection; email and registration-reference candidate matching; database uniqueness for normalized names and supplier codes within the organization.
-- Controlled statuses: Draft, Pending Verification, Active, On Hold, Suspended and Archived. Archived is terminal; activation additionally requires `supplier:verify`.
+- Controlled statuses: Draft, Pending Verification, Active, On Hold, Suspended and Archived. Archived is terminal in the configurable starter transition map; the map is overridable through `ASAA_AP_SUPPLIER_STATUS_TRANSITIONS_JSON`. Activation additionally requires `supplier:verify`.
 - Controlled profile updates with expected-version checks and optimistic concurrency.
 - Organization scope derived from verified identity claims.
 - Permission checks: `supplier:read`, `supplier:write`, `supplier:status`, `supplier:verify`, `audit:read`.
