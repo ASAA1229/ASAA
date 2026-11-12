@@ -106,7 +106,6 @@ As an authorized user, I want to search and export records within my access scop
 **Priority:** P0  
 As an HR administrator, I want a secure employee profile with employment, department, position, manager and contact information so that employee records are centrally maintained.
 **Implementation status:** Built Not Tested — organization-scoped employee profile creation, listing, detail, controlled profile updates and effective-dated lifecycle history; document management and broader employee lifecycle workflows remain open.
-**Implementation status:** Built Not Tested — organization-scoped employee profiles and effective-dated employment records/history; employee lifecycle and full document management remain open.
 
 ### ASAA-HR-002 — Manage recruitment and candidate records
 **Priority:** P2  
@@ -115,12 +114,12 @@ As an authorized recruiter, I want to manage vacancies, candidates, interviews a
 ### ASAA-HR-003 — Manage onboarding
 **Priority:** P1  
 As HR, I want configurable onboarding checklists, document collection, asset assignment and access requests so that new joiners are prepared consistently.
-**Implementation status:** Built Not Tested — reusable templates, assignment snapshots, task status/evidence and completion tracking; document, asset and access-provisioning integrations remain open.
 **Implementation status:** Built Not Tested — reusable templates, employee assignment, task snapshots, task ownership/status/evidence and completion tracking; document, asset and access-provisioning integrations remain open.
 
 ### ASAA-HR-004 — Manage employment changes
 **Priority:** P1  
 As HR, I want to record transfers, promotions, manager changes, contract changes and status changes with effective dates and approvals.
+**Implementation status:** Partially Built Not Tested — employee lifecycle status changes are permission-controlled, reasoned, audited and effective-dated; approval gates and full transfer, promotion and contract-change workflows remain open.
 
 ### ASAA-HR-005 — Manage offboarding
 **Priority:** P1  
@@ -227,17 +226,16 @@ Acceptance criteria for this epic:
 **Priority:** P1  
 As an authorized HR/Finance user, I want restricted, effective-dated compensation records so that salary changes are traceable.
 **Implementation status:** Built Not Tested — restricted permission-gated, effective-dated compensation records; approval and policy-controlled compensation changes remain open.
-**Implementation status:** Built Not Tested — restricted permission-gated, effective-dated compensation records; approval and policy-controlled compensation changes remain open.
 
 ### ASAA-PAY-002 — Prepare payroll inputs
 **Priority:** P2  
 As an authorized payroll operator, I want approved attendance, leave, overtime, compensation and deduction inputs assembled for payroll review.
 **Implementation status:** Built Not Tested — payroll periods, draft runs, employee payroll-entry records and arithmetic reconciliation validation; source integrations, policy calculations, reconciliation workflow, approvals and payment execution remain open.
-**Implementation status:** Built Not Tested — payroll periods, draft runs and employee payroll-entry records; source integrations, calculations, reconciliation, approval and payment execution remain open.
 
 ### ASAA-PAY-003 — Review and reconcile payroll
 **Priority:** P2  
 As an authorized payroll approver, I want payroll totals and exceptions reviewed before finalization so that errors can be corrected.
+**Implementation status:** Not Started — draft payroll input records exist; review, exception reconciliation, approvals and finalization are not implemented.
 
 ### ASAA-PAY-004 — Manage payslips and payroll history
 **Priority:** P2  
