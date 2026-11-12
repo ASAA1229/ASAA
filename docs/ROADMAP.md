@@ -104,7 +104,7 @@ The roadmap must apply the ASAA default branch-name baseline `main`, `dev`, `new
 
 The roadmap above describes the original project-intelligence foundation. It is now a capability within the broader ASAA Enterprise Operating Platform. The authoritative organization-wide target scope and delivery model are defined in [Enterprise Operating Model](ENTERPRISE_OPERATING_MODEL.md).
 
-The enterprise roadmap must be refined into department/domain epics after organization discovery. Its initial dependency order is:
+The enterprise roadmap must be refined into department/domain epics after organization discovery. The first organization setup work must use [Organization Hierarchy and Department Catalogue](ORGANIZATION_HIERARCHY_AND_DEPARTMENTS.md) and the detailed organization stories in [Enterprise User Story Map](ENTERPRISE_USER_STORIES.md). Its initial dependency order is:
 
 1. Organization structure, identity, roles, permissions and approval authority.
 2. Shared workflow, audit, documents, notifications and integration foundations.
