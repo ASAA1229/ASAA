@@ -9,6 +9,7 @@ See [HR, Onboarding and Salaries & Payroll Foundation Status](../../docs/HR_ONBO
 ### HR
 - `hr:employee:read`
 - `hr:employee:write`
+- `hr:employee:lifecycle`
 - `hr:employment:write`
 
 ### Onboarding
@@ -30,7 +31,7 @@ Salary/compensation claims are separate from general HR employee-read access. Do
 ## Data and policy boundaries
 
 - Employee, employment, onboarding and payroll records are organization-scoped.
-- Employment history is effective-dated; changes are appended as new records rather than overwriting past assignments.
+- Employee profile edits are field-allow-listed and audited. Lifecycle transitions use a separate permission and append effective-dated employment-history records rather than overwriting past assignments. Future-dated lifecycle scheduling is not enabled.
 - Onboarding assignments snapshot template tasks so later template edits do not silently rewrite an employee's active checklist.
 - Payroll entries are draft inputs. No jurisdiction-specific tax, statutory contribution, deduction or salary calculation is inferred.
 - Payroll approval, finalization, payslips, bank files and payment execution are not part of this foundation.
@@ -38,4 +39,4 @@ Salary/compensation claims are separate from general HR employee-read access. Do
 
 ## Migration and tests
 
-Run the existing Alembic migration chain, including `0003_people_foundation`, before using these endpoints. Tests are in `apps/ap-api/tests/test_people.py`; execution has not yet been verified.
+Run the existing Alembic migration chain, including `0003_people_foundation`, before using these endpoints. Tests are in `apps/ap-api/tests/test_people.py`. The repository CI workflow compiles the API and runs the full test suite; check the latest branch workflow result before treating the implementation as verified.
