@@ -49,3 +49,4 @@ The repository currently contains planning documentation. The enterprise-wide op
 - [Organization Model](docs/ORGANIZATION_MODEL.md)
 - [Organization Preservation Policy](docs/ORGANIZATION_PRESERVATION_POLICY.md)
 - [Branch Standard](docs/BRANCH_STANDARD.md)
+- [AP Phase 1 Implementation Status](docs/AP_PHASE_1_IMPLEMENTATION.md)
