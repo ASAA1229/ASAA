@@ -103,6 +103,7 @@ def change_employee_lifecycle(
             "allowed": sorted(LIFECYCLE_STATES),
         })
     employee = get_employee(db, employee_id, principal.organization_id)
+    previous_status = employee.status
     if payload.status == employee.status:
         raise HTTPException(status_code=409, detail={"code": "lifecycle_status_unchanged"})
 
@@ -142,7 +143,7 @@ def change_employee_lifecycle(
         entity_type="hr_employee",
         entity_id=employee.id,
         details={
-            "previous_status": latest.status if latest else "Preboarding",
+            "previous_status": previous_status,
             "new_status": payload.status,
             "effective_from": payload.effective_from.isoformat(),
             "reason": payload.reason,
