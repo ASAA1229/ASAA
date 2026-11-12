@@ -236,6 +236,8 @@ def update_onboarding_task(task_id: str, payload: OnboardingTaskUpdate, db: Db,
         raise HTTPException(status_code=404, detail="Onboarding task not found")
     task.status = payload.status
     task.evidence_reference = payload.evidence_reference
+    if "due_date" in payload.model_fields_set:
+        task.due_date = payload.due_date
     task.completed_at = datetime.now(timezone.utc) if payload.status == "Completed" else None
     task.completed_by = principal.subject if payload.status == "Completed" else None
     tasks = db.scalars(select(OnboardingTask).where(
@@ -250,7 +252,8 @@ def update_onboarding_task(task_id: str, payload: OnboardingTaskUpdate, db: Db,
     else:
         assignment.status = "In Progress"
     audit(db, principal, "onboarding_task.updated", "onboarding_task", task.id,
-          {"status": task.status, "assignment_status": assignment.status}, x_correlation_id)
+          {"status": task.status, "due_date": task.due_date.isoformat() if task.due_date else None,
+           "assignment_status": assignment.status}, x_correlation_id)
     db.commit()
     db.refresh(task)
     return view(task)
