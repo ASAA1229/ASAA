@@ -22,7 +22,7 @@ The current executable slice is an API-first Python service in `apps/ap-api`. It
 - HR employee records, lifecycle, employment history, leave requests, document metadata and asset tracking.
 - Versioned onboarding/offboarding templates, assignments and task workflows.
 - Restricted compensation records and controlled payroll input/review/approval/closure workflows.
-- Master-data domain ownership, stewardship, source provenance, duplicate-candidate flagging and non-destructive supersession.
+- Master-data domain ownership, stewardship, source provenance, duplicate-candidate flagging and non-destructive supersession.\n- Governance decision register and time-bounded authority delegation workflow with independent review, revocation and audit.
 
 These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The latest CI for the current branch revision has passed source compilation, all 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. PostgreSQL runtime integration, real identity-provider integration, UI, production operations and organization-specific policy/UAT remain open.
 
