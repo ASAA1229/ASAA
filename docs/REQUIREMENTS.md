@@ -309,3 +309,41 @@ Security and scope limits:
 - No production identity provider, UI or PostgreSQL verification is implied.
 
 Automated tests added cover domain creation/list/audit, duplicate domain rejection, optimistic version conflict, duplicate-candidate flagging, source/record uniqueness, non-destructive supersession, organization isolation and separate permissions. The exact commit passed source compilation, the full 37-test API suite and SQLite Alembic upgrade/downgrade/upgrade checks. PostgreSQL runtime validation and production acceptance remain open.
+
+
+## 14. P0 gap closure implementation record
+
+### ASAA-GAP-002 — Decision, Delegation and Authority Register
+
+**Status:** Built — implementation and automated validation pending CI at this revision.
+
+The governance API adds two organization-scoped registers:
+
+**Authority delegations**
+- Records delegator and delegate subjects, scope code, action code, effective start/end, reason and optional evidence reference.
+- New requests begin in `Pending Approval`; a separate authorized reviewer must approve or reject.
+- The creator, delegator and delegate cannot approve or reject the same request.
+- Approval is distinct from actual effectiveness. The API reports `effective_now` only when status is Approved and the current time is within the explicit effective window.
+- Approved delegations can be revoked with a reason. Rejection and revocation are retained as status changes with reviewer and timestamp.
+- Stale transition requests are rejected using expected record versions.
+
+**Governance decisions**
+- Records decision type, title, scope reference, rationale, designated decision-maker subject, optional effective date and evidence reference.
+- New entries begin as `Proposed`; only the designated decision-maker can approve or reject, and that person cannot be the proposal creator.
+- Rejection requires a reason. The proposal, reviewer, timestamp, result and reason remain available in the register.
+- Decisions and delegations are organization-scoped and audited.
+
+API routes:
+- `POST/GET /api/v1/governance/delegations`
+- `POST /api/v1/governance/delegations/{id}/approve`
+- `POST /api/v1/governance/delegations/{id}/reject`
+- `POST /api/v1/governance/delegations/{id}/revoke`
+- `POST/GET /api/v1/governance/decisions`
+- `POST /api/v1/governance/decisions/{id}/approve`
+- `POST /api/v1/governance/decisions/{id}/reject`
+
+Permissions:
+- `governance:delegation:read`, `governance:delegation:create`, `governance:delegation:approve`, `governance:delegation:reject`, `governance:delegation:revoke`.
+- `governance:decision:read`, `governance:decision:create`, `governance:decision:approve`, `governance:decision:reject`.
+
+**Important boundary:** This register is an auditable record of authority and decisions. It does not grant, modify or inject permissions into JWT claims or the existing `require_permission` authorization path. A recorded delegation is not proof that an identity provider, employment relationship, contract or external policy authorizes the underlying action. No founder/CEO hierarchy, legal entity, department, monetary threshold, jurisdictional rule or approval matrix is assumed. These require explicit owner-approved configuration and later integration work.
