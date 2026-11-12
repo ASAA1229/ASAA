@@ -891,3 +891,18 @@ As an organization owner/HR owner, I want manager access and employee support ca
 - Prevent a person from accessing or deciding a case where they are conflicted unless an approved independent process explicitly permits a limited role.
 - Audit access, disclosure, decisions and case closure without exposing confidential content in ordinary dashboards.
 
+
+
+---
+
+## AP Phase 1 implementation status — 2026-11-12
+
+The first supplier-management API slice is being implemented under `apps/ap-api`. See [AP Phase 1 Implementation](AP_PHASE_1_IMPLEMENTATION.md) for scope, technology rationale, verification evidence and remaining gates.
+
+| Existing story | Phase 1 coverage | Build status | Verification |
+|---|---|---|---|
+| ASAA-OPS-001 — Manage vendors and suppliers | Supplier registration, profiles, duplicate detection, status lifecycle and controlled updates | Built (supplier foundation only) | Passed — automated API tests |
+| ASAA-FIN-004 — Manage vendor bills and payables | Supplier master dependency only; bills, due dates, approvals and payments are not implemented | Not Started | Not Tested |
+| ASAA-GAP-021 — Manage procure-to-pay lifecycle | Supplier master dependency only; purchasing, receipts, invoices, matching and settlement remain future slices | Not Started | Not Tested |
+
+**Status interpretation:** Built means implementation exists; Built Not Tested means implementation exists but verification has not been completed; Passed means the stated test/verification evidence succeeded. A Passed supplier-foundation test does not mean the full vendor, payables or procure-to-pay story is complete.
