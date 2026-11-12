@@ -277,7 +277,7 @@ These remain planned requirements until implementation and acceptance evidence e
 
 ### ASAA-GAP-024 — Govern master data and record ownership
 
-**Status:** Built; automated verification pending for the current revision.
+**Status:** Passed — GitHub Actions run [43220389874](https://github.com/ASAA1229/ASAA/actions/runs/43220389874), commit `1340bcd9c996d88a3108a8d7f88107738eaf29b3`.
 
 The API foundation introduces an organization-scoped master-data registry:
 - Domain registration records a domain code, authoritative-source label, accountable owner subject and steward subject.
@@ -308,4 +308,4 @@ Security and scope limits:
 - The registry does not yet enforce domain ownership on writes to the underlying HR/AP/AR tables. That integration is a subsequent gap-closure step.
 - No production identity provider, UI or PostgreSQL verification is implied.
 
-Automated tests added cover domain creation/list/audit, duplicate domain rejection, optimistic version conflict, duplicate-candidate flagging, source/record uniqueness, non-destructive supersession, organization isolation and separate permissions. The test result must be taken from CI for the exact commit before this story is marked Passed.
+Automated tests added cover domain creation/list/audit, duplicate domain rejection, optimistic version conflict, duplicate-candidate flagging, source/record uniqueness, non-destructive supersession, organization isolation and separate permissions. The exact commit passed source compilation, the full 37-test API suite and SQLite Alembic upgrade/downgrade/upgrade checks. PostgreSQL runtime validation and production acceptance remain open.
