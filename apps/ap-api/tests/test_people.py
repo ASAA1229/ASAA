@@ -105,7 +105,7 @@ def test_employee_profile_update_and_lifecycle_history(client):
         f"/api/v1/hr/employees/{employee['id']}/lifecycle",
         json={
             "status": "Active",
-            "effective_from": "2026-12-01",
+            "effective_from": "2026-11-12",
             "reason": "Start of active engagement"
         },
     )
