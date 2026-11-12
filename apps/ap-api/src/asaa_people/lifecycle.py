@@ -28,6 +28,10 @@ class EmployeeProfilePatch(BaseModel):
     def require_change(self):
         if not self.model_fields_set:
             raise ValueError("At least one profile field must be supplied")
+        if "first_name" in self.model_fields_set and self.first_name is None:
+            raise ValueError("first_name cannot be null")
+        if "last_name" in self.model_fields_set and self.last_name is None:
+            raise ValueError("last_name cannot be null")
         return self
 
 
@@ -104,6 +108,11 @@ def change_employee_lifecycle(
         })
     employee = get_employee(db, employee_id, principal.organization_id)
     previous_status = employee.status
+    if payload.effective_from > date.today():
+        raise HTTPException(status_code=422, detail={
+            "code": "future_lifecycle_transition_not_supported",
+            "message": "Future-dated lifecycle transitions require a scheduling service that is not yet enabled.",
+        })
     if payload.status == employee.status:
         raise HTTPException(status_code=409, detail={"code": "lifecycle_status_unchanged"})
 
@@ -117,6 +126,8 @@ def change_employee_lifecycle(
             "latest_effective_from": latest.effective_from.isoformat(),
         })
 
+    if latest and latest.effective_to and payload.effective_from <= latest.effective_to:
+        raise HTTPException(status_code=409, detail={"code": "lifecycle_effective_period_overlap"})
     if latest and latest.effective_to is None:
         from datetime import timedelta
         latest.effective_to = payload.effective_from - timedelta(days=1)
