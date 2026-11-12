@@ -1,3 +1,5 @@
+from datetime import date
+
 from asaa_ap.security import Principal, get_principal
 
 
@@ -18,7 +20,7 @@ def test_hr_employee_and_effective_dated_employment_history(client):
         json={
             "department_id": "dept-engineering", "position_title": "Software Engineer",
             "employment_type": "Employee", "status": "Active",
-            "effective_from": "2026-11-12", "reason": "Initial appointment"
+            "effective_from": date.today().isoformat(), "reason": "Initial appointment"
         },
     )
     assert record.status_code == 201
@@ -33,7 +35,7 @@ def test_hr_employee_and_effective_dated_employment_history(client):
         f"/api/v1/hr/employees/{employee['id']}/employment-records",
         json={
             "position_title": "Duplicate role", "employment_type": "Employee",
-            "status": "Active", "effective_from": "2026-11-12",
+            "status": "Active", "effective_from": date.today().isoformat(),
             "reason": "Must not overlap the current effective record"
         },
     )
@@ -314,12 +316,18 @@ def test_compensation_requires_independent_approval(client):
     assert approved.status_code == 200
     assert approved.json()["status"] == "Approved"
     assert approved.json()["approved_by"] == "payroll-reviewer"
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "tester", "org-a", frozenset({"payroll:compensation:write"})
+    )
     next_record = client.post("/api/v1/payroll/compensation", json={
         "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
         "gross_amount": "75000.00", "frequency": "Monthly",
         "effective_from": "2027-01-01"
     })
     assert next_record.status_code == 201
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-reviewer", "org-a", frozenset({"payroll:compensation:approve", "payroll:compensation:read"})
+    )
     next_approved = client.post(
         "/api/v1/payroll/compensation/" + next_record.json()["id"] + "/decision",
         json={"decision": "Approved"}
