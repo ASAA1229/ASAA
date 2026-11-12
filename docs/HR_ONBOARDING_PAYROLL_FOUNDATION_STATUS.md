@@ -90,7 +90,7 @@ Important boundaries:
 
 ## Verification
 
-Four automated tests have been added for HR employee/employment history, onboarding template/assignment/task completion, payroll foundation creation and compensation permission separation. They have **not been executed** in this environment.
+Six automated tests are now defined across HR employee/employment history, employee profile/lifecycle updates, onboarding template/assignment/task completion, payroll foundation creation, compensation permission separation and payroll arithmetic validation. They have **not been executed** in this environment. A GitHub Actions workflow (`.github/workflows/people-api-ci.yml`) now runs compile checks and the API test suite on relevant branch pushes and pull requests; no workflow run has been reported yet.
 
 Alembic revision `0003_people_foundation` follows `0002_ar_foundation`. Migration execution, PostgreSQL behavior, identity-provider claims, concurrency, privacy/security review and business UAT remain unverified.
 
