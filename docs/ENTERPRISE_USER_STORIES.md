@@ -114,7 +114,7 @@ As an authorized recruiter, I want to manage vacancies, candidates, interviews a
 ### ASAA-HR-003 — Manage onboarding
 **Priority:** P1  
 As HR, I want configurable onboarding checklists, document collection, asset assignment and access requests so that new joiners are prepared consistently.
-**Implementation status:** Built — CI Passed (API tests and migration chain); task descriptions are snapshotted, optional-only assignments complete correctly; document, asset and access-provisioning integrations remain open.
+**Implementation status:** Built — CI Passed (API tests and migration chain); task descriptions are snapshotted, due dates are editable, optional-only assignments complete correctly and evidence is preserved on partial updates; document, asset and access-provisioning integrations remain open.
 
 ### ASAA-HR-004 — Manage employment changes
 **Priority:** P1  
