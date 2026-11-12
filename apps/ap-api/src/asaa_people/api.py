@@ -235,7 +235,8 @@ def update_onboarding_task(task_id: str, payload: OnboardingTaskUpdate, db: Db,
     if not task:
         raise HTTPException(status_code=404, detail="Onboarding task not found")
     task.status = payload.status
-    task.evidence_reference = payload.evidence_reference
+    if "evidence_reference" in payload.model_fields_set:
+        task.evidence_reference = payload.evidence_reference
     if "due_date" in payload.model_fields_set:
         task.due_date = payload.due_date
     task.completed_at = datetime.now(timezone.utc) if payload.status == "Completed" else None
