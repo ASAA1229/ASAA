@@ -77,3 +77,77 @@ def test_ar_requires_explicit_permissions(client):
     client.app.dependency_overrides[get_principal] = lambda: Principal("reader", "org-a", frozenset({"ar:customer:read"}))
     response = client.post("/api/v1/ar/customers", json={"legal_name": "No Write Permission Ltd"})
     assert response.status_code == 403
+
+
+def test_draft_invoice_can_be_updated_with_version_check(client):
+    customer = create_customer(client)
+    invoice = create_invoice(client, customer["id"])
+    updated = client.put(f"/api/v1/ar/invoices/{invoice['id']}", json={
+        "expected_version": invoice["version"],
+        "issue_date": "2026-11-02",
+        "due_date": "2026-12-15",
+        "notes": "Updated scope",
+        "lines": [{"description": "Revised implementation", "quantity": "3",
+                   "unit_price": "60.00", "tax_amount": "0.00"}]
+    })
+    assert updated.status_code == 200
+    assert str(updated.json()["total"]) == "180.00"
+    assert updated.json()["version"] > invoice["version"]
+    stale = client.put(f"/api/v1/ar/invoices/{invoice['id']}", json={
+        "expected_version": invoice["version"],
+        "issue_date": "2026-11-02", "due_date": "2026-12-15",
+        "lines": [{"description": "Stale update", "quantity": "1", "unit_price": "1.00"}]
+    })
+    assert stale.status_code == 409
+
+
+def test_issued_invoice_cannot_be_edited(client):
+    customer = create_customer(client)
+    invoice = create_invoice(client, customer["id"])
+    client.post(f"/api/v1/ar/invoices/{invoice['id']}/issue", json={
+        "expected_version": invoice["version"], "reason": "Ready to issue"
+    })
+    response = client.put(f"/api/v1/ar/invoices/{invoice['id']}", json={
+        "expected_version": invoice["version"] + 1,
+        "issue_date": "2026-11-02", "due_date": "2026-12-15",
+        "lines": [{"description": "Changed", "quantity": "1", "unit_price": "1.00"}]
+    })
+    assert response.status_code == 409
+
+
+def test_unapplied_receipt_can_be_allocated_later(client):
+    customer = create_customer(client)
+    invoice = create_invoice(client, customer["id"])
+    client.post(f"/api/v1/ar/invoices/{invoice['id']}/issue", json={
+        "expected_version": invoice["version"], "reason": "Ready to issue"
+    })
+    receipt = client.post("/api/v1/ar/receipts", json={
+        "customer_id": customer["id"], "currency": "USD", "amount": "75.00",
+        "received_date": "2026-11-12", "allocations": []
+    })
+    assert receipt.status_code == 201
+    allocated = client.post(f"/api/v1/ar/receipts/{receipt.json()['id']}/allocations", json={
+        "invoice_id": invoice["id"], "amount": "50.00"
+    })
+    assert allocated.status_code == 200
+    assert str(allocated.json()["remaining_unapplied"]) == "25.00"
+    current = client.get(f"/api/v1/ar/invoices/{invoice['id']}").json()
+    assert current["status"] == "Partially Paid"
+    assert str(current["outstanding"]) == "60.00"
+
+
+def test_receipt_reallocation_cannot_exceed_unapplied_balance(client):
+    customer = create_customer(client)
+    invoice = create_invoice(client, customer["id"])
+    client.post(f"/api/v1/ar/invoices/{invoice['id']}/issue", json={
+        "expected_version": invoice["version"], "reason": "Ready to issue"
+    })
+    receipt = client.post("/api/v1/ar/receipts", json={
+        "customer_id": customer["id"], "currency": "USD", "amount": "20.00",
+        "received_date": "2026-11-12"
+    }).json()
+    response = client.post(f"/api/v1/ar/receipts/{receipt['id']}/allocations", json={
+        "invoice_id": invoice["id"], "amount": "25.00"
+    })
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "allocation_exceeds_unapplied_receipt"
