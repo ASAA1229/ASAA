@@ -367,6 +367,28 @@ def test_payroll_run_review_summary_and_close_controls(client):
     client.app.dependency_overrides[get_principal] = lambda: Principal(
         "payroll-approver", "org-a", frozenset({"payroll:run:approve", "payroll:run:close"})
     )
+    returned = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/decision", json={
+        "decision": "Rejected", "approval_note": "Please correct the entry"
+    })
+    assert returned.status_code == 200
+    assert returned.json()["status"] == "Changes Requested"
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "tester", "org-a", frozenset({"payroll:entry:write", "payroll:run:submit"})
+    )
+    corrected = client.patch("/api/v1/payroll/entries/" + entry.json()["id"], json={
+        "currency": "INR", "gross_amount": "51000.00",
+        "deduction_total": "5000.00", "net_amount": "46000.00",
+        "breakdown": {"source": "reviewer correction"}
+    })
+    assert corrected.status_code == 200
+    assert corrected.json()["net_amount"] == "46000.00"
+    resubmitted = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/submit", json={
+        "review_note": "Corrected and resubmitted"
+    })
+    assert resubmitted.status_code == 200
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-approver", "org-a", frozenset({"payroll:run:approve", "payroll:run:close", "payroll:period:close"})
+    )
     approved = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/decision", json={
         "decision": "Approved", "approval_note": "Totals reviewed"
     })
