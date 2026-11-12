@@ -98,3 +98,20 @@ The roadmap must apply the ASAA default branch-name baseline `main`, `dev`, `new
 - Confirm that repositories can be associated with one or more projects where the real model requires it.
 - Confirm that specifications and requirements are versioned and scoped to the correct project.
 - Confirm the preservation/no-write policy for connected repositories.
+
+
+## Enterprise operating platform expansion
+
+The roadmap above describes the original project-intelligence foundation. It is now a capability within the broader ASAA Enterprise Operating Platform. The authoritative organization-wide target scope and delivery model are defined in [Enterprise Operating Model](ENTERPRISE_OPERATING_MODEL.md).
+
+The enterprise roadmap must be refined into department/domain epics after organization discovery. Its initial dependency order is:
+
+1. Organization structure, identity, roles, permissions and approval authority.
+2. Shared workflow, audit, documents, notifications and integration foundations.
+3. Workforce operations: employee lifecycle, attendance, leave, shifts, work logs and timesheets.
+4. Project, product, engineering, testing, release and service delivery operations.
+5. Customer, sales, pricing, contracts, invoicing and finance.
+6. Procurement, vendors, assets, inventory, legal, compliance, risk and security.
+7. Executive reporting, cross-domain analytics and governed AI/automation.
+
+This sequence is a planning baseline, not authorization to choose a technology stack or encode unconfirmed HR, payroll, tax, accounting or legal policies. Each capability requires validated stories, owners, access rules, acceptance criteria and test evidence before implementation.
