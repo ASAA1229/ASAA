@@ -122,6 +122,11 @@ def test_employee_profile_update_and_lifecycle_history(client):
     assert profile.status_code == 200
     assert profile.json()["preferred_name"] == "Ash"
 
+    invalid_transition = client.post(
+        "/api/v1/hr/employees/" + employee["id"] + "/lifecycle",
+        json={"status": "Suspended", "effective_from": date.today().isoformat(), "reason": "Invalid transition"}
+    )
+    assert invalid_transition.status_code == 409
     transition = client.post(
         f"/api/v1/hr/employees/{employee['id']}/lifecycle",
         json={
