@@ -201,3 +201,73 @@ Before enabling dependent production workflows, confirm: legal entity and locati
 ## 9. Acceptance approach
 
 Each epic is decomposed into uniquely identified requirements/stories with priority, owner, rationale, acceptance criteria, dependencies, status, evidence and decision history. A release is accepted only when the applicable criteria have been tested in the target environment, security and operational gates are satisfied, and business owners approve the workflow. Deferred capabilities remain visible in the backlog rather than being silently removed.
+
+
+## 10. Current API reference
+
+The following route groups describe the implemented API surface on the current branch. The live OpenAPI schema for the checked-out revision remains authoritative.
+
+### Supplier / Accounts Payable
+- Supplier operations: `/api/v1/suppliers` (create, list, detail, controlled update and status transition).
+- Permissions: `supplier:read`, `supplier:write`, `supplier:status`, `supplier:verify`; shared audit access: `audit:read`.
+- New suppliers begin in Draft; activation requires verification permission. Supplier records are organization-scoped and have no delete endpoint.
+
+### Accounts Receivable
+- Customers: `POST/GET /api/v1/ar/customers`, `GET /api/v1/ar/customers/{customer_id}`.
+- Invoices: `POST/GET /api/v1/ar/invoices`, `PUT /api/v1/ar/invoices/{invoice_id}` (Draft only), `GET /api/v1/ar/invoices/{invoice_id}`, `POST /api/v1/ar/invoices/{invoice_id}/issue`.
+- Receipts: `POST/GET /api/v1/ar/receipts`, `POST /api/v1/ar/receipts/{receipt_id}/allocations`.
+- Permissions: `ar:customer:read`, `ar:customer:write`, `ar:invoice:read`, `ar:invoice:write`, `ar:invoice:issue`, `ar:receipt:read`, `ar:receipt:write`, `ar:receipt:allocate`, and `audit:read`.
+
+### HR and employee lifecycle
+- Employees: `POST/GET /api/v1/hr/employees`, `GET/PATCH /api/v1/hr/employees/{employee_id}`.
+- Lifecycle and employment: `POST /api/v1/hr/employees/{employee_id}/lifecycle`, `POST/GET /api/v1/hr/employees/{employee_id}/employment-records`.
+- Documents: `POST/GET /api/v1/hr/employees/{employee_id}/documents`, `PATCH /api/v1/hr/documents/{document_id}/status`.
+- Assets: `POST/GET /api/v1/hr/employees/{employee_id}/assets`, `POST /api/v1/hr/assets/{asset_id}/return`.
+- Leave: `POST/GET /api/v1/hr/employees/{employee_id}/leave-requests`, `POST /api/v1/hr/leave-requests/{request_id}/review`.
+- Exit: `POST/GET /api/v1/hr/employees/{employee_id}/exit-cases`, `GET /api/v1/hr/exit-cases`, `POST /api/v1/hr/exit-cases/{case_id}/complete`.
+- Permissions: `hr:employee:read`, `hr:employee:write`, `hr:employee:lifecycle`, `hr:employment:write`, `hr:document:read`, `hr:document:write`, `hr:asset:read`, `hr:asset:write`, `hr:leave:read`, `hr:leave:request`, `hr:leave:review`, `hr:exit:read`, `hr:exit:write`, `hr:exit:complete`.
+
+### Onboarding and offboarding
+- Templates: `POST/GET /api/v1/onboarding/templates`, `PUT /api/v1/onboarding/templates/{template_id}`, `PATCH /api/v1/onboarding/templates/{template_id}/status`.
+- Assignments/tasks: `POST/GET /api/v1/onboarding/assignments`, `PATCH /api/v1/onboarding/tasks/{task_id}`, `PATCH /api/v1/onboarding/tasks/{task_id}/assignee`.
+- Permissions: `onboarding:read`, `onboarding:template:write`, `onboarding:assignment:write`, `onboarding:task:update`, `onboarding:task:assign`.
+
+### Compensation and payroll
+- Compensation: `POST/GET /api/v1/payroll/compensation`, `POST /api/v1/payroll/compensation/{record_id}/decision`.
+- Periods/runs: `POST/GET /api/v1/payroll/periods`, `POST /api/v1/payroll/periods/{period_id}/close`, `POST/GET /api/v1/payroll/runs`, `POST/GET /api/v1/payroll/runs/{run_id}/entries`, `GET /api/v1/payroll/runs/{run_id}/summary`, `POST /api/v1/payroll/runs/{run_id}/submit`, `POST /api/v1/payroll/runs/{run_id}/decision`, `PATCH /api/v1/payroll/entries/{entry_id}`, `POST /api/v1/payroll/runs/{run_id}/close`.
+- Permissions: `payroll:compensation:read`, `payroll:compensation:write`, `payroll:compensation:approve`, `payroll:period:write`, `payroll:period:close`, `payroll:run:write`, `payroll:run:submit`, `payroll:run:approve`, `payroll:run:close`, `payroll:entry:write`, `payroll:read`.
+- Payroll permissions are separate from general HR permissions. Assign only the minimum approved claims; approval permissions belong to independently authorized reviewers.
+
+## 11. Initial project-intelligence proof of concept
+
+The initial project/repository intelligence slice is deliberately read-only. Its validation workflow is:
+1. Register a workspace and a real project with purpose, owner and scope.
+2. Capture stakeholder requests and their source.
+3. Connect an authorized repository using read-only access.
+4. Discover provider metadata, default branch, branches, revisions and directory tree without executing files.
+5. Select relevant documentation/source paths and record exact evidence references.
+6. Capture requirements, priorities, owners and measurable acceptance criteria.
+7. Link findings to requirements without automatically marking them complete.
+8. Record dependencies, risks, assumptions, decisions and unknowns.
+9. Generate project summaries and evidence-based gap reports.
+10. Obtain project-owner/technical-reviewer validation.
+
+POC acceptance requires project/repository registration; read-only branch and directory discovery; branch-name baseline comparison; exact revision/path provenance; requirement and evidence separation; visible unknown/inferred states; reviewer decisions; traceable reports; audit history; and proof that no repository mutation or script execution occurred.
+
+The project-intelligence capability is not yet represented by a running application in this repository. Its workflow remains a target requirement, not an implemented feature.
+
+## 12. Additional enterprise gap-closure requirements
+
+The consolidated backlog must retain the following cross-cutting capabilities as explicit requirements rather than silently dropping them:
+- Company establishment lifecycle, legal-entity activation gates and jurisdiction-aware configuration.
+- Delegations, authority expiry, policy exceptions, emergency access and decision registers.
+- Configurable master data, data ownership, source lineage and effective-dated policy versions.
+- Cross-domain identity and record links without duplicate sources of truth.
+- Integration health, incremental synchronization, idempotent retry, reconciliation and stale-data detection.
+- Data classification, retention/legal hold, lawful deletion, export and privacy request workflows.
+- Backup/restore, disaster recovery, incident response and operational readiness.
+- Notifications, reminders, escalation, search, controlled export and executive reporting.
+- Shared engineering services and portfolio visibility without forcing identical project stacks or workflows.
+- Guarded AI recommendations and automation with evidence, scoped permissions, human approval, dry-run, audit and recovery.
+
+These remain planned requirements until implementation and acceptance evidence exists.
