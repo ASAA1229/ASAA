@@ -49,6 +49,7 @@ class OnboardingTemplateCreate(StrictModel):
     name: str = Field(min_length=1, max_length=180)
     description: str | None = None
     employment_type: str | None = Field(default=None, max_length=40)
+    workflow_type: str = Field(default="Onboarding", pattern="^(Onboarding|Offboarding)$")
     tasks: list[OnboardingTaskDefinition] = Field(min_length=1, max_length=100)
 
 
@@ -164,6 +165,7 @@ class EmployeeExitCreate(StrictModel):
     planned_last_day: date
     reason_category: str = Field(min_length=1, max_length=64)
     notes: str | None = Field(default=None, max_length=4000)
+    offboarding_template_id: str | None = None
 
 
 class OnboardingTemplateStatusUpdate(StrictModel):
