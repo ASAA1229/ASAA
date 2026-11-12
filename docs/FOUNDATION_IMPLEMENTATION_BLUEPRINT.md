@@ -1,4 +1,4 @@
-# ASAA Organization Command Center — Foundation Implementation Blueprint
+# ASAA Project Portfolio Command Center — Foundation Blueprint
 
 **Target stories:** US-028, US-029, US-030, US-031 and US-032  
 **Target branch:** `new`  
