@@ -12,7 +12,8 @@ ASAA/
 │       ├── migrations/
 │       ├── src/
 │       │   ├── asaa_ap/       # shared API, finance/AP/AR, security, database
-│       │   └── asaa_people/   # HR, onboarding/offboarding, payroll
+│       │   ├── asaa_people/   # HR, onboarding/offboarding, payroll
+│       │   └── asaa_governance/ # master data, decisions and authority register
 │       └── tests/
 └── docs/
     ├── ARCHITECTURE.md
