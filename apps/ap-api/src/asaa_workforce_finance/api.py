@@ -55,6 +55,8 @@ def create_timesheet(payload: TimesheetCreate, db: Db,
 def list_timesheets(db: Db, principal: Annotated[Principal, Depends(require_permission("tms:timesheet:read"))],
     status: str | None = None, limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0)):
     stmt = select(Timesheet).where(Timesheet.organization_id == principal.organization_id)
+    if "tms:timesheet:read:all" not in principal.permissions:
+        stmt = stmt.where(Timesheet.employee_subject == principal.subject)
     if status:
         stmt = stmt.where(Timesheet.status == status)
     return db.scalars(stmt.order_by(Timesheet.created_at.desc()).offset(offset).limit(limit)).all()
@@ -113,6 +115,8 @@ def create_expense(payload: ExpenseCreate, db: Db,
 def list_expenses(db: Db, principal: Annotated[Principal, Depends(require_permission("expense:claim:read"))],
     status: str | None = None, limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0)):
     stmt = select(ExpenseClaim).where(ExpenseClaim.organization_id == principal.organization_id)
+    if "expense:claim:read:all" not in principal.permissions:
+        stmt = stmt.where(ExpenseClaim.employee_subject == principal.subject)
     if status:
         stmt = stmt.where(ExpenseClaim.status == status)
     return db.scalars(stmt.order_by(ExpenseClaim.created_at.desc()).offset(offset).limit(limit)).all()
