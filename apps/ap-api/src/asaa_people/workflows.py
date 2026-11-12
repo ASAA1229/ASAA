@@ -12,13 +12,14 @@ from asaa_ap.security import Principal, require_permission
 from asaa_people.models import (
     Employee, EmploymentRecord, EmployeeDocument, EmployeeAsset, LeaveRequest,
     EmployeeExitCase, OnboardingTemplate, OnboardingTask, OnboardingAssignment,
-    CompensationRecord, PayrollRun, PayrollEntry, PayrollPeriod,
+    CompensationRecord, PayrollRun, PayrollEntry, PayrollPeriod, OnboardingTaskTemplate,
 )
 from asaa_people.schemas import (
     EmployeeDocumentCreate, EmployeeAssetCreate, EmployeeAssetReturn,
     LeaveRequestCreate, LeaveRequestReview, EmployeeExitCreate,
     OnboardingTemplateStatusUpdate, OnboardingTaskAssignment,
-    CompensationDecision, PayrollRunReview,
+    CompensationDecision, PayrollRunReview, OnboardingTemplateReplace,
+    EmployeeDocumentStatusUpdate,
 )
 
 router = APIRouter(tags=["People Operations"])
@@ -503,3 +504,82 @@ def close_payroll_run(run_id: str, db: Db,
     db.commit()
     db.refresh(run)
     return serialize(run)
+
+
+@router.patch("/api/v1/hr/documents/{document_id}/status")
+def update_employee_document_status(document_id: str, payload: EmployeeDocumentStatusUpdate, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("hr:document:write"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    row = db.scalar(select(EmployeeDocument).where(
+        EmployeeDocument.id == document_id,
+        EmployeeDocument.organization_id == principal.organization_id,
+    ))
+    if not row:
+        raise HTTPException(status_code=404, detail="Employee document not found")
+    row.status = payload.status
+    audit(db, principal, "employee_document.status_changed", "hr_employee_document", row.id,
+          {"status": row.status}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return serialize(row)
+
+
+@router.put("/api/v1/onboarding/templates/{template_id}")
+def replace_onboarding_template(template_id: str, payload: OnboardingTemplateReplace, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("onboarding:template:write"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    row = db.scalar(select(OnboardingTemplate).where(
+        OnboardingTemplate.id == template_id,
+        OnboardingTemplate.organization_id == principal.organization_id,
+    ))
+    if not row:
+        raise HTTPException(status_code=404, detail="Onboarding template not found")
+    if not row.active:
+        raise HTTPException(status_code=409, detail={"code": "inactive_template_not_editable"})
+    row.name = payload.name
+    row.description = payload.description
+    row.employment_type = payload.employment_type
+    row.version += 1
+    old_tasks = db.scalars(select(OnboardingTaskTemplate).where(
+        OnboardingTaskTemplate.template_id == row.id
+    )).all()
+    for task in old_tasks:
+        db.delete(task)
+    db.flush()
+    for task in payload.tasks:
+        db.add(OnboardingTaskTemplate(template_id=row.id, **task.model_dump()))
+    audit(db, principal, "onboarding_template.version_created", "onboarding_template", row.id,
+          {"version": row.version, "task_count": len(payload.tasks)}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return serialize(row)
+
+
+@router.post("/api/v1/payroll/periods/{period_id}/close")
+def close_payroll_period(period_id: str, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("payroll:period:close"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    period = db.scalar(select(PayrollPeriod).where(
+        PayrollPeriod.id == period_id,
+        PayrollPeriod.organization_id == principal.organization_id,
+    ))
+    if not period:
+        raise HTTPException(status_code=404, detail="Payroll period not found")
+    if period.status != "Open":
+        raise HTTPException(status_code=409, detail={"code": "payroll_period_not_open"})
+    runs = db.scalars(select(PayrollRun).where(
+        PayrollRun.organization_id == principal.organization_id,
+        PayrollRun.period_id == period.id,
+    )).all()
+    if not runs or any(run.status != "Closed" for run in runs):
+        raise HTTPException(status_code=409, detail={
+            "code": "payroll_period_runs_not_all_closed",
+            "run_count": len(runs),
+            "open_run_count": sum(run.status != "Closed" for run in runs),
+        })
+    period.status = "Closed"
+    audit(db, principal, "payroll_period.closed", "payroll_period", period.id,
+          {"run_count": len(runs)}, x_correlation_id)
+    db.commit()
+    db.refresh(period)
+    return serialize(period)
