@@ -7,12 +7,12 @@ from asaa_ap.database import get_db
 from asaa_ap.models import ARCustomer, ARReceipt, ARReceiptAllocation
 from asaa_ap.schemas_ar import (
     ARCustomerCreate, ARCustomerRead, ARInvoiceCreate, ARInvoiceRead,
-    ARInvoiceIssue, ARReceiptCreate, ARReceiptRead,
+    ARInvoiceIssue, ARInvoiceUpdate, ARReceiptCreate, ARReceiptRead, ARReceiptReallocation,
 )
 from asaa_ap.security import Principal, require_permission
 from asaa_ap.ar_service import (
     create_customer, create_invoice, create_receipt, get_customer,
-    get_invoice, issue_invoice, list_invoices, money,
+    get_invoice, issue_invoice, list_invoices, money, update_draft_invoice, allocate_unapplied_receipt,
 )
 
 router = APIRouter(prefix="/api/v1/ar", tags=["Accounts Receivable"])
@@ -61,6 +61,13 @@ def invoice_detail(invoice_id: str, db: Db,
     return get_invoice(db, invoice_id, principal)
 
 
+@router.put("/invoices/{invoice_id}", response_model=ARInvoiceRead)
+def update_invoice(invoice_id: str, payload: ARInvoiceUpdate, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("ar:invoice:write"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    return update_draft_invoice(db, invoice_id, payload, principal, x_correlation_id)
+
+
 @router.post("/invoices/{invoice_id}/issue", response_model=ARInvoiceRead)
 def issue(invoice_id: str, payload: ARInvoiceIssue, db: Db,
     principal: Annotated[Principal, Depends(require_permission("ar:invoice:issue"))],
@@ -98,3 +105,12 @@ def receipts(db: Db,
             "created_at": row.created_at, "created_by": row.created_by,
         })
     return result
+
+
+@router.post("/receipts/{receipt_id}/allocations")
+def reallocate_receipt(receipt_id: str, payload: ARReceiptReallocation, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("ar:receipt:allocate"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    return allocate_unapplied_receipt(
+        db, receipt_id, payload.invoice_id, payload.amount, principal, x_correlation_id
+    )
