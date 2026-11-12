@@ -66,6 +66,7 @@ class OnboardingTemplate(Base):
     description: Mapped[str | None] = mapped_column(Text)
     employment_type: Mapped[str | None] = mapped_column(String(40))
     active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
 
