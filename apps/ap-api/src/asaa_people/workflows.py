@@ -590,7 +590,8 @@ def replace_onboarding_template(template_id: str, payload: OnboardingTemplateRep
     row.name = payload.name
     row.description = payload.description
     row.employment_type = payload.employment_type
-    row.workflow_type = payload.workflow_type
+    if payload.workflow_type is not None:
+        row.workflow_type = payload.workflow_type
     row.version += 1
     old_tasks = db.scalars(select(OnboardingTaskTemplate).where(
         OnboardingTaskTemplate.template_id == row.id
