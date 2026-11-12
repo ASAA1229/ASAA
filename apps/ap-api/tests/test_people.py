@@ -213,14 +213,30 @@ def test_employee_documents_assets_and_offboarding_controls(client):
         "issued_on": "2026-11-12", "condition_on_issue": "Good"
     })
     assert asset.status_code == 201
+    template = client.post("/api/v1/onboarding/templates", json={
+        "template_code": "EXIT-01", "name": "Standard offboarding checklist",
+        "workflow_type": "Offboarding",
+        "tasks": [{"title": "Complete handover and revoke access", "owner_role": "IT/Manager", "required": True}]
+    })
+    assert template.status_code == 201
     exit_case = client.post(f"/api/v1/hr/employees/{employee['id']}/exit-cases", json={
-        "planned_last_day": "2026-11-12", "reason_category": "Voluntary",
-        "notes": "Handover and access review to be completed"
+        "planned_last_day": date.today().isoformat(), "reason_category": "Voluntary",
+        "notes": "Handover and access review to be completed",
+        "offboarding_template_id": template.json()["id"]
     })
     assert exit_case.status_code == 201
     blocked = client.post(f"/api/v1/hr/exit-cases/{exit_case.json()['id']}/complete")
     assert blocked.status_code == 409
-    assert blocked.json()["detail"]["code"] == "outstanding_assets"
+    assert blocked.json()["detail"]["code"] == "offboarding_checklist_incomplete"
+    assignments = client.get("/api/v1/onboarding/assignments?employee_id=" + employee["id"]).json()
+    exit_task = assignments[0]["tasks"][0]
+    completed_task = client.patch("/api/v1/onboarding/tasks/" + exit_task["id"], json={
+        "status": "Completed"
+    })
+    assert completed_task.status_code == 200
+    blocked_assets = client.post(f"/api/v1/hr/exit-cases/{exit_case.json()['id']}/complete")
+    assert blocked_assets.status_code == 409
+    assert blocked_assets.json()["detail"]["code"] == "outstanding_assets"
 
     returned = client.post(f"/api/v1/hr/assets/{asset.json()['id']}/return", json={
         "returned_on": "2026-11-12", "condition_on_return": "Good"
