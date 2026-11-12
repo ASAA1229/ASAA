@@ -158,3 +158,19 @@ class ARReceiptRead(BaseModel):
     unapplied_amount: Decimal
     created_at: datetime
     created_by: str
+
+
+class ARInvoiceUpdate(BaseModel):
+    """Replace a draft invoice's editable fields using optimistic concurrency."""
+    model_config = ConfigDict(extra="forbid")
+    expected_version: int = Field(ge=1)
+    issue_date: date
+    due_date: date
+    notes: str | None = Field(default=None, max_length=4000)
+    lines: list[ARInvoiceLineInput] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def dates_valid(self):
+        if self.due_date < self.issue_date:
+            raise ValueError("Due date cannot precede issue date")
+        return self
