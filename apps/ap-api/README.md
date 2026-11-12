@@ -53,6 +53,6 @@ This slice does not implement purchase requests, quotations, purchase orders, go
 
 - `ar:customer:read`, `ar:customer:write`
 - `ar:invoice:read`, `ar:invoice:write`, `ar:invoice:issue`
-- `ar:receipt:read`, `ar:receipt:write`
+- `ar:receipt:read`, `ar:receipt:write`, `ar:receipt:allocate`
 
-See [AR Initial Implementation Status](../../docs/AR_INITIAL_IMPLEMENTATION_STATUS.md) for scope, safeguards and outstanding work.
+Draft invoice editing and unapplied receipt allocation are included in the current AR slice. See [AR Initial Implementation Status](../../docs/AR_INITIAL_IMPLEMENTATION_STATUS.md) for scope, safeguards and outstanding work.
