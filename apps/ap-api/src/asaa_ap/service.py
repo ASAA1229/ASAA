@@ -1,3 +1,4 @@
+import json
 import re
 import uuid
 from sqlalchemy import or_, select
@@ -6,17 +7,20 @@ from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
+from asaa_ap.config import get_settings
 from asaa_ap.models import AuditEvent, Supplier
 from asaa_ap.schemas import SupplierCreate, SupplierUpdate, StatusChange
-from asaa_ap.security import Principal
-
-ALLOWED_TRANSITIONS = {
-    "Draft": {"Pending Verification", "Archived"},
-    "Pending Verification": {"Active", "On Hold", "Archived"},
-    "Active": {"On Hold", "Suspended", "Archived"},
-    "On Hold": {"Active", "Suspended", "Archived"},
-    "Suspended": {"Active", "On Hold", "Archived"},
-    "Archived": set(),
+from asaa_ap.security importdef allowed_status_transitions() -> dict[str, set[str]]:
+    expected = {"Draft", "Pending Verification", "Active", "On Hold", "Suspended", "Archived"}
+    try:
+        raw = json.loads(get_settings().supplier_status_transitions_json)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=503, detail="Supplier status transition configuration is invalid") from None
+    if not isinstance(raw, dict) or set(raw) != expected:
+        raise HTTPException(status_code=503, detail="Supplier status transition configuration is incomplete")
+    if any(not isinstance(targets, list) or any(target not in expected for target in targets) for targets in raw.values()):
+        raise HTTPException(status_code=503, detail="Supplier status transition configuration is invalid")
+    return {state: set(targets) for state, targets in raw.items()}d": set(),
 }
 
 
@@ -131,7 +135,7 @@ def change_supplier_status(db: Session, supplier_id: str, payload: StatusChange,
         raise HTTPException(status_code=404, detail="Supplier not found")
     if row.version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"code": "version_conflict", "current_version": row.version})
-    if payload.status not in ALLOWED_TRANSITIONS[row.status]:
+    if payload.status not in allowed_status_transitions()[row.status]:
         raise HTTPException(status_code=409, detail={"code": "invalid_status_transition", "from": row.status, "to": payload.status})
     if payload.status == "Active" and "supplier:verify" not in principal.permissions:
         raise HTTPException(status_code=403, detail="Supplier verification permission required")
