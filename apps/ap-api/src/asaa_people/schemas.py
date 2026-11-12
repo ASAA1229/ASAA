@@ -61,6 +61,7 @@ class OnboardingAssignmentCreate(StrictModel):
 class OnboardingTaskUpdate(StrictModel):
     status: str = Field(pattern="^(Pending|In Progress|Blocked|Completed|Waived)$")
     evidence_reference: str | None = Field(default=None, max_length=500)
+    due_date: date | None = None
 
 
 class CompensationCreate(StrictModel):
