@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Literal
 
@@ -33,7 +34,7 @@ class SupplierCreate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, value):
-        if value is not None and ("@" not in value or value.startswith("@") or value.endswith("@")):
+        if value is not None and not re.fullmatch(r"[^@\\s]+@[^@\\s]+\\.[^@\\s]+", value):
             raise ValueError("Invalid email address")
         return value.strip().casefold() if value else value
 
