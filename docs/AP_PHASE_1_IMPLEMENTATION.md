@@ -7,7 +7,7 @@
 
 ## Repository baseline
 
-The inspected `new` branch contained planning documents only. No application source, database configuration, authentication provider, authorization framework, audit service, migrations or automated tests existed to reuse. This implementation therefore establishes a bounded AP service foundation.
+At the start of AP Phase 1, the `new` branch contained planning documents only. AP Phase 1 subsequently established the shared finance API package, database foundation, JWT principal verification, permission dependency, audit-event model, migrations and automated tests. AR now reuses those shared components.
 
 ## Technology selection
 
@@ -37,19 +37,19 @@ Supplier master records are structured, relational, organization-scoped and audi
 
 | Capability | Build status | Verification status |
 |---|---|---|
-| Supplier registration and profile API | Built | Passed — automated API test |
-| Validation and duplicate detection | Built | Passed — automated API test |
-| Status lifecycle and activation permission | Built | Passed — automated API test |
-| Controlled updates and optimistic concurrency | Built | Passed — automated API test |
-| Organization-level record isolation | Built | Passed — automated API test |
-| Permission enforcement | Built | Passed — permission-denial test with injected test principal |
-| Supplier audit events | Built | Passed — create/update/status audit assertions |
-| Initial migration | Built | Passed — applied to isolated SQLite database |
+| Supplier registration and profile API | Built Not Tested | Not independently re-run during the AR change |
+| Validation and duplicate detection | Built Not Tested | Not independently re-run during the AR change |
+| Status lifecycle and activation permission | Built Not Tested | Not independently re-run during the AR change |
+| Controlled updates and optimistic concurrency | Built Not Tested | Not independently re-run during the AR change |
+| Organization-level record isolation | Built Not Tested | Not independently re-run during the AR change |
+| Permission enforcement | Built Not Tested | Test case exists; not independently re-run during the AR change |
+| Supplier audit events | Built Not Tested | Test assertions exist; not independently re-run during the AR change |
+| Initial migration | Built Not Tested | Migration source exists; not independently re-applied during the AR change |
 | RS256 verification with real identity provider/key set | Built Not Tested | Identity provider/key configuration unavailable |
 | PostgreSQL runtime integration | Built Not Tested | No PostgreSQL server/credentials available |
 | User interface | Not Started | Not applicable |
 
-Local verification: `pytest -q` — **10 passed**; `python -m compileall -q src migrations tests` — passed; Alembic migration applied successfully to an isolated SQLite database. No production deployment or real identity integration was performed.
+Verification note: a prior development note recorded 10 tests and an SQLite migration as passed, but execution logs are not available for independent confirmation in this workspace. Treat the AP suite and migration as Built Not Tested until re-run against the current shared finance code. No production deployment or real identity integration was performed.
 
 ## Not included
 

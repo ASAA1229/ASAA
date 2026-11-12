@@ -1,6 +1,6 @@
-# ASAA Accounts Payable API — Phase 1
+# ASAA Finance API — AP and AR foundations
 
-Initial API-first supplier foundation. This is a module-specific technology choice, not a mandatory ASAA-wide stack.
+API-first finance service. AP supplier management and the initial AR customer, invoice and receipt workflows share one API package and security/database foundation. This is a module-specific technology choice, not a mandatory ASAA-wide stack.
 
 ## Technology
 
@@ -48,3 +48,11 @@ This slice does not implement purchase requests, quotations, purchase orders, go
 - No UI is included in this API-first vertical slice.
 - Audit events are append-only through this application interface; database-level immutability/retention controls require infrastructure policy.
 - PostgreSQL migration is supplied; automated tests use isolated SQLite databases.
+
+## Accounts Receivable permissions
+
+- `ar:customer:read`, `ar:customer:write`
+- `ar:invoice:read`, `ar:invoice:write`, `ar:invoice:issue`
+- `ar:receipt:read`, `ar:receipt:write`
+
+See [AR Initial Implementation Status](../../docs/AR_INITIAL_IMPLEMENTATION_STATUS.md) for scope, safeguards and outstanding work.

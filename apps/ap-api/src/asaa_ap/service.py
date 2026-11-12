@@ -1,6 +1,5 @@
 import json
 import re
-import uuid
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
@@ -10,7 +9,10 @@ from fastapi import HTTPException
 from asaa_ap.config import get_settings
 from asaa_ap.models import AuditEvent, Supplier
 from asaa_ap.schemas import SupplierCreate, SupplierUpdate, StatusChange
-from asaa_ap.security importdef allowed_status_transitions() -> dict[str, set[str]]:
+from asaa_ap.security import Principal
+
+
+def allowed_status_transitions() -> dict[str, set[str]]:
     expected = {"Draft", "Pending Verification", "Active", "On Hold", "Suspended", "Archived"}
     try:
         raw = json.loads(get_settings().supplier_status_transitions_json)
@@ -20,8 +22,7 @@ from asaa_ap.security importdef allowed_status_transitions() -> dict[str, set[st
         raise HTTPException(status_code=503, detail="Supplier status transition configuration is incomplete")
     if any(not isinstance(targets, list) or any(not isinstance(target, str) or target not in expected for target in targets) for targets in raw.values()):
         raise HTTPException(status_code=503, detail="Supplier status transition configuration is invalid")
-    return {state: set(targets) for state, targets in raw.items()}d": set(),
-}
+    return {state: set(targets) for state, targets in raw.items()}
 
 
 def normalize_name(value: str) -> str:
@@ -32,10 +33,10 @@ def normalize_email(value: str | None) -> str | None:
     return value.casefold().strip() if value else None
 
 
-def record_audit(db: Session, principal: Principal, action: str, entity_id: str, details: dict, correlation_id: str | None):
+def record_audit(db: Session, principal: Principal, action: str, entity_id: str, details: dict, correlation_id: str | None, entity_type: str = "supplier"):
     db.add(AuditEvent(
         organization_id=principal.organization_id, actor_id=principal.subject, action=action,
-        entity_type="supplier", entity_id=entity_id, details=details, correlation_id=correlation_id,
+        entity_type=entity_type, entity_id=entity_id, details=details, correlation_id=correlation_id,
     ))
 
 
@@ -63,16 +64,16 @@ def find_duplicates(db: Session, organization_id: str, legal_name: str, email: s
 
 
 def create_supplier(db: Session, payload: SupplierCreate, principal: Principal, correlation_id: str | None):
-    duplicates = find_duplicates(db, principal.organization_id, payload.legal_name, str(payload.email) if payload.email else None, payload.registration_reference)
+    duplicates = find_duplicates(db, principal.organization_id, payload.legal_name, payload.email, payload.registration_reference)
     if duplicates:
         raise HTTPException(status_code=409, detail={"code": "possible_duplicate_supplier", "matches": duplicates})
     row = Supplier(
         organization_id=principal.organization_id, supplier_code=payload.supplier_code,
         legal_name=payload.legal_name, normalized_legal_name=normalize_name(payload.legal_name),
-        trading_name=payload.trading_name, email=str(payload.email) if payload.email else None,
-        normalized_email=normalize_email(str(payload.email) if payload.email else None),
-        phone=payload.phone, website=str(payload.website) if payload.website else None,
-        category=payload.category, registration_reference=payload.registration_reference,
+        trading_name=payload.trading_name, email=payload.email,
+        normalized_email=normalize_email(payload.email), phone=payload.phone,
+        website=str(payload.website) if payload.website else None, category=payload.category,
+        registration_reference=payload.registration_reference,
         addresses=[a.model_dump() for a in payload.addresses], notes=payload.notes,
         status="Draft", created_by=principal.subject, updated_by=principal.subject,
     )
@@ -85,7 +86,7 @@ def create_supplier(db: Session, payload: SupplierCreate, principal: Principal, 
         return row
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail={"code": "supplier_conflict", "message": "Supplier code or normalized legal name already exists"}) from None
+        raise HTTPException(status_code=409, detail={"code": "supplier_conflict"}) from None
 
 
 def update_supplier(db: Session, supplier_id: str, payload: SupplierUpdate, principal: Principal, correlation_id: str | None):
@@ -104,7 +105,6 @@ def update_supplier(db: Session, supplier_id: str, payload: SupplierUpdate, prin
             raise HTTPException(status_code=409, detail={"code": "possible_duplicate_supplier", "matches": duplicates})
         changes["normalized_legal_name"] = normalize_name(changes["legal_name"])
     if "email" in changes:
-        changes["email"] = str(changes["email"]) if changes["email"] else None
         changes["normalized_email"] = normalize_email(changes["email"])
     if "website" in changes:
         changes["website"] = str(changes["website"]) if changes["website"] else None
@@ -117,12 +117,9 @@ def update_supplier(db: Session, supplier_id: str, payload: SupplierUpdate, prin
     row.updated_by = principal.subject
     try:
         db.flush()
-    except StaleDataError:
+    except (StaleDataError, IntegrityError):
         db.rollback()
-        raise HTTPException(status_code=409, detail={"code": "version_conflict"}) from None
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail={"code": "supplier_conflict", "message": "Supplier code or normalized legal name already exists"}) from None
+        raise HTTPException(status_code=409, detail={"code": "supplier_conflict_or_version_conflict"}) from None
     record_audit(db, principal, "supplier.updated", row.id, {"changed_fields": sorted(changes), "version": row.version, "reverification_required": bool(identity_changed and row.status == "Pending Verification")}, correlation_id)
     db.commit()
     db.refresh(row)

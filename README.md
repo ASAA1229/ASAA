@@ -33,7 +33,7 @@ ASAA's original project/repository intelligence scope remains part of the wider 
 
 ## Current status
 
-The repository currently contains planning documentation. The enterprise-wide operating model is being defined before production implementation. No application feature, HR/payroll process, accounting integration, identity integration or deployment is claimed as implemented.
+The repository contains the enterprise planning baseline and an initial API-first finance implementation. AP supplier management and the first AR customer/invoice/receipt workflows have source, migration and test cases on `new`; these are not yet declared production-ready. Identity-provider and PostgreSQL runtime integrations remain unverified.
 
 ## Documentation
 
@@ -50,3 +50,5 @@ The repository currently contains planning documentation. The enterprise-wide op
 - [Organization Preservation Policy](docs/ORGANIZATION_PRESERVATION_POLICY.md)
 - [Branch Standard](docs/BRANCH_STANDARD.md)
 - [AP Phase 1 Implementation Status](docs/AP_PHASE_1_IMPLEMENTATION.md)
+- [AR Initial Implementation Status](docs/AR_INITIAL_IMPLEMENTATION_STATUS.md)
+- [Finance API — AP and AR](apps/ap-api/README.md)
