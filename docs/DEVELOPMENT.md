@@ -4,6 +4,11 @@
 
 ```text
 ASAA/
+├── public/                 # static files and PWA assets
+├── src/                    # React application source and UI assets
+├── index.html
+├── package.json
+├── vite.config.js
 ├── README.md
 ├── apps/
 │   └── ap-api/
@@ -168,10 +173,9 @@ The running OpenAPI document is the definitive route/schema reference for the cu
 
 ## 10. Web portal
 
-The responsive ASAA portal lives in `apps/portal` and is an installable Progressive Web App (PWA) for desktop, tablet and mobile browsers. It uses React and Vite as a module-level UI choice. From the repository root:
+The responsive ASAA portal lives at the repository root (`src/`, `public/`) and is an installable Progressive Web App (PWA) for desktop, tablet and mobile browsers. It uses React and Vite as a module-level UI choice. From the repository root:
 
 ```bash
-cd apps/portal
 npm install
 npm run dev
 npm run build

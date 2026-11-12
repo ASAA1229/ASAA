@@ -15,7 +15,7 @@ ASAA is not limited to HR, ERP, CRM, project management or software development.
 
 ## Current repository implementation
 
-The current executable slice is an API-first Python service in `apps/ap-api`. It contains:
+The current executable slice includes a React/Vite web client at the repository root (`src/`, `public/`) and an API-first Python service in `apps/ap-api`. The API contains:
 
 - Accounts Payable supplier foundation.
 - Accounts Receivable customer, invoice and receipt foundation.
@@ -27,7 +27,20 @@ The current executable slice is an API-first Python service in `apps/ap-api`. It
 - Initial TMS timesheet capture, submission and independent review workflows.
 - Initial expense claim capture, submission, independent review and separate reimbursement recording.
 
-These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The GAP-024 baseline previously passed source compilation, 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. GAP-002 now adds decision/delegation routes and tests; its CI validation is pending. TMS and expense API foundations are newly added and require CI validation. PostgreSQL runtime integration, real identity-provider integration, UI, production operations and organization-specific policy/UAT remain open.
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The GAP-024 baseline previously passed source compilation, 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. GAP-002 now adds decision/delegation routes and tests; its CI validation is pending. TMS and expense API foundations are newly added and require CI validation. PostgreSQL runtime integration, real identity-provider integration, production operations and organization-specific policy/UAT remain open.
+
+## Run the web UI locally
+
+Requirements: Node.js 22 or newer and npm.
+
+From the repository root:
+
+```powershell
+npm install
+npm run dev
+```
+
+Open the Vite URL (normally `http://localhost:5173`). Build and preview with `npm run build` and `npm run preview`. The UI currently presents an identity-token connection screen; live business data requires the API and a valid identity-provider token.
 
 ## Run the current API locally
 
@@ -65,7 +78,14 @@ API documentation is exposed by FastAPI when the service is running (typically `
 - [Operations](docs/OPERATIONS.md) — deployment gates, monitoring, backup, recovery and operational runbooks.
 - [Security](docs/SECURITY.md) — identity, authorization, data protection, audit and security acceptance requirements.
 
-## Applications\n\n- `apps/ap-api` — FastAPI business API for finance, people, governance and workforce workflows.\n- `apps/portal` — responsive installable web portal for desktop, tablet and mobile.\n\nThe portal is a UI foundation. Production remote access requires a deployed HTTPS frontend/API, configured identity provider and trusted CORS origins.\n\n## Repository and branch
+## Applications
+
+- `src/` and `public/` — responsive installable React/Vite web client for desktop, tablet and mobile.
+- `apps/ap-api` — FastAPI business API for finance, people, governance and workforce workflows.
+
+The web client is a UI foundation. Production remote access requires a deployed HTTPS frontend/API, configured identity provider and trusted CORS origins.
+
+## Repository and branch
 
 Repository: [ASAA1229/ASAA](https://github.com/ASAA1229/ASAA)
 
