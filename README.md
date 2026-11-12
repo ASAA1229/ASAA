@@ -38,6 +38,7 @@ The repository currently contains planning documentation. The enterprise-wide op
 ## Documentation
 
 - [Enterprise Operating Model](docs/ENTERPRISE_OPERATING_MODEL.md)
+- [Enterprise User Story Map](docs/ENTERPRISE_USER_STORIES.md)
 - [Proof of Concept](docs/POC.md)
 - [User Stories](docs/USER_STORIES.md)
 - [Roadmap](docs/ROADMAP.md)
