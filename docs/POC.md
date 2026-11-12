@@ -1,4 +1,8 @@
-# ASAA Enterprise Project Integration Platform — Proof of Concept
+# ASAA Project and Repository Intelligence — Capability POC
+
+## Scope within the enterprise platform
+
+This POC validates one capability domain of the wider ASAA Enterprise Operating Platform. It is not the complete ASAA product definition. The organization-wide vision, all departments and business domains, technology independence and enterprise delivery model are defined in [Enterprise Operating Model](ENTERPRISE_OPERATING_MODEL.md). Project/repository intelligence must integrate with the wider platform through governed contracts while preserving the independence of connected projects.
 
 ## 1. POC purpose
 
