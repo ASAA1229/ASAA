@@ -284,6 +284,7 @@ def test_onboarding_template_deactivation_and_task_assignment(client):
         "employee_id": employee["id"], "template_id": template.json()["id"]
     })
     assert assignment.status_code == 201
+    assert assignment.json()["template_version"] == 1
     task = assignment.json()
     tasks = client.get("/api/v1/onboarding/assignments").json()[0]["tasks"]
     assigned = client.patch(f"/api/v1/onboarding/tasks/{tasks[0]['id']}/assignee", json={
@@ -297,6 +298,7 @@ def test_onboarding_template_deactivation_and_task_assignment(client):
     })
     assert revised_template.status_code == 200
     assert revised_template.json()["version"] == 2
+    assert assignment.json()["template_version"] == 1
     refreshed_tasks = client.get("/api/v1/onboarding/assignments").json()[0]["tasks"]
     assert refreshed_tasks[0]["title"] == "Prepare access"
     deactivated = client.patch(f"/api/v1/onboarding/templates/{template.json()['id']}/status", json={
