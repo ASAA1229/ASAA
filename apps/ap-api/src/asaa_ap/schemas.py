@@ -34,9 +34,16 @@ class SupplierCreate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, value):
-        if value is not None and not re.fullmatch(r"[^@\\s]+@[^@\\s]+\\.[^@\\s]+", value):
+        if value is not None and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", value):
             raise ValueError("Invalid email address")
         return value.strip().casefold() if value else value
+
+    @field_validator("legal_name")
+    @classmethod
+    def require_legal_name(cls, value):
+        if value is None or not value.strip():
+            raise ValueError("Legal name cannot be blank")
+        return value.strip()
 
     @field_validator("legal_name", "trading_name")
     @classmethod
@@ -58,10 +65,10 @@ class SupplierUpdate(BaseModel):
     addresses: list[Address] | None = Field(default=None, max_length=20)
     notes: str | None = Field(default=None, max_length=4000)
 
-    @field_validator(\"email\")
+    @field_validator("email")
     @classmethod
     def validate_email(cls, value):
-        if value is not None and ("@" not in value or value.startswith("@") or value.endswith("@")):
+        if value is not None and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", value):
             raise ValueError("Invalid email address")
         return value.strip().casefold() if value else value
 
