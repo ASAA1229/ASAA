@@ -240,7 +240,7 @@ def update_onboarding_task(task_id: str, payload: OnboardingTaskUpdate, db: Db,
     )).all()
     required = [item for item in tasks if item.required]
     assignment = db.get(OnboardingAssignment, task.assignment_id)
-    if required and all(item.status in {"Completed", "Waived"} for item in required):
+    if all(item.status in {"Completed", "Waived"} for item in required):
         assignment.status = "Completed"
     elif any(item.status == "Blocked" for item in tasks):
         assignment.status = "Blocked"
