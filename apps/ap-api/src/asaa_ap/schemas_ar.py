@@ -174,3 +174,9 @@ class ARInvoiceUpdate(BaseModel):
         if self.due_date < self.issue_date:
             raise ValueError("Due date cannot precede issue date")
         return self
+
+
+class ARReceiptReallocation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    invoice_id: str
+    amount: Decimal = Field(gt=0, max_digits=18, decimal_places=2)
