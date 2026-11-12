@@ -2,95 +2,140 @@
 
 **Repository:** ASAA1229/ASAA  
 **Branch:** new  
-**Implementation status:** Built — API suite and SQLite migration-chain CI passed; PostgreSQL integration, identity-provider integration and business-policy UAT remain pending  
-**Scope:** Initial domain foundation and API contracts; not a production-ready HR/payroll release.
+**Scope:** Reusable API-first foundations for an early-stage organization. These capabilities are not a production-ready HR/payroll release.
 
-## HR foundation
+## Delivery summary
 
-Additional hardening implemented in this round:
-- Controlled employee profile patch endpoint with field allow-list, organization-scoped duplicate employee-code check and audit event.
-- Explicit lifecycle transition endpoint for Preboarding, Active, On Leave, Suspended, Offboarding and Inactive operational states.
-- Lifecycle transitions create effective-dated employment-history records, close the previous open-ended record and preserve the stated reason.
-- Lifecycle changes use the separate `hr:employee:lifecycle` permission; profile edits use `hr:employee:write`.
+| Domain | Current foundation | State |
+|---|---|---|
+| Employee records | Profiles, controlled edits, organization scoping, effective-dated employment history and lifecycle changes | Built |
+| Employee records and evidence | Document metadata, classification, expiry dates and archive status; private binary storage is external | Partially built |
+| Assets | Issue/return register and offboarding return gate | Built |
+| Leave | Requests, overlap prevention and independent review; no leave entitlement/balance calculation | Partially built |
+| Offboarding | Exit cases, effective-dated status history, optional offboarding checklist and outstanding-asset gate | Partially built |
+| Onboarding | Versioned templates, assignment snapshots, task ownership, due dates, evidence and progress | Built |
+| Compensation | Restricted effective-dated records, maker-checker approval and sequential period handling | Built |
+| Payroll | Manual inputs, arithmetic validation, totals, submit/review/return/correct/approve/close and period close | Partially built |
 
-Implemented:
-- Organization-scoped employee profile creation, list and detail.
-- Employee code uniqueness within the organization.
-- Employment type and preboarding status capture.
-- Effective-dated employment records for department, position, manager, work location and employment status.
-- Employment history retrieval.
-- Dedicated employee and employment permissions.
-- Audit events for employee and employment-record creation.
-
-Not yet implemented:
-- Recruitment/candidate pipeline, offers and contract lifecycle.
-- Employee document vault, consent, retention and expiry workflows.
-- Attendance, leave, shifts, timesheets, performance, learning and employee relations.
-- Full organization directory and department/position master-data integration.
-
-## Onboarding foundation
+## HR and employee lifecycle
 
 Implemented:
-- Reusable onboarding templates with ordered task definitions.
-- Template assignment to an employee.
-- Task snapshots created from the template at assignment time, including task descriptions.
-- Task ownership role, required/optional flag, editable due date, evidence reference and status.
-- Assignment progress derived from required task completion; optional-only assignments are marked complete without requiring optional tasks.
-- Audit events for template creation, assignment and task updates.
+- Organization-scoped employee creation, listing, detail and allow-listed profile editing.
+- Employee code uniqueness within an organization.
+- Effective-dated employment records with overlap prevention, previous-record closure and synchronization of current employee status/type.
+- Controlled operational lifecycle changes with reason, permission separation and audit events.
+- Document metadata with classification, issue/expiry dates and archive lifecycle. Binary content is not stored by this API; storage_reference must point to an approved private document service.
+- Asset issue/return records; an employee exit case cannot be completed while assets remain issued.
+- Leave requests with date validation, overlap prevention and independent reviewer decisions. The system does not calculate leave entitlement, accrual or balances.
+- Exit cases create effective-dated Offboarding history and can snapshot an Offboarding template. Completion requires required checklist tasks to be Completed/Waived and all tracked assets to be returned.
 
-Not yet implemented:
-- Document collection, e-signatures, identity/eligibility checks and policy acknowledgements.
-- Asset issue/return workflows and IT account provisioning integrations.
-- Configurable approval gates, reminders, escalations and SLA dashboards.
-- Role-specific training/certification integrations and offboarding.
+Still gated:
+- Recruitment, candidate management, interviews, offers and contract generation.
+- Document upload/download, e-signatures, identity/eligibility checks, consent, retention schedules, legal holds and automated expiry notifications.
+- Attendance, shifts, timesheets and time-based pay inputs.
+- Leave balances, accruals, holidays and statutory leave rules.
+- Performance, learning, certification, confidential employee-relations/grievance cases and appeals.
+- Identity-provider access revocation, device-management integration, final settlement and handover evidence beyond configured checklist tasks.
 
-## Salaries & Payroll foundation
+## Onboarding and offboarding
 
 Implemented:
-- Restricted, effective-dated compensation records.
-- Payroll periods and organization-scoped payroll runs.
-- Draft employee payroll entries with currency, gross, deduction and net amount fields plus structured breakdown.
-- Payroll entries accepted only into Draft runs.
-- Separate compensation read/write, payroll read, period, run and entry permissions.
-- Audit events for compensation, period, run and entry creation.
+- Templates are typed as Onboarding or Offboarding, versioned, editable and deactivatable.
+- Assignments preserve the exact template version and task title/description snapshots.
+- Active assignments are not rewritten when a template is revised.
+- Tasks support owner role, explicit assignee subject, required/optional state, due date, evidence reference and status.
+- Assignment progress is based on required task completion; optional-only plans do not block completion.
+- Exit cases may instantiate an Offboarding template as a checklist. Required tasks and tracked asset returns are closure gates.
 
-Important boundaries:
-- No salary bands, pay frequency rules, allowances, benefits, tax rates, statutory contributions, withholding, overtime, leave adjustments or jurisdiction-specific rules are assumed.
-- Payroll amounts are stored as explicitly supplied inputs; this foundation does not calculate or certify gross/net pay.
-- No bank account details, bank file generation, payment initiation, payslip publication or payment confirmation.
-- No approval/finalization/locking workflow yet. Payroll remains Draft and must not be treated as payable or approved.
+Still gated:
+- Document collection and e-signature provider integration.
+- Automated identity, eligibility, application-access and device provisioning/revocation.
+- Notification delivery, reminders, escalation schedules, configurable SLA policies and calendar integrations.
+- Role-specific learning/certification provider integrations.
 
-## API routes
+## Salaries and payroll
+
+Implemented:
+- Restricted effective-dated compensation records with independent maker-checker approval.
+- Sequential approved compensation periods close the preceding open-ended record; overlapping approved periods are rejected.
+- Payroll periods and organization-scoped runs.
+- Explicitly supplied payroll entries with currency, gross, deductions, net and structured input breakdown.
+- Arithmetic reconciliation validation and run-level totals.
+- Draft -> In Review -> Approved -> Closed workflow, with reviewer return-for-correction, controlled entry correction and resubmission.
+- Maker-checker separation for compensation and payroll run approval.
+- A payroll period can close only after its runs are closed.
+
+Still gated:
+- Payroll calculations, salary structures, allowances, benefits, overtime, attendance/leave inputs, tax, withholding, statutory contributions and jurisdiction-specific rules.
+- Source-system ingestion, duplicate/source-reference reconciliation, exception handling and approved payroll input assembly.
+- Payslip generation/publication, bank files, payment execution, payment confirmation and statutory filings.
+- Reopening/adjustment workflows for closed payroll periods.
+
+**Important:** The API stores explicit payroll inputs and validates arithmetic. It does not calculate or certify statutory or policy-specific pay. No jurisdiction, tax rule, salary frequency, leave entitlement, approval matrix or payment authority has been assumed.
+
+## Key API routes
 
 ### HR
-- `POST/GET /api/v1/hr/employees`
-- `PATCH /api/v1/hr/employees/{employee_id}`
-- `POST /api/v1/hr/employees/{employee_id}/lifecycle`
-- `GET /api/v1/hr/employees/{employee_id}`
-- `POST/GET /api/v1/hr/employees/{employee_id}/employment-records`
+- POST/GET /api/v1/hr/employees
+- GET /api/v1/hr/employees/{employee_id}
+- PATCH /api/v1/hr/employees/{employee_id}
+- POST /api/v1/hr/employees/{employee_id}/lifecycle
+- POST/GET /api/v1/hr/employees/{employee_id}/employment-records
+- POST/GET /api/v1/hr/employees/{employee_id}/documents
+- PATCH /api/v1/hr/documents/{document_id}/status
+- POST/GET /api/v1/hr/employees/{employee_id}/assets
+- POST /api/v1/hr/assets/{asset_id}/return
+- POST/GET /api/v1/hr/employees/{employee_id}/leave-requests
+- POST /api/v1/hr/leave-requests/{request_id}/review
+- POST /api/v1/hr/employees/{employee_id}/exit-cases
+- GET /api/v1/hr/exit-cases
+- POST /api/v1/hr/exit-cases/{case_id}/complete
 
-### Onboarding
-- `POST/GET /api/v1/onboarding/templates`
-- `POST/GET /api/v1/onboarding/assignments`
-- `PATCH /api/v1/onboarding/tasks/{task_id}`
+### Onboarding and offboarding
+- POST/GET /api/v1/onboarding/templates
+- PUT /api/v1/onboarding/templates/{template_id}
+- PATCH /api/v1/onboarding/templates/{template_id}/status
+- POST/GET /api/v1/onboarding/assignments
+- PATCH /api/v1/onboarding/tasks/{task_id}
+- PATCH /api/v1/onboarding/tasks/{task_id}/assignee
 
-### Salaries & Payroll
-- `POST/GET /api/v1/payroll/compensation`
-- `POST/GET /api/v1/payroll/periods`
-- `POST/GET /api/v1/payroll/runs`
-- `POST/GET /api/v1/payroll/runs/{run_id}/entries`
+### Salaries and payroll
+- POST/GET /api/v1/payroll/compensation
+- POST /api/v1/payroll/compensation/{record_id}/decision
+- POST/GET /api/v1/payroll/periods
+- POST /api/v1/payroll/periods/{period_id}/close
+- POST/GET /api/v1/payroll/runs
+- POST/GET /api/v1/payroll/runs/{run_id}/entries
+- GET /api/v1/payroll/runs/{run_id}/summary
+- POST /api/v1/payroll/runs/{run_id}/submit
+- POST /api/v1/payroll/runs/{run_id}/decision
+- PATCH /api/v1/payroll/entries/{entry_id}
+- POST /api/v1/payroll/runs/{run_id}/close
 
-## Foundation hardening and remaining controls
+## Authorization
 
-- Payroll-entry input validation now rejects deductions greater than gross and rejects a net amount that does not reconcile to gross minus deductions. This is arithmetic integrity validation only; ASAA still does not calculate statutory or policy-specific payroll.
-- Onboarding assignments with no required tasks are marked Completed at assignment time; optional tasks do not block completion. Task descriptions are preserved in immutable assignment snapshots. Assigned task due dates can be updated, and omitted evidence fields no longer erase existing evidence.
-- Added API tests for employee profile updates, lifecycle history and payroll arithmetic rejection.
-- Remaining foundation work includes template lifecycle/versioning, richer assignment ownership/due-date controls, employee document/consent/retention handling, approval workflow integration, payroll input-source reconciliation and configurable calculation policies.
+All routes use the verified organization-scoped principal and separate permission claims. HR access does not imply salary access. Review/approval endpoints enforce maker-checker separation for leave, compensation and payroll runs. Assign only the specific permissions required by a user's approved responsibilities.
 
-## Verification
+## Migrations and verification
 
-Seven people-domain API tests are included in the full suite. GitHub Actions completed successfully: **26 tests passed** (one Starlette/httpx deprecation warning), source compilation passed, and the Alembic chain successfully upgraded through `0004_onboarding_task_description`, downgraded one revision and upgraded again using SQLite.
+People-domain migrations:
+- 0003_people_foundation
+- 0004_onboarding_task_description
+- 0005_people_workflows
+- 0006_onboarding_template_version
+- 0007_offboarding_checklists
+- 0008_onboarding_assignment_version
 
-Alembic revision `0003_people_foundation` follows `0002_ar_foundation`; `0004_onboarding_task_description` adds the task-description snapshot field. The SQLite migration chain is verified in CI. PostgreSQL behavior, production database migration, identity-provider claims, concurrency under load, privacy/security review and business UAT remain unverified.
+CI compiles the source, runs the complete API test suite and exercises the Alembic upgrade/downgrade/upgrade chain on SQLite. This verifies API-level behavior and migration syntax against SQLite only. It does not certify PostgreSQL production migration, identity-provider claims, binary document storage, concurrency under load, legal compliance, security/privacy review or business-policy UAT.
 
-CI Passed means the current automated checks and SQLite migration-chain checks succeeded. It does not certify PostgreSQL production migration, identity-provider integration, security/privacy review, legal compliance or business-policy acceptance.
+## Release gates
+
+Before production use:
+1. Confirm legal entity, operating jurisdictions and applicable employment/payroll requirements.
+2. Approve employment, leave, document classification/retention, compensation and payroll policies.
+3. Configure role/permission assignments, approvers, maker-checker rules and employee data scopes.
+4. Select and integrate approved identity, document storage, notification, device/access and payroll-source providers.
+5. Run PostgreSQL integration/migration tests, security/privacy review, concurrency tests, restore tests and business UAT.
+6. Build the employee/admin UI and operational reporting on top of these stable API contracts.
+
+No deployment, production data migration, identity-provider connection or external payment integration has been performed.
