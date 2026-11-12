@@ -32,7 +32,7 @@ Salary/compensation claims are separate from general HR employee-read access. Do
 
 - Employee, employment, onboarding and payroll records are organization-scoped.
 - Employee profile edits are field-allow-listed and audited. Lifecycle transitions use a separate permission and append effective-dated employment-history records rather than overwriting past assignments. Future-dated lifecycle scheduling is not enabled.
-- Onboarding assignments snapshot template tasks so later template edits do not silently rewrite an employee's active checklist.
+- Onboarding assignments snapshot task titles and descriptions so later template edits do not silently rewrite an employee's active checklist. Assigned task due dates are editable; omitted evidence fields preserve existing references.
 - Payroll entries are draft inputs. No jurisdiction-specific tax, statutory contribution, deduction or salary calculation is inferred.
 - Payroll approval, finalization, payslips, bank files and payment execution are not part of this foundation.
 - Do not put bank credentials, identity secrets or unnecessary sensitive data into free-form breakdown/evidence fields.
