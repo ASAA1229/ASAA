@@ -93,6 +93,7 @@ def update_supplier(db: Session, supplier_id: str, payload: SupplierUpdate, prin
     if row.status in {"Archived", "Suspended"}:
         raise HTTPException(status_code=409, detail="Supplier must be reactivated before editing")
     changes = payload.model_dump(exclude_unset=True, exclude={"expected_version"})
+    identity_changed = any(key in changes for key in ("legal_name", "registration_reference"))
     if "legal_name" in changes and changes["legal_name"]:
         duplicates = find_duplicates(db, principal.organization_id, changes["legal_name"], None, None)
         if any(d["id"] != row.id for d in duplicates):
@@ -107,13 +108,18 @@ def update_supplier(db: Session, supplier_id: str, payload: SupplierUpdate, prin
         changes["addresses"] = [a.model_dump() if hasattr(a, "model_dump") else a for a in changes["addresses"]]
     for key, value in changes.items():
         setattr(row, key, value)
+    if identity_changed and row.status == "Active":
+        row.status = "Pending Verification"
     row.updated_by = principal.subject
     try:
         db.flush()
     except StaleDataError:
         db.rollback()
         raise HTTPException(status_code=409, detail={"code": "version_conflict"}) from None
-    record_audit(db, principal, "supplier.updated", row.id, {"changed_fields": sorted(changes), "version": row.version}, correlation_id)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "supplier_conflict", "message": "Supplier code or normalized legal name already exists"}) from None
+    record_audit(db, principal, "supplier.updated", row.id, {"changed_fields": sorted(changes), "version": row.version, "reverification_required": bool(identity_changed and row.status == "Pending Verification")}, correlation_id)
     db.commit()
     db.refresh(row)
     return row
