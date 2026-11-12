@@ -5,7 +5,7 @@ def create_employee(client):
     response = client.post("/api/v1/hr/employees", json={
         "employee_code": "E-001", "first_name": "Asha", "last_name": "Rao",
         "work_email": "asha@example.invalid", "employment_type": "Employee",
-        "hire_date": "2026-12-01"
+        "hire_date": "2026-11-01"
     })
     assert response.status_code == 201
     return response.json()
