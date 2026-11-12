@@ -318,6 +318,6 @@ def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, am
         db.rollback()
         raise HTTPException(status_code=409, detail={"code": "receipt_allocation_conflict"}) from None
     return {
-        "receipt_id": receipt.id, "invoice_id": invoice.id, "allocated_amount": amount,
-        "remaining_unapplied": money(outstanding_receipt - amount), "invoice_status": invoice.status
+        "receipt_id": receipt.id, "invoice_id": invoice.id, "allocated_amount": str(amount),
+        "remaining_unapplied": str(money(outstanding_receipt - amount)), "invoice_status": invoice.status
     }
