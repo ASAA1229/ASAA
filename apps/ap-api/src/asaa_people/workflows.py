@@ -292,21 +292,25 @@ def complete_exit_case(case_id: str, db: Db,
         EmploymentRecord.organization_id == principal.organization_id,
         EmploymentRecord.employee_id == employee.id,
     ).order_by(EmploymentRecord.effective_from.desc()).limit(1))
-    if latest and date.today() <= latest.effective_from:
+    if latest and date.today() < latest.effective_from:
         raise HTTPException(status_code=409, detail={"code": "exit_history_effective_date_conflict"})
-    if latest and latest.effective_to is None:
-        latest.effective_to = date.today() - timedelta(days=1)
-    history = EmploymentRecord(
-        organization_id=principal.organization_id, employee_id=employee.id,
-        department_id=latest.department_id if latest else None,
-        position_title=latest.position_title if latest else None,
-        manager_employee_id=latest.manager_employee_id if latest else None,
-        work_location=latest.work_location if latest else None,
-        employment_type=latest.employment_type if latest else employee.employment_type,
-        status="Inactive", effective_from=date.today(),
-        reason="Offboarding completed", created_by=principal.subject,
-    )
-    db.add(history)
+    if latest and latest.effective_from == date.today():
+        latest.status = "Inactive"
+        latest.reason = "Offboarding completed"
+    else:
+        if latest and latest.effective_to is None:
+            latest.effective_to = date.today() - timedelta(days=1)
+        history = EmploymentRecord(
+            organization_id=principal.organization_id, employee_id=employee.id,
+            department_id=latest.department_id if latest else None,
+            position_title=latest.position_title if latest else None,
+            manager_employee_id=latest.manager_employee_id if latest else None,
+            work_location=latest.work_location if latest else None,
+            employment_type=latest.employment_type if latest else employee.employment_type,
+            status="Inactive", effective_from=date.today(),
+            reason="Offboarding completed", created_by=principal.subject,
+        )
+        db.add(history)
     employee.status = "Inactive"
     case.status = "Completed"
     case.completed_at = now()
