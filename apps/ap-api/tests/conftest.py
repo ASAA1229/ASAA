@@ -23,7 +23,7 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_db
-    app.dependency_overrides[get_principal] = lambda: Principal("tester", "org-a", frozenset({"supplier:read", "supplier:write", "supplier:status", "supplier:verify", "audit:read", "ar:customer:read", "ar:customer:write", "ar:invoice:read", "ar:invoice:write", "ar:invoice:issue", "ar:receipt:read", "ar:receipt:write", "ar:receipt:allocate", "hr:employee:read", "hr:employee:write", "hr:employment:write", "onboarding:read", "onboarding:template:write", "onboarding:assignment:write", "onboarding:task:update", "payroll:compensation:read", "payroll:compensation:write", "payroll:period:write", "payroll:run:write", "payroll:entry:write", "payroll:read"}))
+    app.dependency_overrides[get_principal] = lambda: Principal("tester", "org-a", frozenset({"supplier:read", "supplier:write", "supplier:status", "supplier:verify", "audit:read", "ar:customer:read", "ar:customer:write", "ar:invoice:read", "ar:invoice:write", "ar:invoice:issue", "ar:receipt:read", "ar:receipt:write", "ar:receipt:allocate", "hr:employee:read", "hr:employee:write", "hr:employment:write", "hr:employee:lifecycle", "onboarding:read", "onboarding:template:write", "onboarding:assignment:write", "onboarding:task:update", "payroll:compensation:read", "payroll:compensation:write", "payroll:period:write", "payroll:run:write", "payroll:entry:write", "payroll:read"}))
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
