@@ -102,6 +102,7 @@ def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db:
         created_by=principal.subject, **payload.model_dump(),
     )
     db.add(row)
+    db.flush()
     audit(db, principal, "employment_record.created", "hr_employment_record", row.id,
           {"effective_from": payload.effective_from.isoformat()}, x_correlation_id)
     db.commit()
@@ -263,6 +264,7 @@ def create_compensation(payload: CompensationCreate, db: Db,
         created_by=principal.subject,
     )
     db.add(row)
+    db.flush()
     audit(db, principal, "compensation.created", "pay_compensation_record", row.id,
           {"employee_id": row.employee_id, "effective_from": row.effective_from.isoformat(),
            "status": row.status}, x_correlation_id)
@@ -289,6 +291,7 @@ def create_payroll_period(payload: PayrollPeriodCreate, db: Db,
     row = PayrollPeriod(organization_id=principal.organization_id,
                         created_by=principal.subject, **payload.model_dump())
     db.add(row)
+    db.flush()
     audit(db, principal, "payroll_period.created", "payroll_period", row.id,
           {"period_code": row.period_code}, x_correlation_id)
     db.commit()
@@ -320,6 +323,7 @@ def create_payroll_run(payload: PayrollRunCreate, db: Db,
     row = PayrollRun(organization_id=principal.organization_id,
                      created_by=principal.subject, **payload.model_dump())
     db.add(row)
+    db.flush()
     audit(db, principal, "payroll_run.created", "payroll_run", row.id,
           {"period_id": row.period_id, "status": row.status}, x_correlation_id)
     db.commit()
@@ -355,6 +359,7 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
         created_by=principal.subject, **payload.model_dump(),
     )
     db.add(row)
+    db.flush()
     audit(db, principal, "payroll_entry.created", "payroll_entry", row.id,
           {"run_id": run.id, "employee_id": row.employee_id, "currency": row.currency},
           x_correlation_id)
