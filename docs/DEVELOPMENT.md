@@ -177,7 +177,7 @@ The responsive ASAA portal lives at the repository root (`src/`, `public/`) and 
 
 ```bash
 npm install
-npm run dev
+npm run dev  # http://localhost:5000
 npm run build
 npm run preview
 ```
