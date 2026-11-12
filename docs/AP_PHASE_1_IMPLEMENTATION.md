@@ -49,7 +49,7 @@ Supplier master records are structured, relational, organization-scoped and audi
 | PostgreSQL runtime integration | Built Not Tested | No PostgreSQL server/credentials available |
 | User interface | Not Started | Not applicable |
 
-Local verification: `pytest -q` — **6 passed**; `python -m compileall -q src migrations tests` — passed; Alembic migration applied successfully to an isolated SQLite database. No production deployment or real identity integration was performed.
+Local verification: `pytest -q` — **9 passed**; `python -m compileall -q src migrations tests` — passed; Alembic migration applied successfully to an isolated SQLite database. No production deployment or real identity integration was performed.
 
 ## Not included
 
