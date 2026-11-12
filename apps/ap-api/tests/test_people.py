@@ -18,7 +18,7 @@ def test_hr_employee_and_effective_dated_employment_history(client):
         json={
             "department_id": "dept-engineering", "position_title": "Software Engineer",
             "employment_type": "Employee", "status": "Active",
-            "effective_from": "2026-12-01", "reason": "Initial appointment"
+            "effective_from": "2026-11-12", "reason": "Initial appointment"
         },
     )
     assert record.status_code == 201
@@ -28,6 +28,16 @@ def test_hr_employee_and_effective_dated_employment_history(client):
     assert history.status_code == 200
     assert len(history.json()) == 1
     assert history.json()[0]["position_title"] == "Software Engineer"
+    assert client.get(f"/api/v1/hr/employees/{employee['id']}").json()["status"] == "Active"
+    duplicate = client.post(
+        f"/api/v1/hr/employees/{employee['id']}/employment-records",
+        json={
+            "position_title": "Duplicate role", "employment_type": "Employee",
+            "status": "Active", "effective_from": "2026-11-12",
+            "reason": "Must not overlap the current effective record"
+        },
+    )
+    assert duplicate.status_code == 409
 
 
 def test_onboarding_template_assignment_and_task_completion(client):
