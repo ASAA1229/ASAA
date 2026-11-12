@@ -91,3 +91,59 @@ def test_salary_data_requires_separate_permission(client):
     )
     response = client.get(f"/api/v1/payroll/compensation?employee_id={employee['id']}")
     assert response.status_code == 403
+
+
+def test_employee_profile_update_and_lifecycle_history(client):
+    employee = create_employee(client)
+    profile = client.patch(f"/api/v1/hr/employees/{employee['id']}", json={
+        "preferred_name": "Ash"
+    })
+    assert profile.status_code == 200
+    assert profile.json()["preferred_name"] == "Ash"
+
+    transition = client.post(
+        f"/api/v1/hr/employees/{employee['id']}/lifecycle",
+        json={
+            "status": "Active",
+            "effective_from": "2026-12-01",
+            "reason": "Start of active engagement"
+        },
+    )
+    assert transition.status_code == 201
+    assert transition.json()["status"] == "Active"
+
+    detail = client.get(f"/api/v1/hr/employees/{employee['id']}")
+    assert detail.json()["status"] == "Active"
+    history = client.get(
+        f"/api/v1/hr/employees/{employee['id']}/employment-records"
+    )
+    assert len(history.json()) == 1
+    assert history.json()[0]["reason"] == "Start of active engagement"
+
+
+def test_payroll_entry_rejects_inconsistent_amounts(client):
+    employee = create_employee(client)
+    period = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-12-VALIDATION",
+        "start_date": "2026-12-01",
+        "end_date": "2026-12-31"
+    })
+    assert period.status_code == 201
+    run = client.post("/api/v1/payroll/runs", json={
+        "period_id": period.json()["id"],
+        "run_code": "2026-12-VALIDATION-01",
+        "currency": "INR"
+    })
+    assert run.status_code == 201
+    response = client.post(
+        f"/api/v1/payroll/runs/{run.json()['id']}/entries",
+        json={
+            "employee_id": employee["id"],
+            "currency": "INR",
+            "gross_amount": "50000.00",
+            "deduction_total": "5000.00",
+            "net_amount": "47000.00",
+            "breakdown": {}
+        },
+    )
+    assert response.status_code == 422
