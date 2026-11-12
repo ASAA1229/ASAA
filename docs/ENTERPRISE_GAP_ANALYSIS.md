@@ -88,7 +88,7 @@ Every story—existing and newly added—must define:
 
 ## 8. Backlog update
 
-The additional requirements have been appended to `docs/ENTERPRISE_USER_STORIES.md` as **ASAA-GAP-001 through ASAA-GAP-038**, grouped into epics O–U with priorities and acceptance criteria. The gap backlog is additive and does not mark any feature as implemented.
+The additional requirements have been appended to `docs/ENTERPRISE_USER_STORIES.md` as **ASAA-GAP-001 through ASAA-GAP-038**, grouped into epics O–U with priorities and acceptance criteria. The gap backlog is additive and does not mark any feature as implemented. The management and workforce design has also been expanded in `docs/MANAGEMENT_AND_WORKFORCE_OPERATING_MODEL.md`, and six additional testable stories **ASAA-GAP-039 through ASAA-GAP-044** have been added under Epic V for leadership authority, department accountability, management cadence, employee lifecycle, performance/development and employee-case/access controls.
 
 ## 9. Completion definition for this assessment
 
