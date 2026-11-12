@@ -117,9 +117,12 @@ def update_supplier(db: Session, supplier_id: str, payload: SupplierUpdate, prin
     row.updated_by = principal.subject
     try:
         db.flush()
-    except (StaleDataError, IntegrityError):
+    except StaleDataError:
         db.rollback()
-        raise HTTPException(status_code=409, detail={"code": "supplier_conflict_or_version_conflict"}) from None
+        raise HTTPException(status_code=409, detail={"code": "version_conflict"}) from None
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "supplier_conflict"}) from None
     record_audit(db, principal, "supplier.updated", row.id, {"changed_fields": sorted(changes), "version": row.version, "reverification_required": bool(identity_changed and row.status == "Pending Verification")}, correlation_id)
     db.commit()
     db.refresh(row)
