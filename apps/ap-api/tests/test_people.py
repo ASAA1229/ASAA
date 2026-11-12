@@ -192,6 +192,9 @@ def test_employee_documents_assets_and_offboarding_controls(client):
     documents = client.get(f"/api/v1/hr/employees/{employee['id']}/documents")
     assert documents.status_code == 200
     assert len(documents.json()) == 1
+    archived = client.patch("/api/v1/hr/documents/" + document.json()["id"] + "/status", json={"status": "Archived"})
+    assert archived.status_code == 200
+    assert client.get("/api/v1/hr/employees/" + employee["id"] + "/documents").json() == []
 
     asset = client.post(f"/api/v1/hr/employees/{employee['id']}/assets", json={
         "asset_reference": "ASSET-LAPTOP-001", "asset_type": "Laptop",
@@ -260,6 +263,14 @@ def test_onboarding_template_deactivation_and_task_assignment(client):
     })
     assert assigned.status_code == 200
     assert assigned.json()["assigned_to"] == "it-owner-01"
+    revised_template = client.put("/api/v1/onboarding/templates/" + template.json()["id"], json={
+        "name": "Assigned onboarding tasks v2", "description": "Updated template",
+        "tasks": [{"title": "Prepare revised access", "owner_role": "IT", "required": True}]
+    })
+    assert revised_template.status_code == 200
+    assert revised_template.json()["version"] == 2
+    refreshed_tasks = client.get("/api/v1/onboarding/assignments").json()[0]["tasks"]
+    assert refreshed_tasks[0]["title"] == "Prepare access"
     deactivated = client.patch(f"/api/v1/onboarding/templates/{template.json()['id']}/status", json={
         "active": False
     })
@@ -293,6 +304,20 @@ def test_compensation_requires_independent_approval(client):
     assert approved.status_code == 200
     assert approved.json()["status"] == "Approved"
     assert approved.json()["approved_by"] == "payroll-reviewer"
+    next_record = client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "75000.00", "frequency": "Monthly",
+        "effective_from": "2027-01-01"
+    })
+    assert next_record.status_code == 201
+    next_approved = client.post(
+        "/api/v1/payroll/compensation/" + next_record.json()["id"] + "/decision",
+        json={"decision": "Approved"}
+    )
+    assert next_approved.status_code == 200
+    records = client.get("/api/v1/payroll/compensation?employee_id=" + employee["id"]).json()
+    previous = next(item for item in records if item["id"] == compensation.json()["id"])
+    assert previous["effective_to"] == "2026-12-31"
 
 
 def test_payroll_run_review_summary_and_close_controls(client):
@@ -340,3 +365,6 @@ def test_payroll_run_review_summary_and_close_controls(client):
     closed = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/close")
     assert closed.status_code == 200
     assert closed.json()["status"] == "Closed"
+    closed_period = client.post("/api/v1/payroll/periods/" + period.json()["id"] + "/close")
+    assert closed_period.status_code == 200
+    assert closed_period.json()["status"] == "Closed"
