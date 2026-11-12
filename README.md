@@ -33,7 +33,7 @@ ASAA's original project/repository intelligence scope remains part of the wider 
 
 ## Current status
 
-The repository contains the enterprise planning baseline and an initial API-first finance implementation. AP supplier management and the first AR customer/invoice/receipt workflows have source, migration and test cases on `new`; these are not yet declared production-ready. Identity-provider and PostgreSQL runtime integrations remain unverified.
+The repository contains the enterprise planning baseline and API-first finance and people foundations. AP, AR, HR, onboarding and salaries/payroll have initial source, migration and test coverage on `new`; these capabilities are Built Not Tested and are not production-ready. Identity-provider and PostgreSQL runtime integrations remain unverified.
 
 ## Documentation
 
@@ -50,5 +50,5 @@ The repository contains the enterprise planning baseline and an initial API-firs
 - [Organization Preservation Policy](docs/ORGANIZATION_PRESERVATION_POLICY.md)
 - [Branch Standard](docs/BRANCH_STANDARD.md)
 - [AP Phase 1 Implementation Status](docs/AP_PHASE_1_IMPLEMENTATION.md)
-- [AR Initial Implementation Status](docs/AR_INITIAL_IMPLEMENTATION_STATUS.md)
-- [Finance API — AP and AR](apps/ap-api/README.md)
+- [AR Initial Implementation Status](docs/AR_INITIAL_IMPLEMENTATION_STATUS.md)\n- [HR, Onboarding and Salaries & Payroll Foundation Status](docs/HR_ONBOARDING_PAYROLL_FOUNDATION_STATUS.md)
+- [Finance API — AP and AR](apps/ap-api/README.md)\n- [People API — HR, Onboarding and Payroll](apps/ap-api/README_PEOPLE.md)
