@@ -109,7 +109,7 @@ Not yet established: real identity provider and MFA, production key management, 
 - Supersession preserves the original reference and records the canonical link and reason; no automatic merge or destructive deletion occurs.
 - The registry stores source references and ownership metadata, not the underlying employee, supplier, customer or asset payloads.
 
-## 14. Security acceptance gates
+## 12. Security acceptance gates
 
 Before production:
 1. Approve threat model, data classification, privacy impact and jurisdictional obligations.
