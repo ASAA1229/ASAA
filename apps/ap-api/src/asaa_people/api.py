@@ -200,8 +200,8 @@ def assign_onboarding(payload: OnboardingAssignmentCreate, db: Db,
         raise HTTPException(status_code=409, detail={"code": "onboarding_assignment_exists"})
     assignment = OnboardingAssignment(
         organization_id=principal.organization_id, employee_id=payload.employee_id,
-        template_id=payload.template_id, target_date=payload.target_date,
-        created_by=principal.subject,
+        template_id=payload.template_id, template_version=template.version,
+        target_date=payload.target_date, created_by=principal.subject,
     )
     db.add(assignment)
     db.flush()
