@@ -41,6 +41,20 @@ This roadmap is a planning proposal, not a committed schedule. Priorities and se
 
 **Exit:** A reviewer can identify known scope, evidence, gaps and unresolved questions.
 
+
+## Stage 3A — Organization command center foundation (US-028 to US-032)
+
+Detailed design: [Foundation Implementation Blueprint](FOUNDATION_IMPLEMENTATION_BLUEPRINT.md).
+
+- Build the organization portfolio dashboard and project drill-down.
+- Implement project lifecycle stages, governed transitions and milestones.
+- Implement evidence-backed health dimensions with explicit unknown/stale states.
+- Implement organization and project-level role-based access control.
+- Implement the organization risk/blocker register with cross-project impact links.
+- Validate project isolation, audit history, lifecycle rules and evidence-based rollups.
+
+**Exit:** The first command-center milestone passes its security, functional and evidence-traceability acceptance tests. This stage does not authorize Git writes, CI/CD execution or deployment operations.
+
 ## Stage 4 — MVP enhancements
 - Incremental repository analysis.
 - Search and indexing improvements.
