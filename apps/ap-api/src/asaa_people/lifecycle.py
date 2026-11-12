@@ -43,6 +43,12 @@ class EmployeeLifecycleChange(BaseModel):
 
 
 LIFECYCLE_STATES = {"Preboarding", "Active", "On Leave", "Suspended", "Offboarding", "Inactive"}
+ALLOWED_TRANSITIONS = {
+    "Preboarding": {"Active"},
+    "Active": {"On Leave", "Suspended"},
+    "On Leave": {"Active", "Suspended"},
+    "Suspended": {"Active"},
+}
 
 
 def get_employee(db: Session, employee_id: str, organization_id: str) -> Employee:
@@ -115,6 +121,13 @@ def change_employee_lifecycle(
         })
     if payload.status == employee.status:
         raise HTTPException(status_code=409, detail={"code": "lifecycle_status_unchanged"})
+    if payload.status not in ALLOWED_TRANSITIONS.get(employee.status, set()):
+        raise HTTPException(status_code=409, detail={
+            "code": "lifecycle_transition_not_allowed",
+            "current_status": employee.status,
+            "requested_status": payload.status,
+            "allowed": sorted(ALLOWED_TRANSITIONS.get(employee.status, set())),
+        })
 
     latest = db.scalar(select(EmploymentRecord).where(
         EmploymentRecord.organization_id == principal.organization_id,
