@@ -1,6 +1,6 @@
-# ASAA Finance API — AP and AR foundations
+# ASAA Enterprise API — Finance and People foundations
 
-API-first finance service. AP supplier management and the initial AR customer, invoice and receipt workflows share one API package and security/database foundation. This is a module-specific technology choice, not a mandatory ASAA-wide stack.
+API-first enterprise service. AP and AR finance workflows plus HR, onboarding and payroll foundations share the existing API runtime and security/database foundation. This is a module-specific technology choice, not a mandatory ASAA-wide stack.
 
 ## Technology
 
@@ -56,3 +56,4 @@ This slice does not implement purchase requests, quotations, purchase orders, go
 - `ar:receipt:read`, `ar:receipt:write`, `ar:receipt:allocate`
 
 Draft invoice editing and unapplied receipt allocation are included in the current AR slice. See [AR Initial Implementation Status](../../docs/AR_INITIAL_IMPLEMENTATION_STATUS.md) for scope, safeguards and outstanding work.
+\n\n## People domains\n\nSee [People API — HR, Onboarding and Payroll](README_PEOPLE.md) for domain routes, dedicated permissions and policy boundaries. The people domains use Alembic revision `0003_people_foundation`.\n
