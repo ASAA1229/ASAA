@@ -46,3 +46,28 @@ def test_supplier_data_is_organization_scoped(client):
     from asaa_ap.security import get_principal, Principal
     client.app.dependency_overrides[get_principal] = lambda: Principal("other", "org-b", frozenset({"supplier:read"}))
     assert client.get(f"/api/v1/ap/suppliers/{supplier['id']}").status_code == 404
+
+
+
+def test_supplier_identity_change_requires_reverification(client):
+    supplier = client.post("/api/v1/ap/suppliers", json=create_payload()).json()
+    pending = client.post(f"/api/v1/ap/suppliers/{supplier['id']}/status", json={"expected_version": 1, "status": "Pending Verification", "reason": "Evidence received"}).json()
+    active = client.post(f"/api/v1/ap/suppliers/{supplier['id']}/status", json={"expected_version": pending["version"], "status": "Active", "reason": "Verified"}).json()
+    changed = client.patch(f"/api/v1/ap/suppliers/{supplier['id']}", json={"expected_version": active["version"], "legal_name": "Example Supplies Holdings Ltd"})
+    assert changed.status_code == 200
+    assert changed.json()["status"] == "Pending Verification"
+    audit = client.get("/api/v1/ap/audit-events").json()
+    assert any(event["details"].get("reverification_required") for event in audit)
+
+
+def test_supplier_code_conflict_on_update_is_a_conflict_not_server_error(client):
+    first = client.post("/api/v1/ap/suppliers", json={"legal_name": "First Supplier", "supplier_code": "SUP-001"}).json()
+    second = client.post("/api/v1/ap/suppliers", json={"legal_name": "Second Supplier", "supplier_code": "SUP-002"}).json()
+    response = client.patch(f"/api/v1/ap/suppliers/{second['id']}", json={"expected_version": 1, "supplier_code": first["supplier_code"]})
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "supplier_conflict"
+
+
+def test_invalid_email_is_rejected(client):
+    response = client.post("/api/v1/ap/suppliers", json={"legal_name": "Invalid Contact Supplier", "email": "not-an-email"})
+    assert response.status_code == 422
