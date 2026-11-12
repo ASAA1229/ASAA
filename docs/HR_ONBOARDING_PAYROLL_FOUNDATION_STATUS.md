@@ -93,4 +93,4 @@ Seven people-domain API tests are included in the full suite. GitHub Actions com
 
 Alembic revision `0003_people_foundation` follows `0002_ar_foundation`; `0004_onboarding_task_description` adds the task-description snapshot field. The SQLite migration chain is verified in CI. PostgreSQL behavior, production database migration, identity-provider claims, concurrency under load, privacy/security review and business UAT remain unverified.
 
-Do not classify any capability as Passed until tests and migrations run successfully and ASAA-approved HR/payroll policies and acceptance criteria are available.
+CI Passed means the current automated checks and SQLite migration-chain checks succeeded. It does not certify PostgreSQL production migration, identity-provider integration, security/privacy review, legal compliance or business-policy acceptance.
