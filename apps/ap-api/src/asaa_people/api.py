@@ -187,10 +187,12 @@ def assign_onboarding(payload: OnboardingAssignmentCreate, db: Db,
     templates = db.scalars(select(OnboardingTaskTemplate).where(
         OnboardingTaskTemplate.template_id == template.id
     ).order_by(OnboardingTaskTemplate.sequence)).all()
+    if not any(task.required for task in templates):
+        assignment.status = "Completed"
     for task in templates:
         db.add(OnboardingTask(
             organization_id=principal.organization_id, assignment_id=assignment.id,
-            source_task_id=task.id, title=task.title, owner_role=task.owner_role,
+            source_task_id=task.id, title=task.title, description=task.description, owner_role=task.owner_role,
             required=task.required, status="Pending",
         ))
     audit(db, principal, "onboarding.assigned", "onboarding_assignment", assignment.id,
