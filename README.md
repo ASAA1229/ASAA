@@ -40,7 +40,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL (normally `http://localhost:5173`). Build and preview with `npm run build` and `npm run preview`. The UI currently presents an identity-token connection screen; live business data requires the API and a valid identity-provider token.
+Open the Vite URL (normally `http://localhost:5000`). Build and preview with `npm run build` and `npm run preview`. The UI currently presents an identity-token connection screen; live business data requires the API and a valid identity-provider token.
 
 ## Run the current API locally
 
