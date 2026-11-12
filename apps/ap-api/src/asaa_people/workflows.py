@@ -228,9 +228,48 @@ def create_exit_case(employee_id: str, payload: EmployeeExitCreate, db: Db,
     ).order_by(EmploymentRecord.effective_from.desc()).limit(1))
     if latest and payload.planned_last_day < latest.effective_from:
         raise HTTPException(status_code=409, detail={"code": "last_day_precedes_latest_employment_record"})
+    checklist_assignment_id = None
+    if payload.offboarding_template_id:
+        template = db.scalar(select(OnboardingTemplate).where(
+            OnboardingTemplate.id == payload.offboarding_template_id,
+            OnboardingTemplate.organization_id == principal.organization_id,
+            OnboardingTemplate.active.is_(True),
+            OnboardingTemplate.workflow_type == "Offboarding",
+        ))
+        if not template:
+            raise HTTPException(status_code=404, detail="Active offboarding template not found")
+        already_assigned = db.scalar(select(OnboardingAssignment.id).where(
+            OnboardingAssignment.organization_id == principal.organization_id,
+            OnboardingAssignment.employee_id == employee_id,
+            OnboardingAssignment.template_id == template.id,
+        ))
+        if already_assigned:
+            raise HTTPException(status_code=409, detail={"code": "offboarding_checklist_already_assigned"})
+        assignment = OnboardingAssignment(
+            organization_id=principal.organization_id, employee_id=employee_id,
+            template_id=template.id, template_version=template.version,
+            target_date=payload.planned_last_day, created_by=principal.subject,
+        )
+        db.add(assignment)
+        db.flush()
+        template_tasks = db.scalars(select(OnboardingTaskTemplate).where(
+            OnboardingTaskTemplate.template_id == template.id
+        ).order_by(OnboardingTaskTemplate.sequence)).all()
+        if not any(task.required for task in template_tasks):
+            assignment.status = "Completed"
+        for task in template_tasks:
+            db.add(OnboardingTask(
+                organization_id=principal.organization_id, assignment_id=assignment.id,
+                source_task_id=task.id, title=task.title, description=task.description,
+                owner_role=task.owner_role, required=task.required, status="Pending",
+                due_date=payload.planned_last_day,
+            ))
+        checklist_assignment_id = assignment.id
     row = EmployeeExitCase(
         organization_id=principal.organization_id, employee_id=employee_id,
-        created_by=principal.subject, **payload.model_dump(),
+        planned_last_day=payload.planned_last_day, reason_category=payload.reason_category,
+        notes=payload.notes, checklist_assignment_id=checklist_assignment_id,
+        created_by=principal.subject,
     )
     db.add(row)
     if latest and latest.effective_to is None:
@@ -249,7 +288,8 @@ def create_exit_case(employee_id: str, payload: EmployeeExitCreate, db: Db,
     db.add(history)
     db.flush()
     audit(db, principal, "employee_exit.opened", "hr_employee_exit_case", row.id,
-          {"planned_last_day": row.planned_last_day.isoformat()}, x_correlation_id)
+          {"planned_last_day": row.planned_last_day.isoformat(),
+           "checklist_assignment_id": checklist_assignment_id}, x_correlation_id)
     db.commit()
     db.refresh(row)
     return serialize(row)
@@ -279,6 +319,17 @@ def complete_exit_case(case_id: str, db: Db,
         raise HTTPException(status_code=409, detail={"code": "exit_case_not_open"})
     if date.today() < case.planned_last_day:
         raise HTTPException(status_code=409, detail={"code": "planned_last_day_not_reached"})
+    if case.checklist_assignment_id:
+        required_tasks = db.scalars(select(OnboardingTask).where(
+            OnboardingTask.organization_id == principal.organization_id,
+            OnboardingTask.assignment_id == case.checklist_assignment_id,
+            OnboardingTask.required.is_(True),
+        )).all()
+        incomplete = [task.id for task in required_tasks if task.status not in {"Completed", "Waived"}]
+        if incomplete:
+            raise HTTPException(status_code=409, detail={
+                "code": "offboarding_checklist_incomplete", "incomplete_task_ids": incomplete
+            })
     outstanding = db.scalar(select(func.count(EmployeeAsset.id)).where(
         EmployeeAsset.organization_id == principal.organization_id,
         EmployeeAsset.employee_id == case.employee_id,
@@ -539,6 +590,7 @@ def replace_onboarding_template(template_id: str, payload: OnboardingTemplateRep
     row.name = payload.name
     row.description = payload.description
     row.employment_type = payload.employment_type
+    row.workflow_type = payload.workflow_type
     row.version += 1
     old_tasks = db.scalars(select(OnboardingTaskTemplate).where(
         OnboardingTaskTemplate.template_id == row.id
