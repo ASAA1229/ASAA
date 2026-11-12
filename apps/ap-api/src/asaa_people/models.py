@@ -102,6 +102,7 @@ class OnboardingTask(Base):
     assignment_id: Mapped[str] = mapped_column(ForeignKey("onboarding_assignments.id", ondelete="CASCADE"), nullable=False, index=True)
     source_task_id: Mapped[str | None] = mapped_column(String(36))
     title: Mapped[str] = mapped_column(String(240), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
     owner_role: Mapped[str] = mapped_column(String(64), nullable=False)
     required: Mapped[bool] = mapped_column(nullable=False, default=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="Pending")
