@@ -147,6 +147,7 @@ def change_employee_lifecycle(
     )
     employee.status = payload.status
     db.add(record)
+    db.flush()
     db.add(AuditEvent(
         organization_id=principal.organization_id,
         actor_id=principal.subject,
