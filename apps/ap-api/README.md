@@ -56,4 +56,8 @@ This slice does not implement purchase requests, quotations, purchase orders, go
 - `ar:receipt:read`, `ar:receipt:write`, `ar:receipt:allocate`
 
 Draft invoice editing and unapplied receipt allocation are included in the current AR slice. See [AR Initial Implementation Status](../../docs/AR_INITIAL_IMPLEMENTATION_STATUS.md) for scope, safeguards and outstanding work.
-\n\n## People domains\n\nSee [People API — HR, Onboarding and Payroll](README_PEOPLE.md) for domain routes, dedicated permissions and policy boundaries. The people domains use Alembic revision `0003_people_foundation`.\n
+
+
+## People domains
+
+See [People API — HR, Onboarding and Payroll](README_PEOPLE.md) for domain routes, dedicated permissions and policy boundaries. The people domains currently use Alembic revisions `0003_people_foundation` through `0008_onboarding_assignment_version`.
