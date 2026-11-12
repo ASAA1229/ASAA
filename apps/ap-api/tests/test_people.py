@@ -178,3 +178,165 @@ def test_optional_only_onboarding_template_completes_assignment(client):
     tasks = client.get("/api/v1/onboarding/assignments").json()[0]["tasks"]
     assert any(task["description"] == "Optional self-guided reading" for task in tasks)
     assert all(task["status"] == "Pending" for task in tasks)
+
+
+def test_employee_documents_assets_and_offboarding_controls(client):
+    employee = create_employee(client)
+    document = client.post(f"/api/v1/hr/employees/{employee['id']}/documents", json={
+        "document_type": "PolicyAcknowledgement", "title": "Code of conduct acknowledgement",
+        "storage_reference": "private-object://hr/employee/document-001",
+        "classification": "Restricted", "issued_on": "2026-11-01"
+    })
+    assert document.status_code == 201
+    assert "content" not in document.json()
+    documents = client.get(f"/api/v1/hr/employees/{employee['id']}/documents")
+    assert documents.status_code == 200
+    assert len(documents.json()) == 1
+
+    asset = client.post(f"/api/v1/hr/employees/{employee['id']}/assets", json={
+        "asset_reference": "ASSET-LAPTOP-001", "asset_type": "Laptop",
+        "issued_on": "2026-11-12", "condition_on_issue": "Good"
+    })
+    assert asset.status_code == 201
+    exit_case = client.post(f"/api/v1/hr/employees/{employee['id']}/exit-cases", json={
+        "planned_last_day": "2026-11-12", "reason_category": "Voluntary",
+        "notes": "Handover and access review to be completed"
+    })
+    assert exit_case.status_code == 201
+    blocked = client.post(f"/api/v1/hr/exit-cases/{exit_case.json()['id']}/complete")
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"]["code"] == "outstanding_assets"
+
+    returned = client.post(f"/api/v1/hr/assets/{asset.json()['id']}/return", json={
+        "returned_on": "2026-11-12", "condition_on_return": "Good"
+    })
+    assert returned.status_code == 200
+    completed = client.post(f"/api/v1/hr/exit-cases/{exit_case.json()['id']}/complete")
+    assert completed.status_code == 200
+    assert client.get(f"/api/v1/hr/employees/{employee['id']}").json()["status"] == "Inactive"
+
+
+def test_leave_request_requires_separate_reviewer_and_prevents_overlap(client):
+    employee = create_employee(client)
+    request = client.post(f"/api/v1/hr/employees/{employee['id']}/leave-requests", json={
+        "leave_category": "Personal", "start_date": "2026-11-20",
+        "end_date": "2026-11-22", "reason": "Personal commitment"
+    })
+    assert request.status_code == 201
+    overlap = client.post(f"/api/v1/hr/employees/{employee['id']}/leave-requests", json={
+        "leave_category": "Other", "start_date": "2026-11-22",
+        "end_date": "2026-11-23"
+    })
+    assert overlap.status_code == 409
+    self_review = client.post(f"/api/v1/hr/leave-requests/{request.json()['id']}/review", json={
+        "decision": "Approved"
+    })
+    assert self_review.status_code == 403
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "independent-reviewer", "org-a", frozenset({"hr:leave:review", "hr:leave:read"})
+    )
+    reviewed = client.post(f"/api/v1/hr/leave-requests/{request.json()['id']}/review", json={
+        "decision": "Approved", "review_note": "Reviewed by an authorized reviewer"
+    })
+    assert reviewed.status_code == 200
+    assert reviewed.json()["status"] == "Approved"
+
+
+def test_onboarding_template_deactivation_and_task_assignment(client):
+    employee = create_employee(client)
+    template = client.post("/api/v1/onboarding/templates", json={
+        "template_code": "ASSIGN-01", "name": "Assigned onboarding tasks",
+        "tasks": [{"title": "Prepare access", "owner_role": "IT", "required": True}]
+    })
+    assert template.status_code == 201
+    assignment = client.post("/api/v1/onboarding/assignments", json={
+        "employee_id": employee["id"], "template_id": template.json()["id"]
+    })
+    assert assignment.status_code == 201
+    task = assignment.json()
+    tasks = client.get("/api/v1/onboarding/assignments").json()[0]["tasks"]
+    assigned = client.patch(f"/api/v1/onboarding/tasks/{tasks[0]['id']}/assignee", json={
+        "assigned_to": "it-owner-01"
+    })
+    assert assigned.status_code == 200
+    assert assigned.json()["assigned_to"] == "it-owner-01"
+    deactivated = client.patch(f"/api/v1/onboarding/templates/{template.json()['id']}/status", json={
+        "active": False
+    })
+    assert deactivated.status_code == 200
+    blocked = client.post("/api/v1/onboarding/assignments", json={
+        "employee_id": employee["id"], "template_id": template.json()["id"]
+    })
+    assert blocked.status_code == 404
+
+
+def test_compensation_requires_independent_approval(client):
+    employee = create_employee(client)
+    compensation = client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "70000.00", "frequency": "Monthly",
+        "effective_from": "2026-12-01"
+    })
+    assert compensation.status_code == 201
+    self_approval = client.post(
+        f"/api/v1/payroll/compensation/{compensation.json()['id']}/decision",
+        json={"decision": "Approved"}
+    )
+    assert self_approval.status_code == 403
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-reviewer", "org-a", frozenset({"payroll:compensation:approve"})
+    )
+    approved = client.post(
+        f"/api/v1/payroll/compensation/{compensation.json()['id']}/decision",
+        json={"decision": "Approved", "approval_note": "Independent approval"}
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "Approved"
+    assert approved.json()["approved_by"] == "payroll-reviewer"
+
+
+def test_payroll_run_review_summary_and_close_controls(client):
+    employee = create_employee(client)
+    period = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-11-REVIEW", "start_date": "2026-11-01", "end_date": "2026-11-30"
+    })
+    assert period.status_code == 201
+    run = client.post("/api/v1/payroll/runs", json={
+        "period_id": period.json()["id"], "run_code": "2026-11-REVIEW-01", "currency": "INR"
+    })
+    assert run.status_code == 201
+    entry = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/entries", json={
+        "employee_id": employee["id"], "currency": "INR",
+        "gross_amount": "50000.00", "deduction_total": "5000.00",
+        "net_amount": "45000.00", "breakdown": {"source": "approved manual input"}
+    })
+    assert entry.status_code == 201
+    summary = client.get(f"/api/v1/payroll/runs/{run.json()['id']}/summary")
+    assert summary.status_code == 200
+    assert summary.json()["gross_total"] == "50000.00"
+    assert summary.json()["entries_reconciled"] is True
+    submitted = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/submit", json={
+        "review_note": "Ready for independent review"
+    })
+    assert submitted.status_code == 200
+    assert submitted.json()["status"] == "In Review"
+    blocked_edit = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/entries", json={
+        "employee_id": employee["id"], "currency": "INR",
+        "gross_amount": "100.00", "deduction_total": "0.00", "net_amount": "100.00"
+    })
+    assert blocked_edit.status_code == 409
+    self_approval = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/decision", json={
+        "decision": "Approved"
+    })
+    assert self_approval.status_code == 403
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-approver", "org-a", frozenset({"payroll:run:approve", "payroll:run:close"})
+    )
+    approved = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/decision", json={
+        "decision": "Approved", "approval_note": "Totals reviewed"
+    })
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "Approved"
+    closed = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/close")
+    assert closed.status_code == 200
+    assert closed.json()["status"] == "Closed"
