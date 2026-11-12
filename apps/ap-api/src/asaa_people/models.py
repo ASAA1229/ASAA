@@ -90,6 +90,7 @@ class OnboardingAssignment(Base):
     organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     employee_id: Mapped[str] = mapped_column(ForeignKey("hr_employees.id"), nullable=False, index=True)
     template_id: Mapped[str] = mapped_column(ForeignKey("onboarding_templates.id"), nullable=False)
+    template_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="In Progress")
     target_date: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
