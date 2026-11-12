@@ -1,54 +1,68 @@
 # ASAA — Enterprise Operating Platform
 
-**Status:** Organization-wide scope and operating model definition  
-**Owner:** ASAA founder / organization owner  
-**Technology policy:** Technology-stack independent
+ASAA is the planned internal operating platform for the organization being established. It is intended to connect governance, people, projects, products, engineering, service delivery, customers, sales, finance, procurement, operations, compliance, knowledge and organizational intelligence in one permissioned environment.
 
-## Vision
+ASAA is not limited to HR, ERP, CRM, project management or software development. It is designed around ASAA's own operating model rather than as a generic multi-company SaaS product.
 
-ASAA is the personalized internal operating platform for the company the owner is preparing to establish. It is intended to manage and connect the organization end to end: leadership and governance, every department, employees, projects, products, engineering, testing, services, customers, sales, pricing, contracts, invoices, finance, procurement, operations, compliance, knowledge, reporting and automation.
+## Product principles
 
-This is not only an HR tool, project tracker, ERP or software-development platform. It is the organization's central operating environment, with role-appropriate experiences from CEO and department heads to employees and authorized external collaborators.
+- **Configurable and technology-independent:** each domain selects appropriate technologies; no organization-wide language, framework, database or cloud is mandated.
+- **One connected operating environment:** domain modules own their records and expose documented contracts; shared services provide identity, authorization, workflow, audit, reference data and integration capabilities.
+- **Suitable for an early-stage organization:** planned capabilities do not imply that the company is already incorporated, that every department is staffed, or that policies and approval authorities have been approved.
+- **Secure by default:** least privilege, organization and record scoping, separation of duties, traceable decisions and human approval for sensitive actions.
+- **Evidence-led:** planned, implemented, tested and operationally verified are different states.
+- **Project independence:** connected projects retain their own repositories, requirements, technology choices and delivery workflows.
 
-The platform is designed around ASAA's own organization, policies, workflows and growth. It is not being scoped as a generic multi-company SaaS product.
+## Current repository implementation
 
-## Core principles
+The current executable slice is an API-first Python service in `apps/ap-api`. It contains:
 
-- Technology-stack independent; no mandatory language, framework, database, cloud or vendor.
-- Configurable organization structure, departments, roles, policies, workflows and approval authority.
-- One connected platform with clearly owned business domains and shared core services.
-- Strong privacy, least-privilege access, separation of duties and audit history.
-- Evidence-based reporting; unknown or stale information is never presented as confirmed.
-- Human approval for sensitive, financial, legal, HR and high-impact automated actions.
-- Integrations through replaceable adapters and documented contracts.
-- Progressive delivery: the full capability vision is decomposed into validated, testable releases.
+- Accounts Payable supplier foundation.
+- Accounts Receivable customer, invoice and receipt foundation.
+- HR employee records, lifecycle, employment history, leave requests, document metadata and asset tracking.
+- Versioned onboarding/offboarding templates, assignments and task workflows.
+- Restricted compensation records and controlled payroll input/review/approval/closure workflows.
 
-## Organization operating model
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The current CI has passed 31 API tests and SQLite migration-chain checks on the documented branch revision. PostgreSQL runtime integration, real identity-provider integration, UI, production operations and organization-specific policy/UAT remain open.
 
-See [Enterprise Operating Model](docs/ENTERPRISE_OPERATING_MODEL.md) for the complete capability catalogue, organization model, domain relationships, technology-neutral integration principles, safeguards, delivery phases and open decisions.
+## Run the current API locally
 
-## Existing project intelligence capability
+Requirements: Python 3.11 or newer.
 
-ASAA's original project/repository intelligence scope remains part of the wider platform. It provides portfolio, project lifecycle, requirements, evidence, risks and repository integration capabilities. Existing ASAA projects remain independently governed and their technology stacks, repositories, branches and workflows are not standardized or modified by default.
+```bash
+cd apps/ap-api
+python -m venv .venv
+# Windows PowerShell:
+.venv\\Scripts\\Activate.ps1
+# Linux/macOS:
+source .venv/bin/activate
+python -m pip install -e ".[test]"
+python -m alembic upgrade head
+uvicorn asaa_ap.main:app --reload
+```
 
-## Current status
+The default local database is SQLite at `apps/ap-api/asaa_ap.db`. The API fails closed for authenticated routes until the RS256 identity settings are configured. Set `ASAA_AP_DATABASE_URL`, `ASAA_AP_JWT_PUBLIC_KEY`, `ASAA_AP_JWT_ISSUER` and `ASAA_AP_JWT_AUDIENCE` in the environment or a local, untracked `.env` file. Never commit private keys, tokens or production secrets. See [Development](docs/DEVELOPMENT.md), [Security](docs/SECURITY.md) and [Operations](docs/OPERATIONS.md).
 
-The repository contains the enterprise planning baseline and API-first finance and people foundations. AP, AR, HR, onboarding and salaries/payroll have initial source, migration and test coverage on `new`; these capabilities are Built Not Tested and are not production-ready. Identity-provider and PostgreSQL runtime integrations remain unverified.
+Run checks from `apps/ap-api`:
+
+```bash
+python -m compileall -q src tests
+python -m pytest -q
+python -m alembic upgrade head
+```
+
+API documentation is exposed by FastAPI when the service is running (typically `/docs`).
 
 ## Documentation
 
-- [Enterprise Operating Model](docs/ENTERPRISE_OPERATING_MODEL.md)
-- [Organization Hierarchy and Department Catalogue](docs/ORGANIZATION_HIERARCHY_AND_DEPARTMENTS.md)
-- [Management and Workforce Operating Model](docs/MANAGEMENT_AND_WORKFORCE_OPERATING_MODEL.md)
-- [Enterprise User Story Map](docs/ENTERPRISE_USER_STORIES.md)
-- [Enterprise Gap Analysis](docs/ENTERPRISE_GAP_ANALYSIS.md)
-- [Proof of Concept](docs/POC.md)
-- [User Stories](docs/USER_STORIES.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Foundation Implementation Blueprint](docs/FOUNDATION_IMPLEMENTATION_BLUEPRINT.md)
-- [Organization Model](docs/ORGANIZATION_MODEL.md)
-- [Organization Preservation Policy](docs/ORGANIZATION_PRESERVATION_POLICY.md)
-- [Branch Standard](docs/BRANCH_STANDARD.md)
-- [AP Phase 1 Implementation Status](docs/AP_PHASE_1_IMPLEMENTATION.md)
-- [AR Initial Implementation Status](docs/AR_INITIAL_IMPLEMENTATION_STATUS.md)\n- [HR, Onboarding and Salaries & Payroll Foundation Status](docs/HR_ONBOARDING_PAYROLL_FOUNDATION_STATUS.md)
-- [Finance API — AP and AR](apps/ap-api/README.md)\n- [People API — HR, Onboarding and Payroll](apps/ap-api/README_PEOPLE.md)
+- [Architecture](docs/ARCHITECTURE.md) — domain boundaries, shared services, technical decisions and project preservation.
+- [Requirements](docs/REQUIREMENTS.md) — consolidated capability scope, priorities, user needs, acceptance principles and implementation status.
+- [Development](docs/DEVELOPMENT.md) — local setup, configuration, commands, tests and contribution workflow.
+- [Operations](docs/OPERATIONS.md) — deployment gates, monitoring, backup, recovery and operational runbooks.
+- [Security](docs/SECURITY.md) — identity, authorization, data protection, audit and security acceptance requirements.
+
+## Repository and branch
+
+Repository: [ASAA1229/ASAA](https://github.com/ASAA1229/ASAA)
+
+Organization-wide default branch names are `main`, `dev`, `new`, `fix` and `test`. Their exact merge, protection and release rules remain governed by approved repository policy. Work in this change is limited to branch `new`.
