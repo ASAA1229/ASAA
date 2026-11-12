@@ -1,67 +1,47 @@
-# ASAA — Enterprise Project Integration Platform
+# ASAA — Enterprise Operating Platform
 
-**Status:** Initial documentation and proof of concept (POC)  
-**Stage:** Planning baseline — implementation not started  
-**Owner:** ASAA
+**Status:** Organization-wide scope and operating model definition  
+**Owner:** ASAA founder / organization owner  
+**Technology policy:** Technology-stack independent
 
-## Purpose
+## Vision
 
-ASAA Enterprise Project Integration Platform is a standalone application intended to help ASAA understand, organize, analyze and coordinate multiple software projects and their repositories.
+ASAA is the personalized internal operating platform for the company the owner is preparing to establish. It is intended to manage and connect the organization end to end: leadership and governance, every department, employees, projects, products, engineering, testing, services, customers, sales, pricing, contracts, invoices, finance, procurement, operations, compliance, knowledge, reporting and automation.
 
-The initial product should establish a reliable view of each project's actual purpose, scope, directory structure, branches, documentation, requirements, implementation evidence and dependencies. It should not assume that repository names, README files or previously collected reference information are the definitive project specification.
+This is not only an HR tool, project tracker, ERP or software-development platform. It is the organization's central operating environment, with role-appropriate experiences from CEO and department heads to employees and authorized external collaborators.
 
-## Product boundary
+The platform is designed around ASAA's own organization, policies, workflows and growth. It is not being scoped as a generic multi-company SaaS product.
 
-This is a separate product and Git repository. It is not a module inside the ASAA Templates Platform. A future API-based integration may allow both products to exchange project metadata or reuse capabilities without coupling their release cycles.
+## Core principles
 
-## Initial POC
+- Technology-stack independent; no mandatory language, framework, database, cloud or vendor.
+- Configurable organization structure, departments, roles, policies, workflows and approval authority.
+- One connected platform with clearly owned business domains and shared core services.
+- Strong privacy, least-privilege access, separation of duties and audit history.
+- Evidence-based reporting; unknown or stale information is never presented as confirmed.
+- Human approval for sensitive, financial, legal, HR and high-impact automated actions.
+- Integrations through replaceable adapters and documented contracts.
+- Progressive delivery: the full capability vision is decomposed into validated, testable releases.
 
-1. Register an organization/workspace and projects.
-2. Connect an authorized Git provider account or repository.
-3. Discover repositories, default branches, branches and directory trees.
-4. Select documentation and source areas for analysis.
-5. Capture project purpose, scope, requirements and constraints with source references.
-6. Record repository observations separately from confirmed requirements.
-7. Map project dependencies and integration points manually in the first iteration.
-8. Produce a project/repository summary and an explicit list of unknowns and verification tasks.
+## Organization operating model
 
-## Organization-wide preservation rule
+See [Enterprise Operating Model](docs/ENTERPRISE_OPERATING_MODEL.md) for the complete capability catalogue, organization model, domain relationships, technology-neutral integration principles, safeguards, delivery phases and open decisions.
 
-Every project under ASAA1229 remains independently owned, with its own repositories, specifications, requirements, directory structure, technology choices and project-specific workflow. The organization-wide default branch set for every project is **`main`, `dev`, `new`, `fix`, and `test`**. These are common branch-name defaults; they do not make project code, requirements, folder layouts or project-specific workflows identical. The platform records whether each repository has the expected branches but does not create, rename, delete or modify branches. Any branch rollout or exception is handled through the affected project's approved process.
+## Existing project intelligence capability
 
-## Guiding principles
-
-- Treat actual project scope and user requests as the source of truth.
-- Keep reference observations separate from approved project requirements.
-- Preserve traceability from findings to repository, branch, path and revision.
-- Read-only repository access by default.
-- No code changes, commits, pushes, merges, deployments or test execution in the initial POC.
-- Do not infer that documented or present code is working or production-ready.
-- Make uncertain, missing and unverified information visible.
-- Support multiple projects and Git repositories without assuming a particular organization structure.
-
-## Documentation
-
-- [Project overview](docs/PROJECT_OVERVIEW.md)
-- [Organization preservation policy](docs/ORGANIZATION_PRESERVATION_POLICY.md)
-- [Proof of concept](docs/POC.md)
-- [User stories](docs/USER_STORIES.md)
-- [Initial roadmap](docs/ROADMAP.md)
-- [Command center foundation implementation blueprint](docs/FOUNDATION_IMPLEMENTATION_BLUEPRINT.md)
-
-## Decisions intentionally left open
-
-The production technology stack, hosting model, database, exact Git provider integration, AI provider, access model, detailed UI/UX and automation permissions must be decided after the real project directory, scope, workflows and constraints are collected.
+ASAA's original project/repository intelligence scope remains part of the wider platform. It provides portfolio, project lifecycle, requirements, evidence, risks and repository integration capabilities. Existing ASAA projects remain independently governed and their technology stacks, repositories, branches and workflows are not standardized or modified by default.
 
 ## Current status
 
-This repository contains planning documentation only. No application code, integrations, tests or deployment configuration are included in this initial baseline.
+The repository currently contains planning documentation. The enterprise-wide operating model is being defined before production implementation. No application feature, HR/payroll process, accounting integration, identity integration or deployment is claimed as implemented.
 
+## Documentation
 
-## Organization and project-preservation model
-
-ASAA is the organization-level workspace. Each software project remains independent, with its own repository/repositories, directory structure, specifications, requirements, technology choices, ownership and delivery lifecycle. The shared branch-name baseline is `main`, `dev`, `new`, `fix`, and `test`; project-specific branch protections, merge flows and additional branches remain governed by each project's approved workflow.
-
-The platform provides a centralized view without combining codebases or imposing a universal project structure. It reports missing default branches but does not create or change them.
-
-See [Organization Model](docs/ORGANIZATION_MODEL.md) and [Branch Standard](docs/BRANCH_STANDARD.md) for the mandatory rules.
+- [Enterprise Operating Model](docs/ENTERPRISE_OPERATING_MODEL.md)
+- [Proof of Concept](docs/POC.md)
+- [User Stories](docs/USER_STORIES.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Foundation Implementation Blueprint](docs/FOUNDATION_IMPLEMENTATION_BLUEPRINT.md)
+- [Organization Model](docs/ORGANIZATION_MODEL.md)
+- [Organization Preservation Policy](docs/ORGANIZATION_PRESERVATION_POLICY.md)
+- [Branch Standard](docs/BRANCH_STANDARD.md)
