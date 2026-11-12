@@ -113,3 +113,71 @@ class PayrollEntryCreate(StrictModel):
         if self.gross_amount - self.deduction_total != self.net_amount:
             raise ValueError("net_amount must equal gross_amount minus deduction_total")
         return self
+
+
+class EmployeeDocumentCreate(StrictModel):
+    document_type: str = Field(min_length=1, max_length=64)
+    title: str = Field(min_length=1, max_length=180)
+    storage_reference: str = Field(min_length=1, max_length=500)
+    classification: str = Field(default="Confidential", pattern="^(Internal|Confidential|Restricted)$")
+    issued_on: date | None = None
+    expires_on: date | None = None
+
+    @model_validator(mode="after")
+    def document_dates_valid(self):
+        if self.issued_on and self.expires_on and self.expires_on < self.issued_on:
+            raise ValueError("expires_on cannot precede issued_on")
+        return self
+
+
+class EmployeeAssetCreate(StrictModel):
+    asset_reference: str = Field(min_length=1, max_length=128)
+    asset_type: str = Field(min_length=1, max_length=64)
+    issued_on: date
+    condition_on_issue: str | None = Field(default=None, max_length=64)
+
+
+class EmployeeAssetReturn(StrictModel):
+    returned_on: date
+    condition_on_return: str | None = Field(default=None, max_length=64)
+
+
+class LeaveRequestCreate(StrictModel):
+    leave_category: str = Field(min_length=1, max_length=64)
+    start_date: date
+    end_date: date
+    reason: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def leave_dates_valid(self):
+        if self.end_date < self.start_date:
+            raise ValueError("end_date cannot precede start_date")
+        return self
+
+
+class LeaveRequestReview(StrictModel):
+    decision: str = Field(pattern="^(Approved|Rejected)$")
+    review_note: str | None = Field(default=None, max_length=2000)
+
+
+class EmployeeExitCreate(StrictModel):
+    planned_last_day: date
+    reason_category: str = Field(min_length=1, max_length=64)
+    notes: str | None = Field(default=None, max_length=4000)
+
+
+class OnboardingTemplateStatusUpdate(StrictModel):
+    active: bool
+
+
+class OnboardingTaskAssignment(StrictModel):
+    assigned_to: str | None = Field(default=None, min_length=1, max_length=128)
+
+
+class CompensationDecision(StrictModel):
+    decision: str = Field(pattern="^(Approved|Rejected)$")
+    approval_note: str | None = Field(default=None, max_length=2000)
+
+
+class PayrollRunReview(StrictModel):
+    review_note: str | None = Field(default=None, max_length=2000)
