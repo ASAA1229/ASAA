@@ -47,6 +47,7 @@ Every project under ASAA1229 remains independently owned, with its own repositor
 - [Proof of concept](docs/POC.md)
 - [User stories](docs/USER_STORIES.md)
 - [Initial roadmap](docs/ROADMAP.md)
+- [Command center foundation implementation blueprint](docs/FOUNDATION_IMPLEMENTATION_BLUEPRINT.md)
 
 ## Decisions intentionally left open
 
