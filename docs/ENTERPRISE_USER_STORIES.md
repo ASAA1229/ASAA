@@ -105,7 +105,7 @@ As an authorized user, I want to search and export records within my access scop
 ### ASAA-HR-001 — Create and maintain employee profiles
 **Priority:** P0  
 As an HR administrator, I want a secure employee profile with employment, department, position, manager and contact information so that employee records are centrally maintained.
-**Implementation status:** Built — CI Passed (API tests); PostgreSQL integration, identity-provider integration, employee document management and broader lifecycle workflows remain open.
+**Implementation status:** Built — API tests and SQLite migration-chain CI passed; employee profiles, controlled updates and effective-dated employment history are implemented. PostgreSQL, identity-provider and business-policy UAT remain open.
 
 ### ASAA-HR-002 — Manage recruitment and candidate records
 **Priority:** P2  
@@ -114,24 +114,27 @@ As an authorized recruiter, I want to manage vacancies, candidates, interviews a
 ### ASAA-HR-003 — Manage onboarding
 **Priority:** P1  
 As HR, I want configurable onboarding checklists, document collection, asset assignment and access requests so that new joiners are prepared consistently.
-**Implementation status:** Built — CI Passed (API tests and migration chain); task descriptions are snapshotted, due dates are editable, optional-only assignments complete correctly and evidence is preserved on partial updates; document, asset and access-provisioning integrations remain open.
+**Implementation status:** Built — API tests and SQLite migration-chain CI passed; typed/versioned Onboarding and Offboarding templates, assignment-version snapshots, task assignment, due dates, evidence and required-task completion are implemented. Binary document, e-signature and identity/access integrations remain open.
 
 ### ASAA-HR-004 — Manage employment changes
 **Priority:** P1  
 As HR, I want to record transfers, promotions, manager changes, contract changes and status changes with effective dates and approvals.
-**Implementation status:** Partially Built — CI Passed (API tests); employee lifecycle status changes are permission-controlled, reasoned, audited and effective-dated; approval gates and full transfer, promotion and contract-change workflows remain open.
+**Implementation status:** Partially Built — effective-dated employment records enforce append/overlap controls and sync current employee status/type; operational lifecycle transitions are permission-controlled and audited. A configurable approval matrix and full transfer/promotion/contract-change requests remain open.
 
 ### ASAA-HR-005 — Manage offboarding
 **Priority:** P1  
 As HR, I want a controlled exit workflow covering handover, assets, final settlement inputs, document retention and access revocation.
+**Implementation status:** Partially Built — exit cases create effective-dated Offboarding history, can instantiate versioned offboarding checklists, and block closure until required tasks and tracked asset returns are complete. Identity/access revocation, final settlement, document retention and external handover integrations remain open.
 
 ### ASAA-HR-006 — Manage employee documents
 **Priority:** P1  
 As HR, I want restricted employee document storage, expiry reminders and acknowledgement tracking so that records are maintained securely.
+**Implementation status:** Partially Built — restricted document metadata, classification, issue/expiry dates and archive state are available with opaque private-storage references. Binary storage, versioning, retention/legal hold, e-signatures and expiry reminders remain open.
 
 ### ASAA-HR-007 — Manage employee requests and grievances
 **Priority:** P2  
 As an employee, I want to submit confidential HR requests or grievances and track their authorized handling.
+**Implementation status:** Partially Built — leave requests support submission, overlap checks and independent decisions. Confidential employee-relations/grievance case teams, conflict checks, appeals and case-level evidence controls remain open.
 
 ## Epic D — Attendance, leave and schedules
 
@@ -225,17 +228,17 @@ Acceptance criteria for this epic:
 ### ASAA-PAY-001 — Maintain compensation records
 **Priority:** P1  
 As an authorized HR/Finance user, I want restricted, effective-dated compensation records so that salary changes are traceable.
-**Implementation status:** Built — CI Passed (API tests); restricted permission-gated, effective-dated compensation records exist; approval and policy-controlled compensation changes remain open.
+**Implementation status:** Built — restricted, effective-dated compensation records include independent maker-checker approval, approval evidence and sequential effective-period handling. Organization-specific compensation policies remain unconfigured.
 
 ### ASAA-PAY-002 — Prepare payroll inputs
 **Priority:** P2  
 As an authorized payroll operator, I want approved attendance, leave, overtime, compensation and deduction inputs assembled for payroll review.
-**Implementation status:** Built — CI Passed (API tests); payroll periods, draft runs, employee payroll-entry records and arithmetic reconciliation validation exist; source integrations, policy calculations, reconciliation workflow, approvals and payment execution remain open.
+**Implementation status:** Partially Built — periods, draft runs, explicit payroll inputs, arithmetic validation and run totals are implemented. Approved attendance/leave/compensation source assembly, policy calculations and provider reconciliation remain open.
 
 ### ASAA-PAY-003 — Review and reconcile payroll
 **Priority:** P2  
 As an authorized payroll approver, I want payroll totals and exceptions reviewed before finalization so that errors can be corrected.
-**Implementation status:** Not Started — draft payroll input records exist; review, exception reconciliation, approvals and finalization are not implemented.
+**Implementation status:** Partially Built — run submission, independent review, return-for-correction, entry correction, resubmission, approval, run closure and period closure are implemented. Source exception reconciliation, policy calculation, payslips and payment execution remain open.
 
 ### ASAA-PAY-004 — Manage payslips and payroll history
 **Priority:** P2  
