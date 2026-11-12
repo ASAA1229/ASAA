@@ -221,7 +221,7 @@ def approve_delegation(
 @router.post("/delegations/{delegation_id}/reject")
 def reject_delegation(
     delegation_id: str, payload: ReviewAction, db: Session = Depends(get_db),
-    principal: Principal = Depends(require_permission("governance:delegation:approve")),
+    principal: Principal = Depends(require_permission("governance:delegation:reject")),
     x_correlation_id: str | None = Header(default=None),
 ):
     row = get_delegation(db, delegation_id, principal.organization_id)
@@ -330,7 +330,7 @@ def approve_decision(
 @router.post("/decisions/{decision_id}/reject")
 def reject_decision(
     decision_id: str, payload: ReviewAction, db: Session = Depends(get_db),
-    principal: Principal = Depends(require_permission("governance:decision:approve")),
+    principal: Principal = Depends(require_permission("governance:decision:reject")),
     x_correlation_id: str | None = Header(default=None),
 ):
     row = get_decision(db, decision_id, principal.organization_id)
