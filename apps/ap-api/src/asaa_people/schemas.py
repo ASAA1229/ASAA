@@ -24,7 +24,7 @@ class EmploymentRecordCreate(StrictModel):
     manager_employee_id: str | None = None
     work_location: str | None = Field(default=None, max_length=160)
     employment_type: str = Field(min_length=1, max_length=40)
-    status: str = Field(default="Active", max_length=32)
+    status: str = Field(default="Active", pattern="^(Preboarding|Active|On Leave|Suspended)$")
     effective_from: date
     effective_to: date | None = None
     reason: str | None = Field(default=None, max_length=2000)
