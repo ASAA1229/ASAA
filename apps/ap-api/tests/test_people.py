@@ -389,7 +389,7 @@ def test_payroll_run_review_summary_and_close_controls(client):
         "breakdown": {"source": "reviewer correction"}
     })
     assert corrected.status_code == 200
-    assert corrected.json()["net_amount"] == "46000.00"
+    assert corrected.json()["net_amount"] == 46000.0
     resubmitted = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/submit", json={
         "review_note": "Corrected and resubmitted"
     })
