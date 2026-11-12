@@ -225,6 +225,7 @@ def test_employee_documents_assets_and_offboarding_controls(client):
         "offboarding_template_id": template.json()["id"]
     })
     assert exit_case.status_code == 201
+    assert exit_case.json()["checklist_assignment_id"] is not None
     blocked = client.post(f"/api/v1/hr/exit-cases/{exit_case.json()['id']}/complete")
     assert blocked.status_code == 409
     assert blocked.json()["detail"]["code"] == "offboarding_checklist_incomplete"
