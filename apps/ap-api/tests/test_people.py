@@ -35,7 +35,7 @@ def test_onboarding_template_assignment_and_task_completion(client):
     template = client.post("/api/v1/onboarding/templates", json={
         "template_code": "GENERAL-01", "name": "General employee onboarding",
         "tasks": [
-            {"title": "Sign employment documents", "owner_role": "HR", "required": True, "sequence": 1},
+            {"title": "Sign employment documents", "description": "Complete required employment paperwork", "owner_role": "HR", "required": True, "sequence": 1},
             {"title": "Prepare workstation", "owner_role": "IT", "required": True, "sequence": 2}
         ]
     })
@@ -50,6 +50,7 @@ def test_onboarding_template_assignment_and_task_completion(client):
     assert assignment.status_code == 201
     assigned = client.get("/api/v1/onboarding/assignments").json()[0]
     assert len(assigned["tasks"]) == 2
+    assert assigned["tasks"][0]["description"] == "Complete required employment paperwork"
     for task in assigned["tasks"]:
         updated = client.patch(f"/api/v1/onboarding/tasks/{task['id']}", json={
             "status": "Completed", "evidence_reference": "evidence://onboarding/task"
@@ -147,3 +148,25 @@ def test_payroll_entry_rejects_inconsistent_amounts(client):
         },
     )
     assert response.status_code == 422
+
+
+def test_optional_only_onboarding_template_completes_assignment(client):
+    employee = create_employee(client)
+    template = client.post("/api/v1/onboarding/templates", json={
+        "template_code": "OPTIONAL-01",
+        "name": "Optional welcome resources",
+        "tasks": [
+            {"title": "Explore team resources", "description": "Optional self-guided reading",
+             "owner_role": "Employee", "required": False, "sequence": 1}
+        ]
+    })
+    assert template.status_code == 201
+    assignment = client.post("/api/v1/onboarding/assignments", json={
+        "employee_id": employee["id"],
+        "template_id": template.json()["id"]
+    })
+    assert assignment.status_code == 201
+    assert assignment.json()["status"] == "Completed"
+    tasks = client.get("/api/v1/onboarding/assignments").json()[0]["tasks"]
+    assert tasks[0]["description"] == "Optional self-guided reading"
+    assert tasks[0]["status"] == "Pending"
