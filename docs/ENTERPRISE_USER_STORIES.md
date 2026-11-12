@@ -831,3 +831,63 @@ As the owner, I want each module and business process to have an accountable own
 4. **P2 expansion:** recruitment depth, performance, learning, marketing, procurement, inventory, facilities, advanced finance, audit testing and offline workflows.
 
 **Gap-closure rule:** These additions expand the target backlog. They do not mean every domain must be activated at launch. Each capability must be enabled only when its business owner, process, policy, data classification, approval authority and legal applicability are confirmed.
+
+
+## Epic V — Leadership, department and employee management
+
+The detailed management processes and responsibility boundaries are defined in `docs/MANAGEMENT_AND_WORKFORCE_OPERATING_MODEL.md`. These stories make the management model testable; they do not assert that the future company has adopted a particular appointment, policy or employment rule.
+
+### ASAA-GAP-039 — Govern leadership appointments and reserved authority
+**Priority:** P0  
+As the organization owner, I want leadership roles, appointments, reserved decisions and delegations recorded so that company management authority is explicit and reviewable.
+- Support Founder, Organization Owner, CEO/Managing Director and executive roles as distinct responsibilities that may be held by one person or separated.
+- Record appointment owner, scope, effective date, expiry/review date, delegation and revocation.
+- Identify reserved decisions and prevent actions outside a person's current authority.
+- Keep legal/statutory authority distinct from internal platform permissions; do not assume legal powers.
+- Leave the launch appointment arrangement pending until owner-confirmed.
+
+### ASAA-GAP-040 — Manage department charters and management accountability
+**Priority:** P0  
+As the organization owner, I want every activated department to have a charter, accountable owner, services, responsibilities, objectives, controls and escalation path.
+- Support planned, active, suspended, inactive and archived department states.
+- Record department purpose, scope, interfaces, head/acting owner, staffing, processes, risks and service measures.
+- Assign department heads, managers and team leads with effective dates and explicit authority scopes.
+- Surface vacant ownership, unassigned processes, overloaded spans and unresolved cross-department dependencies.
+- Preserve history when departments are merged, split, renamed or deactivated.
+
+### ASAA-GAP-041 — Operate management planning and review cycles
+**Priority:** P1  
+As a company or department leader, I want configurable planning, review and escalation cycles so that strategy is translated into accountable execution.
+- Link company objectives to department goals, team plans, initiatives and employee objectives.
+- Support configurable leadership, department, team and employee check-ins without imposing a fixed meeting cadence.
+- Record decisions, action owners, due dates, blockers, evidence and follow-up outcomes.
+- Escalate overdue or high-risk matters according to approved policy.
+- Dashboards show metric definitions, source, period, freshness and authorized drill-down.
+
+### ASAA-GAP-042 — Manage employee lifecycle as an end-to-end workflow
+**Priority:** P0  
+As an authorized HR owner, I want recruitment/engagement, onboarding, active employment, changes, leave/status events and offboarding connected so that employee records and access remain consistent.
+- Support employees and other engagement types without conflating their legal/contractual status.
+- Coordinate position, department, manager, work arrangement, documents, assets, training and access requests.
+- Record effective-dated changes, approvals, evidence, notifications and history.
+- Trigger access review, asset reconciliation, work handover and retention steps on transfer or exit.
+- Keep employment terms, checks and statutory workflows gated by confirmed policy and applicable jurisdiction.
+
+### ASAA-GAP-043 — Govern employee goals, performance and development
+**Priority:** P1  
+As an employee and manager, I want disclosed role expectations, goals, regular feedback, reviews and development plans so that performance is fair, useful and evidence-based.
+- Align employee goals to approved department and company objectives.
+- Support employee reflection, manager assessment, evidence, discussion, response and review history.
+- Use role-appropriate criteria and documented context; do not treat attendance or activity counts as standalone performance.
+- Provide correction, second-review or appeal routes as defined by approved policy.
+- Keep AI recommendations advisory; prohibit opaque automated hiring, ranking, discipline, compensation or termination decisions.
+
+### ASAA-GAP-044 — Govern manager access, employee support and workplace cases
+**Priority:** P0  
+As an organization owner/HR owner, I want manager access and employee support cases controlled by purpose, scope and conflict rules so that employees are protected and managers receive only necessary information.
+- Separate HR reporting, project supervision, approval authority and system access.
+- Restrict compensation, identity, health, grievance and disciplinary records to explicitly authorized roles.
+- Support confidential case teams, conflict checks, evidence, response history and approved review/appeal routes.
+- Prevent a person from accessing or deciding a case where they are conflicted unless an approved independent process explicitly permits a limited role.
+- Audit access, disclosure, decisions and case closure without exposing confidential content in ordinary dashboards.
+
