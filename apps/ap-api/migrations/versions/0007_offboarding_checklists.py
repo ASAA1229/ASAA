@@ -14,13 +14,18 @@ def upgrade():
         "onboarding_templates",
         sa.Column("workflow_type", sa.String(24), nullable=False, server_default="Onboarding"),
     )
-    op.add_column(
-        "hr_employee_exit_cases",
-        sa.Column("checklist_assignment_id", sa.String(36),
-                  sa.ForeignKey("onboarding_assignments.id"), nullable=True),
-    )
+    with op.batch_alter_table("hr_employee_exit_cases") as batch_op:
+        batch_op.add_column(sa.Column("checklist_assignment_id", sa.String(36), nullable=True))
+        batch_op.create_foreign_key(
+            "fk_hr_exit_checklist_assignment",
+            "onboarding_assignments",
+            ["checklist_assignment_id"],
+            ["id"],
+        )
 
 
 def downgrade():
-    op.drop_column("hr_employee_exit_cases", "checklist_assignment_id")
+    with op.batch_alter_table("hr_employee_exit_cases") as batch_op:
+        batch_op.drop_constraint("fk_hr_exit_checklist_assignment", type_="foreignkey")
+        batch_op.drop_column("checklist_assignment_id")
     op.drop_column("onboarding_templates", "workflow_type")
