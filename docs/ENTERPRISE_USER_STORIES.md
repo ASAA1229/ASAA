@@ -174,10 +174,12 @@ Acceptance criteria:
 ### ASAA-WFM-006 — Apply for leave
 **Priority:** P1  
 As an employee, I want to view my available leave information and submit, amend or cancel a leave request so that absence is formally recorded.
+**Implementation status:** Partially Built — leave requests can be submitted with date-overlap checks and tracked status. Leave balances, entitlement display, amendments, withdrawal and policy calculations remain open.
 
 ### ASAA-WFM-007 — Review and approve leave
 **Priority:** P1  
 As an authorized manager/HR reviewer, I want to approve, reject or request clarification on leave requests so that team availability and policy are managed.
+**Implementation status:** Partially Built — permission-separated independent approval/rejection and reviewer notes are implemented; clarification loops, delegation and policy-aware team availability remain open.
 
 ### ASAA-WFM-008 — Manage holidays and work calendars
 **Priority:** P1  
