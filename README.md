@@ -40,7 +40,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL (normally `http://localhost:5000`). Build and preview with `npm run build` and `npm run preview`. The UI currently presents an identity-token connection screen; live business data requires the API and a valid identity-provider token.
+Open `http://localhost:5000`. Vite uses port 5000 for both development and preview and fails rather than silently switching ports if it is occupied. Build and preview with `npm run build` and `npm run preview`. The UI currently presents an identity-token connection screen; live business data requires the API and a valid identity-provider token.
 
 ## Run the current API locally
 
