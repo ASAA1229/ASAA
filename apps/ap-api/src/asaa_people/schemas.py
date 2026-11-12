@@ -192,3 +192,19 @@ class OnboardingTemplateReplace(StrictModel):
 
 class EmployeeDocumentStatusUpdate(StrictModel):
     status: str = Field(pattern="^(Active|Archived)$")
+
+
+class PayrollEntryUpdate(StrictModel):
+    currency: str = Field(pattern="^[A-Z]{3}$")
+    gross_amount: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
+    deduction_total: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
+    net_amount: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
+    breakdown: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def amounts_reconcile(self):
+        if self.deduction_total > self.gross_amount:
+            raise ValueError("deduction_total cannot exceed gross_amount")
+        if self.gross_amount - self.deduction_total != self.net_amount:
+            raise ValueError("net_amount must equal gross_amount minus deduction_total")
+        return self
