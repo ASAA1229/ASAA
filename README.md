@@ -25,7 +25,7 @@ The current executable slice is an API-first Python service in `apps/ap-api`. It
 - Master-data domain ownership, stewardship, source provenance, duplicate-candidate flagging and non-destructive supersession.
 - Governance decision register and time-bounded authority delegation workflow with independent review, revocation and audit.
 
-These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The latest CI for the current branch revision has passed source compilation, all 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. PostgreSQL runtime integration, real identity-provider integration, UI, production operations and organization-specific policy/UAT remain open.
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The GAP-024 baseline previously passed source compilation, 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. GAP-002 now adds decision/delegation routes and tests; its CI validation is pending. PostgreSQL runtime integration, real identity-provider integration, UI, production operations and organization-specific policy/UAT remain open.
 
 ## Run the current API locally
 
