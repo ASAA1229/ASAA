@@ -110,6 +110,8 @@ class OnboardingTask(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_by: Mapped[str | None] = mapped_column(String(128))
     evidence_reference: Mapped[str | None] = mapped_column(String(500))
+    assigned_to: Mapped[str | None] = mapped_column(String(128))
+    assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class CompensationRecord(Base):
@@ -127,6 +129,9 @@ class CompensationRecord(Base):
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="Pending Approval")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    approved_by: Mapped[str | None] = mapped_column(String(128))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_note: Mapped[str | None] = mapped_column(Text)
 
 
 class PayrollPeriod(Base):
@@ -153,6 +158,11 @@ class PayrollRun(Base):
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_by: Mapped[str | None] = mapped_column(String(128))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_note: Mapped[str | None] = mapped_column(Text)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class PayrollEntry(Base):
@@ -168,5 +178,81 @@ class PayrollEntry(Base):
     net_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     breakdown: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="Draft")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+
+
+class EmployeeDocument(Base):
+    __tablename__ = "hr_employee_documents"
+    __table_args__ = (
+        Index("ix_hr_document_org_employee", "organization_id", "employee_id"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    employee_id: Mapped[str] = mapped_column(ForeignKey("hr_employees.id"), nullable=False)
+    document_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    storage_reference: Mapped[str] = mapped_column(String(500), nullable=False)
+    classification: Mapped[str] = mapped_column(String(32), nullable=False, default="Confidential")
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Active")
+    issued_on: Mapped[date | None] = mapped_column(Date)
+    expires_on: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+
+
+class EmployeeAsset(Base):
+    __tablename__ = "hr_employee_assets"
+    __table_args__ = (
+        Index("ix_hr_asset_org_employee", "organization_id", "employee_id"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    employee_id: Mapped[str] = mapped_column(ForeignKey("hr_employees.id"), nullable=False)
+    asset_reference: Mapped[str] = mapped_column(String(128), nullable=False)
+    asset_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    issued_on: Mapped[date] = mapped_column(Date, nullable=False)
+    returned_on: Mapped[date | None] = mapped_column(Date)
+    condition_on_issue: Mapped[str | None] = mapped_column(String(64))
+    condition_on_return: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Issued")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+
+
+class LeaveRequest(Base):
+    __tablename__ = "hr_leave_requests"
+    __table_args__ = (
+        Index("ix_hr_leave_org_employee_dates", "organization_id", "employee_id", "start_date", "end_date"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    employee_id: Mapped[str] = mapped_column(ForeignKey("hr_employees.id"), nullable=False)
+    leave_category: Mapped[str] = mapped_column(String(64), nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Submitted")
+    reviewer_subject: Mapped[str | None] = mapped_column(String(128))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+
+
+class EmployeeExitCase(Base):
+    __tablename__ = "hr_employee_exit_cases"
+    __table_args__ = (
+        Index("ix_hr_exit_org_employee", "organization_id", "employee_id"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    employee_id: Mapped[str] = mapped_column(ForeignKey("hr_employees.id"), nullable=False)
+    planned_last_day: Mapped[date] = mapped_column(Date, nullable=False)
+    reason_category: Mapped[str] = mapped_column(String(64), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Open")
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_by: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
