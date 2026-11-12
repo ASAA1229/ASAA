@@ -148,7 +148,8 @@ def create_onboarding_template(payload: OnboardingTemplateCreate, db: Db,
     row = OnboardingTemplate(
         organization_id=principal.organization_id, template_code=payload.template_code,
         name=payload.name, description=payload.description,
-        employment_type=payload.employment_type, created_by=principal.subject,
+        employment_type=payload.employment_type, workflow_type=payload.workflow_type,
+        created_by=principal.subject,
     )
     db.add(row)
     db.flush()
