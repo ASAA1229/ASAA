@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
@@ -21,6 +21,13 @@ class MasterDataDomainUpdate(StrictModel):
     authoritative_source: str | None = Field(default=None, min_length=2, max_length=160)
     owner_subject: str | None = Field(default=None, min_length=1, max_length=128)
     steward_subject: str | None = Field(default=None, min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def reject_null_required_updates(self):
+        for field in ("name", "authoritative_source", "owner_subject", "steward_subject"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
 
 
 class MasterDataRecordCreate(StrictModel):

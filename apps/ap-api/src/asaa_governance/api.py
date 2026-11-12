@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from asaa_ap.database import get_db
@@ -29,7 +30,10 @@ def audit(db: Session, principal: Principal, action: str, entity_type: str,
 
 
 def view(row):
-    return {key: value for key, value in row.__dict__.items() if not key.startswith("_")}
+    return {
+        key: value for key, value in row.__dict__.items()
+        if not key.startswith("_") and key != "match_key_fingerprint"
+    }
 
 
 def domain_or_404(db: Session, domain_id: str, org_id: str):
@@ -70,7 +74,11 @@ def create_domain(
         created_by=principal.subject, updated_by=principal.subject,
     )
     db.add(row)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "master_data_domain_exists"}) from None
     audit(db, principal, "master_data_domain.created", "master_data_domain", row.id,
           {"domain_code": row.domain_code, "owner_subject": row.owner_subject,
            "steward_subject": row.steward_subject}, x_correlation_id)
@@ -161,7 +169,11 @@ def register_record(
         created_by=principal.subject,
     )
     db.add(row)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "master_data_record_conflict"}) from None
     audit(db, principal, "master_data_record.registered", "master_data_record_reference", row.id,
           {"domain_code": domain.domain_code, "record_type": row.record_type,
            "status": row.status, "duplicate_candidate_count": len(duplicates)}, x_correlation_id)

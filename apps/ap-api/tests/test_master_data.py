@@ -45,6 +45,10 @@ def test_master_data_domain_duplicate_and_optimistic_update(client):
         "expected_version": 1, "name": "Stale update"
     })
     assert stale.status_code == 409
+    null_owner = client.patch(f"/api/v1/master-data/domains/{domain['id']}", json={
+        "expected_version": 2, "owner_subject": None
+    })
+    assert null_owner.status_code == 422
 
 
 def test_master_data_record_registration_and_duplicate_flagging(client):
@@ -52,10 +56,12 @@ def test_master_data_record_registration_and_duplicate_flagging(client):
     first = create_record(client, domain["id"], "emp-1", "source-1", "a" * 64)
     assert first.status_code == 201
     assert first.json()["status"] == "Active"
+    assert "match_key_fingerprint" not in first.json()
     second = create_record(client, domain["id"], "emp-2", "source-2", "a" * 64)
     assert second.status_code == 201
     assert second.json()["status"] == "Duplicate Review"
     assert len(second.json()["duplicate_candidates"]) == 1
+    assert "match_key_fingerprint" not in second.json()
     assert create_record(client, domain["id"], "emp-1", "source-3").status_code == 409
     assert create_record(client, domain["id"], "emp-3", "source-1").status_code == 409
 
