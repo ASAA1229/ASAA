@@ -496,3 +496,338 @@ Acceptance criteria:
 - Preview considers role, scope, memberships, explicit grants and policy restrictions.
 - Sensitive data access is shown separately from general department visibility.
 - Access changes are audited and can be reviewed after assignment.
+
+
+---
+
+# Gap-closure backlog — additional stories required for the full ASAA objective
+
+This section records capabilities found missing, too broad, or insufficiently testable in the initial story map. These are additive requirements; they do not claim that the capabilities are implemented. Priorities are provisional and must be validated against the actual launch operating model.
+
+## Epic O — Company lifecycle, governance and policy control
+
+### ASAA-GAP-001 — Manage pre-incorporation and company establishment lifecycle
+**Priority:** P0  
+As the founder/owner, I want ASAA to distinguish preparation, establishment, active operation, restructuring and closure states so that records and workflows match the company's actual legal and operational status.
+- Support a pre-incorporation workspace without falsely representing the company as legally established.
+- Record confirmed legal entities, registrations, jurisdictions, effective dates and responsible owners when available.
+- Gate jurisdiction-dependent payroll, tax, invoicing and statutory workflows until applicability is confirmed.
+- Preserve the transition history and evidence when the company becomes formally established.
+
+### ASAA-GAP-002 — Maintain a decision, delegation and authority register
+**Priority:** P0  
+As the owner, I want strategic decisions, delegated authority, limits, expiry and revocation recorded so that authority is explicit and reviewable.
+- Record decision owner, approver, scope, rationale, effective date, expiry/review date and linked evidence.
+- Distinguish delegation from permanent role assignment.
+- Prevent expired or revoked delegations from authorizing actions.
+- Support emergency/break-glass access with justification and post-event review.
+
+### ASAA-GAP-003 — Govern policy lifecycle and exceptions
+**Priority:** P0  
+As a policy owner, I want policies to be drafted, reviewed, approved, published, acknowledged, superseded and retired through controlled workflows.
+- Policies support versions, effective dates, applicable populations, owners and mandatory review dates.
+- Exceptions require scope, rationale, approver, expiry and review.
+- A transaction uses the policy version effective at the relevant event date.
+- Historical decisions remain linked to the policy version applied.
+
+### ASAA-GAP-004 — Configure legal entities, business units and inter-entity boundaries
+**Priority:** P1  
+As the owner, I want legal entities and operating units represented independently so that future subsidiaries, brands or business lines can be managed without confusing legal ownership.
+- Support one or more entities only when confirmed and activated.
+- Separate legal entity, brand, business unit, department and location concepts.
+- Scope contracts, invoices, employees, assets and financial records to the correct entity.
+- Prevent cross-entity access and reporting leakage unless explicitly authorized.
+
+## Epic P — Complete workforce and people operations
+
+### ASAA-GAP-005 — Manage workforce planning and recruitment end to end
+**Priority:** P2  
+As a workforce owner, I want approved headcount plans, requisitions, candidates, interview feedback, offers and hiring outcomes linked together.
+- Track approved positions, vacancies, budgets and hiring owners.
+- Restrict candidate personal data and interview feedback.
+- Record offer approvals and candidate consent/retention rules.
+- Convert an accepted candidate into an onboarding record without duplicating identity data.
+
+### ASAA-GAP-006 — Manage performance, goals and development
+**Priority:** P2  
+As a manager and employee, I want goals, review cycles, feedback, development plans and outcomes recorded fairly.
+- Support configurable review cycles and role-appropriate access.
+- Employees can view permitted feedback and submit responses.
+- Separate performance evidence from attendance or raw activity counts.
+- Preserve review history and correction/appeal processes.
+
+### ASAA-GAP-007 — Manage learning, skills and certifications
+**Priority:** P2  
+As a workforce manager, I want skills, training, learning plans and certification expiry tracked so that capability and compliance needs are visible.
+- Link skills and qualifications to people and positions.
+- Track training assignment, completion evidence and expiry.
+- Restrict sensitive assessment information.
+- Support organization-wide and department-specific competency frameworks.
+
+### ASAA-GAP-008 — Manage employee lifecycle cases and confidential relations
+**Priority:** P1  
+As an authorized HR professional, I want confidential employee cases, grievances, accommodations and disciplinary workflows handled with restricted access.
+- Case access is limited to explicitly assigned roles.
+- Conflicts of interest can require reassignment.
+- Record actions, evidence, decisions, employee responses and review history.
+- Retention and deletion follow approved policy and applicable law.
+
+### ASAA-GAP-009 — Manage workforce expenses, advances and benefits end to end
+**Priority:** P1  
+As an employee and finance reviewer, I want claims, advances, benefits, receipts, approvals, settlement and accounting references connected.
+- Prevent duplicate claims and enforce configurable limits and evidence rules.
+- Separate submission, approval and payment authority.
+- Show claim status and settlement history to the claimant.
+- Keep payroll and accounting treatment configurable and jurisdiction-dependent.
+
+### ASAA-GAP-010 — Manage workforce availability across all work patterns
+**Priority:** P1  
+As an operations manager, I want office, remote, hybrid, field, travel, on-call and flexible work schedules represented.
+- Policies define allowed capture and approval methods for each work pattern.
+- Support time zones, overnight shifts, breaks, holidays and cross-midnight attendance.
+- Offline/device submissions are reconciled with original event time and received time.
+- Avoid covert or disproportionate location/device surveillance.
+
+## Epic Q — End-to-end work, product and service delivery
+
+### ASAA-GAP-011 — Manage enterprise work intake and prioritization
+**Priority:** P1  
+As a department owner, I want requests and work items submitted, categorized, assessed, prioritized, assigned and tracked across departments.
+- Support configurable request types, forms, queues, service targets and ownership.
+- Link requests to projects, products, customers, incidents or internal operations.
+- Capture acceptance, rejection, deferral and escalation reasons.
+- Provide requester-visible status without exposing restricted internal notes.
+
+### ASAA-GAP-012 — Manage end-to-end product and service lifecycle
+**Priority:** P1  
+As a product/service owner, I want discovery, approval, design, build/procure, validation, launch, maintenance and retirement governed.
+- Define lifecycle stages, owners, entry/exit criteria and required evidence.
+- Link products/services to requirements, costs, pricing, customers, support and risks.
+- Record versioning, changes, end-of-life and customer impact.
+- Support physical, digital, professional and operational offerings without assuming one sector.
+
+### ASAA-GAP-013 — Manage customer success and support cases
+**Priority:** P1  
+As a customer operations owner, I want customer queries, complaints, incidents, service cases, SLAs and resolutions managed.
+- Support channels, categories, priority, ownership, escalation and response/resolution targets.
+- Link cases to customers, contracts, products, services and known incidents.
+- Restrict customer data and internal notes by role.
+- Capture customer communication, resolution evidence and feedback.
+
+### ASAA-GAP-014 — Manage marketing, campaigns and partner channels
+**Priority:** P2  
+As a marketing owner, I want campaigns, content, budgets, channels, approvals, partners and outcomes tracked.
+- Link campaigns to products/services, audiences, leads and approved budgets.
+- Track consent and communication preferences.
+- Record campaign spend and measurable outcomes with source definitions.
+- Support partner/referral ownership and attribution.
+
+### ASAA-GAP-015 — Manage order fulfilment and recurring commercial commitments
+**Priority:** P1  
+As a commercial/operations owner, I want accepted quotations to become orders, subscriptions or service commitments with fulfilment and renewal tracking.
+- Link quotation, approval, customer acceptance, order, delivery and invoice records.
+- Support one-time and recurring commitments, amendments, pauses and cancellations.
+- Track fulfilment status, entitlements, renewals and service obligations.
+- Reconcile commercial changes with billing and customer records.
+
+## Epic R — Full financial control and commercial accounting
+
+### ASAA-GAP-016 — Maintain a governed financial ledger and periods
+**Priority:** P1  
+As an authorized finance owner, I want a configurable chart of accounts, journals, accounting periods and traceable postings.
+- Journal entries balance and reference source business events.
+- Closed periods require controlled reopening and audit.
+- Corrections use reversals/adjustments rather than silent edits.
+- Accounting policy and statutory treatment remain configurable pending jurisdiction confirmation.
+
+### ASAA-GAP-017 — Reconcile bank, cash and payment records
+**Priority:** P1  
+As a finance user, I want bank/cash transactions matched to invoices, receipts, expenses and payments.
+- Support manual statements and approved provider imports.
+- Identify unmatched, duplicate, partial and reversed transactions.
+- Reconciliation has preparer/reviewer separation where configured.
+- No payment initiation without explicit provider, permission and approval setup.
+
+### ASAA-GAP-018 — Govern tax, billing rules and invoice compliance
+**Priority:** P1  
+As a finance owner, I want tax treatments, invoice sequences, credit/debit notes and required invoice fields configured by legal entity and jurisdiction.
+- Never assume tax rates, registration status or invoice rules.
+- Effective-date tax configurations and preserve the rule used for each transaction.
+- Support draft, approved, issued, corrected, voided and credited states.
+- Prevent issued financial documents from being silently overwritten.
+
+### ASAA-GAP-019 — Manage financial planning, cash flow and profitability
+**Priority:** P2  
+As the owner/finance lead, I want forecasts, scenarios, cash runway, margins and profitability by entity, product, client and project.
+- Forecasts disclose assumptions, periods, source data and confidence.
+- Actuals reconcile to approved financial records.
+- Permissions restrict salary, banking and commercially sensitive details.
+- Distinguish forecast, estimate and confirmed actual values.
+
+### ASAA-GAP-020 — Manage pricing governance and commercial profitability
+**Priority:** P1  
+As a commercial owner, I want price lists, cost basis, discount authority, taxes, currencies, validity and margin rules connected.
+- Maintain versioned price lists by product/service, customer segment and effective period.
+- Discount/exception approvals follow authority limits.
+- Quote/invoice retains the price and terms accepted at that time.
+- Cost and margin visibility is restricted to authorized roles.
+
+## Epic S — Procurement, physical operations and assets
+
+### ASAA-GAP-021 — Manage procure-to-pay lifecycle
+**Priority:** P2  
+As a procurement and finance owner, I want purchase requests, quotations, vendor selection, purchase orders, receipts, bills and settlement connected.
+- Enforce budget and approval checks before commitments.
+- Record vendor comparisons and conflict-of-interest declarations where required.
+- Match purchase order, receipt and supplier invoice where applicable.
+- Track exceptions, returns, disputes and payment status.
+
+### ASAA-GAP-022 — Manage inventory, warehouses and stock traceability
+**Priority:** P2  
+As an operations owner, I want locations, warehouses, stock lots, movements, reservations and counts managed when the business handles inventory.
+- Record every stock movement with source, destination, actor and reason.
+- Support configurable units, serial/lot tracking and expiry where relevant.
+- Reconcile physical counts and system balances with approval history.
+- Keep this capability optional for businesses with no inventory.
+
+### ASAA-GAP-023 — Manage facilities, fleet, maintenance and physical operations
+**Priority:** P2  
+As an operations owner, I want facilities, vehicles, equipment, inspections, work orders and maintenance schedules tracked where applicable.
+- Assign custodians, locations, condition and maintenance responsibility.
+- Record inspections, faults, work orders, costs and closure evidence.
+- Support safety procedures and incident escalation where relevant.
+- Activate only the operational domains the company actually uses.
+
+## Epic T — Enterprise data, integration and user experience
+
+### ASAA-GAP-024 — Govern master data and record ownership
+**Priority:** P0  
+As a data owner, I want authoritative ownership, identifiers, validation, duplicate handling and lifecycle rules for shared records.
+- Define authoritative source and accountable steward for each master-data domain.
+- Detect possible duplicate people, customers, vendors, products and assets.
+- Support merge/supersession with traceable references, not destructive deletion.
+- Validate cross-domain references and preserve data lineage.
+
+### ASAA-GAP-025 — Import, migrate and reconcile existing business data
+**Priority:** P1  
+As an administrator, I want controlled import and migration from approved files and systems.
+- Preview mapping, validation errors, duplicates and affected records before commit.
+- Support dry runs, rollback or compensating actions and reconciliation totals.
+- Record source, batch, operator, timestamp and import outcome.
+- Enforce the same access, privacy and validation rules as manual entry.
+
+### ASAA-GAP-026 — Provide governed APIs, events and integration operations
+**Priority:** P0  
+As an integration owner, I want versioned interfaces, webhooks/events and adapter lifecycle management.
+- Document authentication, scopes, rate limits, versioning and deprecation.
+- Support retries, idempotency, replay controls, dead-letter/error queues and reconciliation.
+- Allow credentials to be rotated and integrations revoked without losing history.
+- Keep external providers replaceable and ASAA authoritative for its own records.
+
+### ASAA-GAP-027 — Support localization, multiple locations and currencies
+**Priority:** P1  
+As an administrator, I want configurable language, time zone, date/number formats, currencies, holidays and regional settings.
+- Store timestamps unambiguously and display them in the user's permitted locale/time zone.
+- Distinguish transaction currency, base/reporting currency and exchange-rate source/date.
+- Support location-specific calendars and effective-dated settings.
+- Do not infer legal jurisdiction from a user's display locale.
+
+### ASAA-GAP-028 — Provide role-personalized workspaces and accessible interaction
+**Priority:** P1  
+As each user, I want a workspace showing relevant tasks, approvals, records and metrics for my assigned responsibilities.
+- Provide role/department-aware navigation without granting additional data access.
+- Support configurable dashboards, saved views and notification preferences.
+- Meet accessibility expectations for keyboard use, screen readers, contrast and responsive layouts.
+- Provide usable mobile experiences for field and frontline roles.
+
+### ASAA-GAP-029 — Support resilient mobile and intermittent-connectivity workflows
+**Priority:** P2  
+As an authorized field/frontline user, I want approved workflows to function during limited connectivity.
+- Offline actions are limited to explicitly approved data and operations.
+- Synchronization detects conflicts and never silently overwrites authoritative records.
+- Sensitive cached data is protected and expires/clears according to policy.
+- Show pending, synced, failed and conflict states clearly.
+
+### ASAA-GAP-030 — Govern analytics, KPI definitions and data lineage
+**Priority:** P1  
+As an executive or department head, I want consistent reports whose metrics can be traced to authoritative records.
+- Every KPI has a definition, owner, formula, scope, period and refresh expectation.
+- Show data freshness, exclusions, assumptions and confidence.
+- Drill-down and exports enforce source permissions.
+- Reconcile totals across domains and flag incomplete or conflicting data.
+
+## Epic U — Security, assurance and platform lifecycle
+
+### ASAA-GAP-031 — Manage security incidents and vulnerability remediation
+**Priority:** P1  
+As a security owner, I want incidents, vulnerabilities, affected assets, response actions and closure evidence managed.
+- Record severity, impact, owner, timeline, containment and remediation.
+- Restrict incident details and preserve evidence.
+- Support escalation, notification and post-incident review.
+- Link corrective actions to risks, controls and assets.
+
+### ASAA-GAP-032 — Manage control testing, internal audit and remediation
+**Priority:** P2  
+As an auditor/control owner, I want controls, test plans, findings, evidence and remediation tracked.
+- Map controls to policies, risks and obligations.
+- Separate control owner, tester and finding approver where required.
+- Track finding severity, action owner, due date and closure validation.
+- Preserve audit independence and access boundaries.
+
+### ASAA-GAP-033 — Define service levels, release/change and environment governance
+**Priority:** P1  
+As a platform/service owner, I want service ownership, change records, release approvals, maintenance windows and service targets governed.
+- Record service owner, dependencies, support model, availability target and escalation route.
+- Changes include impact, risk, approval, test evidence, rollback and post-change review.
+- Distinguish development, test and production data and permissions.
+- No production release is considered complete without required operational evidence.
+
+### ASAA-GAP-034 — Test disaster recovery and business continuity
+**Priority:** P0  
+As the owner, I want recovery objectives, backup retention, restore drills and continuity procedures defined.
+- Define approved recovery time and recovery point objectives per critical service/data class.
+- Test restoration and record evidence, gaps and corrective actions.
+- Document ownership, escalation, communication and manual fallback procedures.
+- Verify exports and backups are protected against unauthorized access and tampering.
+
+### ASAA-GAP-035 — Govern configuration changes and safe rollout
+**Priority:** P1  
+As an administrator, I want configuration changes versioned, reviewed, tested and promoted safely.
+- Track who changed what, why, when and the affected workflows/roles.
+- Preview impact and validate workflows before activation.
+- Support rollback or compensating changes for failed configuration releases.
+- Separate test configuration from active company policy.
+
+### ASAA-GAP-036 — Manage retention, legal holds, correction and deletion
+**Priority:** P0  
+As a privacy/records owner, I want retention schedules, legal holds, correction and lawful deletion handled consistently.
+- Apply retention by record class, purpose and confirmed jurisdiction.
+- Legal holds suspend ordinary deletion and are auditable.
+- Corrections preserve provenance and required history.
+- Deletion is authorized, evidenced and propagated to approved processors/backups according to documented policy.
+
+### ASAA-GAP-037 — Govern AI agents and automated actions
+**Priority:** P1  
+As the owner, I want each AI agent and automation to have a defined identity, scope, data access, action permissions and supervision.
+- Agents receive least-privilege, revocable permissions and cannot inherit a human's unrestricted authority.
+- Separate recommendation, draft, execution and approval capabilities.
+- Require human approval for sensitive HR, financial, legal, security and external commitments.
+- Record inputs/references, decisions, actions, approvals, outcomes and errors while minimizing sensitive data.
+- Provide disablement, incident response and rollback/compensation procedures.
+
+### ASAA-GAP-038 — Define platform ownership, support and change adoption
+**Priority:** P1  
+As the owner, I want each module and business process to have an accountable owner, support route and user guidance.
+- Assign product/process/data owners and operational support responsibilities.
+- Provide onboarding, help, release notes and policy-change communication.
+- Track adoption and unresolved support issues without invasive employee surveillance.
+- Review unused or duplicated capabilities and retire them safely.
+
+## Gap-closure delivery order
+
+1. **P0 safety and control foundation:** GAP-001 to 004, GAP-024, GAP-026, GAP-034, GAP-036, alongside existing organization, identity, workflow, audit and privacy stories.
+2. **P1 daily company operations:** workforce, work intake, product/service lifecycle, customer support, order fulfilment, pricing, finance controls, integrations, localization, role workspaces and analytics.
+3. **P1 operational assurance:** security incidents, service/change governance, configuration rollout, AI governance and ownership/support.
+4. **P2 expansion:** recruitment depth, performance, learning, marketing, procurement, inventory, facilities, advanced finance, audit testing and offline workflows.
+
+**Gap-closure rule:** These additions expand the target backlog. They do not mean every domain must be activated at launch. Each capability must be enabled only when its business owner, process, policy, data classification, approval authority and legal applicability are confirmed.
