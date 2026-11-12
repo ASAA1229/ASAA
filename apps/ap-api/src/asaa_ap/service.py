@@ -18,7 +18,7 @@ from asaa_ap.security importdef allowed_status_transitions() -> dict[str, set[st
         raise HTTPException(status_code=503, detail="Supplier status transition configuration is invalid") from None
     if not isinstance(raw, dict) or set(raw) != expected:
         raise HTTPException(status_code=503, detail="Supplier status transition configuration is incomplete")
-    if any(not isinstance(targets, list) or any(target not in expected for target in targets) for targets in raw.values()):
+    if any(not isinstance(targets, list) or any(not isinstance(target, str) or target not in expected for target in targets) for targets in raw.values()):
         raise HTTPException(status_code=503, detail="Supplier status transition configuration is invalid")
     return {state: set(targets) for state, targets in raw.items()}d": set(),
 }
