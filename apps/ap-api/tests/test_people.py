@@ -58,6 +58,12 @@ def test_onboarding_template_assignment_and_task_completion(client):
         })
         assert updated.status_code == 200
         assert updated.json()["due_date"] == "2026-12-08"
+        assert updated.json()["evidence_reference"] == "evidence://onboarding/task"
+        revised = client.patch("/api/v1/onboarding/tasks/" + task["id"], json={
+            "status": "Completed", "due_date": "2026-12-09"
+        })
+        assert revised.status_code == 200
+        assert revised.json()["evidence_reference"] == "evidence://onboarding/task"
     final_assignment = client.get("/api/v1/onboarding/assignments").json()[0]
     assert final_assignment["status"] == "Completed"
 
