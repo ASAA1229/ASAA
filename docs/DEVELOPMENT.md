@@ -164,3 +164,24 @@ The running OpenAPI document is the definitive route/schema reference for the cu
 - Preserve existing project requirements and code boundaries.
 - Update these consolidated documents when product scope or architecture changes; avoid creating new standalone Markdown status files.
 - Report Built, Built Not Tested, Passed, Blocked and Deferred distinctly.
+
+
+## 10. Web portal
+
+The responsive ASAA portal lives in `apps/portal` and is an installable Progressive Web App (PWA) for desktop, tablet and mobile browsers. It uses React and Vite as a module-level UI choice. From the repository root:
+
+```bash
+cd apps/portal
+npm install
+npm run dev
+npm run build
+npm run preview
+```
+
+The portal consumes the API using a bearer token from the configured upstream identity provider. The current connection screen accepts a development/session token and keeps it in memory only; it is cleared on reload or sign-out and is not written to local storage, IndexedDB or service-worker caches. Production single sign-on, MFA, refresh-token handling and identity-provider redirect must be configured before production access.
+
+Set `VITE_API_BASE_URL` to the API origin at build time. Configure API `ASAA_AP_CORS_ORIGINS` as a JSON array of exact trusted portal origins, for example `["https://app.example.com"]`. Do not use wildcard origins. The API remains the authorization authority: visible workspace titles do not grant permissions. The initial Founder/CEO/Director designation is a workspace profile label; effective actions depend on verified token permission claims.
+
+The PWA service worker caches only the application shell and same-origin static assets. API paths and cross-origin API requests are not cached. This supports installability and shell launch, not offline access to financial or personal records.
+
+The portal currently surfaces supplier/customer/invoice/receipt, timesheet and expense API records where the session has the relevant read permissions. Missing permissions or unavailable API areas are reported as unavailable; they are not silently treated as empty authoritative business data.

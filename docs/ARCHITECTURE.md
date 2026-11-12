@@ -140,3 +140,8 @@ Legal entity and jurisdictions; actual active departments and reporting model; i
 ## Governance authority register
 
 The governance module provides organization-scoped decision and delegation records using the shared identity, authorization, database and audit services. Delegations are time-bounded and require independent approval; decision proposals are confirmed by their designated decision-maker. This is a governance evidence register only: it does not automatically grant application permissions or replace approved identity-provider and policy enforcement.
+
+
+## Responsive executive portal
+
+The initial web interface is a React/Vite Progressive Web App under `apps/portal`, designed to adapt to desktop, tablet and mobile. It is a presentation client of the existing API and does not own business rules or authorization. The initial executive workspace displays Founder/CEO/Director as a combined designation per the current operating arrangement; actual access remains controlled by verified identity token permissions and organization scope. The PWA caches static shell assets only, never API or sensitive records. Production access depends on HTTPS hosting, configured identity-provider SSO/MFA, API CORS allow-list and operational deployment controls.

@@ -1,0 +1,13 @@
+{
+  "name": "ASAA Enterprise Operating Platform",
+  "short_name": "ASAA",
+  "description": "Secure executive and operations workspace",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#10131b",
+  "theme_color": "#10131b",
+  "icons": [
+    { "src": "/asaa-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

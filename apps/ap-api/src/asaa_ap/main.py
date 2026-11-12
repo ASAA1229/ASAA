@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from asaa_ap.api import router as ap_router
 from asaa_ap.ar_api import router as ar_router
 from asaa_people.api import hr_router, onboarding_router, payroll_router
@@ -9,7 +10,15 @@ from asaa_governance.api import router as master_data_router
 from asaa_governance.authority import router as governance_router
 from asaa_workforce_finance.api import router as workforce_finance_router
 
-app = FastAPI(title=get_settings().app_name, version="0.4.0")
+settings = get_settings()
+app = FastAPI(title=settings.app_name, version="0.4.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
+)
 app.include_router(ap_router)
 app.include_router(ar_router)
 app.include_router(hr_router)

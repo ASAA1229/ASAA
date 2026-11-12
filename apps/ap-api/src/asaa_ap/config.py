@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     jwt_audience: str | None = None
     jwt_algorithm: str = "RS256"
     supplier_status_transitions_json: str = '{"Draft":["Pending Verification","Archived"],"Pending Verification":["Active","On Hold","Archived"],"Active":["On Hold","Suspended","Archived"],"On Hold":["Active","Suspended","Archived"],"Suspended":["Active","On Hold","Archived"],"Archived":[]}'
+    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     app_name: str = "ASAA Finance API"
 
 

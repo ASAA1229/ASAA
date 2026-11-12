@@ -1,0 +1,30 @@
+name: ASAA Portal CI
+
+on:
+  push:
+    branches: [main, dev, new, fix, test]
+    paths:
+      - "apps/portal/**"
+      - ".github/workflows/portal-ci.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "apps/portal/**"
+      - ".github/workflows/portal-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  portal-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/portal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build

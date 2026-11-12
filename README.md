@@ -65,7 +65,7 @@ API documentation is exposed by FastAPI when the service is running (typically `
 - [Operations](docs/OPERATIONS.md) — deployment gates, monitoring, backup, recovery and operational runbooks.
 - [Security](docs/SECURITY.md) — identity, authorization, data protection, audit and security acceptance requirements.
 
-## Repository and branch
+## Applications\n\n- `apps/ap-api` — FastAPI business API for finance, people, governance and workforce workflows.\n- `apps/portal` — responsive installable web portal for desktop, tablet and mobile.\n\nThe portal is a UI foundation. Production remote access requires a deployed HTTPS frontend/API, configured identity provider and trusted CORS origins.\n\n## Repository and branch
 
 Repository: [ASAA1229/ASAA](https://github.com/ASAA1229/ASAA)
 
