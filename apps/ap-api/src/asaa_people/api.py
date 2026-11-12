@@ -94,17 +94,37 @@ def get_employee(employee_id: str, db: Db,
 def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("hr:employment:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
-    employee_or_404(db, employee_id, principal.organization_id)
+    employee = employee_or_404(db, employee_id, principal.organization_id)
+    if payload.effective_from > date.today():
+        raise HTTPException(status_code=422, detail={"code": "future_employment_record_not_supported"})
     if payload.manager_employee_id:
+        if payload.manager_employee_id == employee_id:
+            raise HTTPException(status_code=422, detail={"code": "employee_cannot_manage_self"})
         employee_or_404(db, payload.manager_employee_id, principal.organization_id)
+    latest = db.scalar(select(EmploymentRecord).where(
+        EmploymentRecord.organization_id == principal.organization_id,
+        EmploymentRecord.employee_id == employee_id,
+    ).order_by(EmploymentRecord.effective_from.desc()).limit(1))
+    if latest and payload.effective_from <= latest.effective_from:
+        raise HTTPException(status_code=409, detail={"code": "employment_effective_date_must_follow_latest"})
+    if latest and latest.effective_to and payload.effective_from <= latest.effective_to:
+        raise HTTPException(status_code=409, detail={"code": "employment_effective_period_overlap"})
+    if latest and latest.effective_to is None:
+        from datetime import timedelta
+        latest.effective_to = payload.effective_from - timedelta(days=1)
     row = EmploymentRecord(
         organization_id=principal.organization_id, employee_id=employee_id,
         created_by=principal.subject, **payload.model_dump(),
     )
+    if payload.effective_from <= date.today() and (
+        payload.effective_to is None or payload.effective_to >= date.today()
+    ):
+        employee.status = payload.status
+        employee.employment_type = payload.employment_type
     db.add(row)
     db.flush()
     audit(db, principal, "employment_record.created", "hr_employment_record", row.id,
-          {"effective_from": payload.effective_from.isoformat()}, x_correlation_id)
+          {"effective_from": payload.effective_from.isoformat(), "status": payload.status}, x_correlation_id)
     db.commit()
     db.refresh(row)
     return view(row)
