@@ -71,3 +71,11 @@ def test_supplier_code_conflict_on_update_is_a_conflict_not_server_error(client)
 def test_invalid_email_is_rejected(client):
     response = client.post("/api/v1/ap/suppliers", json={"legal_name": "Invalid Contact Supplier", "email": "not-an-email"})
     assert response.status_code == 422
+
+
+
+def test_blank_or_null_legal_name_is_rejected(client):
+    blank = client.post("/api/v1/ap/suppliers", json={"legal_name": "   "})
+    null = client.patch("/api/v1/ap/suppliers/not-a-real-id", json={"expected_version": 1, "legal_name": None})
+    assert blank.status_code == 422
+    assert null.status_code == 422
