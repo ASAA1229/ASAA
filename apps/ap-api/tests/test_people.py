@@ -168,5 +168,5 @@ def test_optional_only_onboarding_template_completes_assignment(client):
     assert assignment.status_code == 201
     assert assignment.json()["status"] == "Completed"
     tasks = client.get("/api/v1/onboarding/assignments").json()[0]["tasks"]
-    assert tasks[0]["description"] == "Optional self-guided reading"
-    assert tasks[0]["status"] == "Pending"
+    assert any(task["description"] == "Optional self-guided reading" for task in tasks)
+    assert all(task["status"] == "Pending" for task in tasks)
