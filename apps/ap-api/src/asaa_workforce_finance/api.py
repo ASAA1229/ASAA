@@ -141,7 +141,9 @@ def review_expense(claim_id: str, payload: ExpenseReview, db: Db,
         raise HTTPException(status_code=403, detail="Maker cannot review own expense claim")
     if row.status != "Submitted" or row.version != payload.expected_version:
         raise HTTPException(status_code=409, detail="Expense claim is not reviewable or version is stale")
-    row.status = "Approved" if payload.reason.lower().startswith("approve:") else "Rejected"
+    if payload.decision is None:
+        raise HTTPException(status_code=422, detail="decision must be approve or reject")
+    row.status = "Approved" if payload.decision == "approve" else "Rejected"
     row.review_reason, row.reviewed_at, row.reviewed_by = payload.reason, datetime.now(timezone.utc), principal.subject
     audit(db, principal, "expense.reviewed", "expense_claim", row.id, {"status": row.status}, x_correlation_id)
     db.commit()
