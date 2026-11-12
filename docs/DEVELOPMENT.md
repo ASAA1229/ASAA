@@ -88,7 +88,8 @@ Current revision chain:
 - `0006_onboarding_template_version`
 - `0007_offboarding_checklists`
 - `0008_onboarding_assignment_version`
-- `0009_master_data_governance`\n- `0010_authority_register`
+- `0009_master_data_governance`
+- `0010_authority_register`
 
 For a disposable local/test database only, the CI migration check performs:
 
