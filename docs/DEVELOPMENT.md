@@ -87,6 +87,7 @@ Current revision chain:
 - `0006_onboarding_template_version`
 - `0007_offboarding_checklists`
 - `0008_onboarding_assignment_version`
+- `0009_master_data_governance`
 
 For a disposable local/test database only, the CI migration check performs:
 
@@ -145,6 +146,7 @@ The upstream identity provider must issue tokens containing `sub`, `org_id`, `is
 - HR: `/api/v1/hr` employee, lifecycle, employment, documents, assets, leave and exit-case routes.
 - Onboarding/offboarding: `/api/v1/onboarding` templates, assignments and tasks.
 - Payroll: `/api/v1/payroll` compensation, periods, runs, entries and decisions.
+- Master data: `/api/v1/master-data` domain ownership, record references, duplicate candidates and supersession.
 
 The running OpenAPI document is the definitive route/schema reference for the current source revision.
 

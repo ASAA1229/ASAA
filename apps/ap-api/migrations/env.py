@@ -5,6 +5,7 @@ from asaa_ap.config import get_settings
 from asaa_ap.database import Base
 from asaa_ap import models  # noqa: F401
 from asaa_people import models as people_models  # noqa: F401
+from asaa_governance import models as governance_models  # noqa: F401
 
 config = context.config
 if config.config_file_name:
