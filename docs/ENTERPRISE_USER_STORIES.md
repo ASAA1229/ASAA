@@ -104,7 +104,7 @@ As an authorized user, I want to search and export records within my access scop
 
 ### ASAA-HR-001 — Create and maintain employee profiles
 **Priority:** P0  
-As an HR administrator, I want a secure employee profile with employment, department, position, manager and contact information so that employee records are centrally maintained.
+As an HR administrator, I want a secure employee profile with employment, department, position, manager and contact information so that employee records are centrally maintained.\n**Implementation status:** Built Not Tested — organization-scoped employee profiles and effective-dated employment records/history; employee lifecycle and full document management remain open.
 
 ### ASAA-HR-002 — Manage recruitment and candidate records
 **Priority:** P2  
@@ -112,7 +112,7 @@ As an authorized recruiter, I want to manage vacancies, candidates, interviews a
 
 ### ASAA-HR-003 — Manage onboarding
 **Priority:** P1  
-As HR, I want configurable onboarding checklists, document collection, asset assignment and access requests so that new joiners are prepared consistently.
+As HR, I want configurable onboarding checklists, document collection, asset assignment and access requests so that new joiners are prepared consistently.\n**Implementation status:** Built Not Tested — reusable templates, employee assignment, task snapshots, task ownership/status/evidence and completion tracking; document, asset and access-provisioning integrations remain open.
 
 ### ASAA-HR-004 — Manage employment changes
 **Priority:** P1  
@@ -221,7 +221,7 @@ Acceptance criteria for this epic:
 
 ### ASAA-PAY-001 — Maintain compensation records
 **Priority:** P1  
-As an authorized HR/Finance user, I want restricted, effective-dated compensation records so that salary changes are traceable.
+As an authorized HR/Finance user, I want restricted, effective-dated compensation records so that salary changes are traceable.\n**Implementation status:** Built Not Tested — restricted permission-gated, effective-dated compensation records; approval and policy-controlled compensation changes remain open.
 
 ### ASAA-PAY-002 — Prepare payroll inputs
 **Priority:** P2  
