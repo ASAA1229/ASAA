@@ -355,7 +355,7 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
     ))
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
-    if run.status != "Draft":
+    if run.status not in {"Draft", "Changes Requested"}:
         raise HTTPException(status_code=409, detail={"code": "payroll_run_not_editable"})
     employee_or_404(db, payload.employee_id, principal.organization_id)
     if payload.currency != run.currency:
