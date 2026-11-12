@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 
 SupplierStatus = Literal["Draft", "Pending Verification", "Active", "On Hold", "Suspended", "Archived"]
@@ -76,6 +76,12 @@ class SupplierUpdate(BaseModel):
     @classmethod
     def trim_names(cls, value):
         return value.strip() if value else value
+
+    @model_validator(mode="after")
+    def legal_name_cannot_be_cleared(self):
+        if "legal_name" in self.model_fields_set and self.legal_name is None:
+            raise ValueError("Legal name cannot be null")
+        return self
 
 
 class StatusChange(BaseModel):
