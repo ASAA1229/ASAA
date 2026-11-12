@@ -109,7 +109,7 @@ Not yet established: real identity provider and MFA, production key management, 
 - Supersession preserves the original reference and records the canonical link and reason; no automatic merge or destructive deletion occurs.
 - The registry stores source references and ownership metadata, not the underlying employee, supplier, customer or asset payloads.
 
-## 12. Security acceptance gates
+## 14. Security acceptance gates
 
 Before production:
 1. Approve threat model, data classification, privacy impact and jurisdictional obligations.
@@ -122,3 +122,13 @@ Before production:
 8. Review document, notification, identity and external integration scopes.
 9. Assign security ownership, vulnerability remediation SLAs and incident escalation.
 10. Record approval evidence and residual risks before release.
+
+
+## 13. Decision and delegation register security notes
+
+- Decision and delegation records are organization-scoped and protected by separate read/create/review/revoke permissions.
+- Delegations require a finite effective window, independent approval and a reason. The creator, delegator and delegate cannot review their own delegation request.
+- Decision proposals name the intended decision-maker; only that subject can approve or reject, and the proposal creator cannot self-approve.
+- Rejections and revocations require reasons; state transitions use expected versions and are audited.
+- A registered delegation does not alter JWT permissions or grant application access. Authorization remains controlled by the existing verified-principal permission checks until a separately approved identity/policy integration is implemented.
+- Subject identifiers and scope/action codes are references, not verified employment roles or proof of authority outside this register.
