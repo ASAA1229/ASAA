@@ -24,8 +24,10 @@ The current executable slice is an API-first Python service in `apps/ap-api`. It
 - Restricted compensation records and controlled payroll input/review/approval/closure workflows.
 - Master-data domain ownership, stewardship, source provenance, duplicate-candidate flagging and non-destructive supersession.
 - Governance decision register and time-bounded authority delegation workflow with independent review, revocation and audit.
+- Initial TMS timesheet capture, submission and independent review workflows.
+- Initial expense claim capture, submission, independent review and separate reimbursement recording.
 
-These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The GAP-024 baseline previously passed source compilation, 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. GAP-002 now adds decision/delegation routes and tests; its CI validation is pending. PostgreSQL runtime integration, real identity-provider integration, UI, production operations and organization-specific policy/UAT remain open.
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The GAP-024 baseline previously passed source compilation, 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. GAP-002 now adds decision/delegation routes and tests; its CI validation is pending. TMS and expense API foundations are newly added and require CI validation. PostgreSQL runtime integration, real identity-provider integration, UI, production operations and organization-specific policy/UAT remain open.
 
 ## Run the current API locally
 

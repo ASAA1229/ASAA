@@ -347,3 +347,30 @@ Permissions:
 - `governance:decision:read`, `governance:decision:create`, `governance:decision:approve`, `governance:decision:reject`.
 
 **Important boundary:** This register is an auditable record of authority and decisions. It does not grant, modify or inject permissions into JWT claims or the existing `require_permission` authorization path. A recorded delegation is not proof that an identity provider, employment relationship, contract or external policy authorizes the underlying action. No founder/CEO hierarchy, legal entity, department, monetary threshold, jurisdictional rule or approval matrix is assumed. These require explicit owner-approved configuration and later integration work.
+
+
+## 15. Timesheets, expenses and finance workflow continuation
+
+### Time & Timesheet Management (TMS)
+- Period-based timesheets with dated work entries, hours, billable flag and optional project/task references.
+- Employee-owned submission and independent reviewer approval/rejection with reason and optimistic version checks.
+- Project/task references remain cross-domain identifiers; project master data is not duplicated.
+- Next increments: draft editing, configurable periods, reminders, attendance integration, allocation validation, approved-time locking, project budget/costing and billable-time export.
+
+### Expense Management
+- Employee expense claims with date, configurable category code, merchant, amount/currency, optional receipt and project references.
+- Separate employee submission, independent review, approval/rejection and reimbursement recording.
+- Reimbursement is a separate permissioned action with an external payment reference; the API does not initiate a bank transfer or claim bank settlement.
+- Next increments: multi-line claims, receipt upload/storage and OCR, policy/limit configuration, duplicate detection, per-diem/mileage, advance settlement, accounting export, AP supplier-invoice linkage and reconciliation.
+
+### AP continuation — planned increments
+- Purchase requisitions and approval; purchase orders and supplier acknowledgements; goods/service receipt references.
+- Supplier invoice capture, duplicate detection, 2-way/3-way matching, exceptions and approval.
+- Payment batch preparation, payment-provider adapter, execution confirmation, bank reconciliation, supplier statements and credit/debit notes.
+
+### AR continuation — planned increments
+- Credit notes, refunds, disputes, customer statements and collections/dunning.
+- Receipt import, remittance matching, unapplied cash workflow and bank reconciliation.
+- Contract/order/milestone linkage, recurring invoices, configurable invoice numbering, aging and accounting export.
+
+**Initial slice status:** TMS timesheet capture/submission/review and expense claim capture/submission/review/reimbursement recording are added as API foundations on branch `new`; CI and runtime validation are pending. AP supplier and AR invoice/receipt foundations remain as previously described. The expanded AP/AR workflows above are backlog scope, not implemented claims. No payment initiation, payroll integration, tax treatment, reimbursement policy or statutory rule is assumed.
