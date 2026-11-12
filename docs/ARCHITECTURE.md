@@ -135,3 +135,8 @@ Security and privacy; traceability; reliability and recoverability; extensibilit
 ## 11. Architecture decisions still requiring owner confirmation
 
 Legal entity and jurisdictions; actual active departments and reporting model; identity provider and MFA; role-to-permission mappings; approval authority and thresholds; data classification and retention; document/notification providers; hosting and PostgreSQL service; backup/recovery objectives; integration priorities; UI framework and user experience; and production support ownership.
+
+
+## Governance authority register
+
+The governance module provides organization-scoped decision and delegation records using the shared identity, authorization, database and audit services. Delegations are time-bounded and require independent approval; decision proposals are confirmed by their designated decision-maker. This is a governance evidence register only: it does not automatically grant application permissions or replace approved identity-provider and policy enforcement.
