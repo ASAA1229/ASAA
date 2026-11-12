@@ -301,12 +301,12 @@ As an authorized finance owner, I want budgets, cost centres and project allocat
 ### ASAA-FIN-002 — Create and manage invoices
 **Priority:** P1  
 As an authorized finance user, I want invoices linked to customers, contracts, orders or approved milestones so that billing is traceable.
-**Implementation status:** Built Not Tested — initial customer-linked invoice creation and issue API on branch `new`; contract/order/milestone linkage and approval workflow remain open.
+**Implementation status:** Built Not Tested — customer-linked invoice creation, version-checked draft editing and issue API on branch `new`; configurable approval, contract/order/milestone linkage remain open.
 
 ### ASAA-FIN-003 — Track receivables and receipts
 **Priority:** P1  
 As an authorized finance user, I want to track amounts due, receipts, overdue balances and reconciliation status.
-**Implementation status:** Built Not Tested — receipt recording, invoice allocation, partial settlement and outstanding-balance API on branch `new`; bank reconciliation, receipt reversal and refund workflows remain open.
+**Implementation status:** Built Not Tested — receipt recording, initial and later unapplied-balance allocation, partial settlement and outstanding-balance API on branch `new`; bank reconciliation, receipt reversal and refund workflows remain open.
 
 ### ASAA-FIN-004 — Manage vendor bills and payables
 **Priority:** P2  
