@@ -382,7 +382,10 @@ def decide_compensation(record_id: str, payload: CompensationDecision, db: Db,
             CompensationRecord.id != row.id,
             CompensationRecord.status == "Approved",
             CompensationRecord.effective_from <= (row.effective_to or date.max),
-            func.coalesce(CompensationRecord.effective_to, date.max) >= row.effective_from,
+            (CompensationRecord.effective_to >= row.effective_from) | (
+                CompensationRecord.effective_to.is_(None)
+                & (CompensationRecord.effective_from >= row.effective_from)
+            ),
         ))
         if overlap:
             raise HTTPException(status_code=409, detail={"code": "approved_compensation_period_overlap"})
