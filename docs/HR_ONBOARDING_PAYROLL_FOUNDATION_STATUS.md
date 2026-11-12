@@ -34,7 +34,7 @@ Implemented:
 - Reusable onboarding templates with ordered task definitions.
 - Template assignment to an employee.
 - Task snapshots created from the template at assignment time, including task descriptions.
-- Task ownership role, required/optional flag, due date, evidence reference and status.
+- Task ownership role, required/optional flag, editable due date, evidence reference and status.
 - Assignment progress derived from required task completion; optional-only assignments are marked complete without requiring optional tasks.
 - Audit events for template creation, assignment and task updates.
 
@@ -83,7 +83,7 @@ Important boundaries:
 ## Foundation hardening and remaining controls
 
 - Payroll-entry input validation now rejects deductions greater than gross and rejects a net amount that does not reconcile to gross minus deductions. This is arithmetic integrity validation only; ASAA still does not calculate statutory or policy-specific payroll.
-- Onboarding assignments with no required tasks are marked Completed at assignment time; optional tasks do not block completion. Task descriptions are preserved in immutable assignment snapshots.
+- Onboarding assignments with no required tasks are marked Completed at assignment time; optional tasks do not block completion. Task descriptions are preserved in immutable assignment snapshots. Assigned task due dates can be updated, and omitted evidence fields no longer erase existing evidence.
 - Added API tests for employee profile updates, lifecycle history and payroll arithmetic rejection.
 - Remaining foundation work includes template lifecycle/versioning, richer assignment ownership/due-date controls, employee document/consent/retention handling, approval workflow integration, payroll input-source reconciliation and configurable calculation policies.
 
