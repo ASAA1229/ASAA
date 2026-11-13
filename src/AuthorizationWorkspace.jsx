@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, KeyRound, Plus, RefreshCw, ShieldCheck, UserRound, X } from "lucide-react";
 
 const has = (claims, permission) => Array.isArray(claims?.permissions) && claims.permissions.includes(permission);
@@ -21,6 +21,8 @@ export default function AuthorizationWorkspace({ api, claims = {}, connected, on
 
   const canReadRoles = has(claims, "authorization:role:read");
   const canReadAssignments = has(claims, "authorization:assignment:read");
+  const apiRef = useRef(api);
+  apiRef.current = api;
 
   const load = useCallback(async () => {
     if (!connected) return;
@@ -28,8 +30,8 @@ export default function AuthorizationWorkspace({ api, claims = {}, connected, on
     setError("");
     try {
       const [roleRows, assignmentRows] = await Promise.all([
-        canReadRoles ? api("/api/v1/authorization/roles") : Promise.resolve([]),
-        canReadAssignments ? api("/api/v1/authorization/assignments") : Promise.resolve([])
+        canReadRoles ? apiRef.current("/api/v1/authorization/roles") : Promise.resolve([]),
+        canReadAssignments ? apiRef.current("/api/v1/authorization/assignments") : Promise.resolve([])
       ]);
       setRoles(Array.isArray(roleRows) ? roleRows : []);
       setAssignments(Array.isArray(assignmentRows) ? assignmentRows : []);
@@ -38,7 +40,7 @@ export default function AuthorizationWorkspace({ api, claims = {}, connected, on
     } finally {
       setBusy(false);
     }
-  }, [api, connected, canReadRoles, canReadAssignments]);
+  }, [connected, canReadRoles, canReadAssignments, claims.sub, claims.exp]);
 
   useEffect(() => { load(); }, [load]);
 
