@@ -48,6 +48,6 @@ Jenkins, Nexus and production deployment are not considered verified until actua
 
 ## 5. Current decision
 
-**NO-GO for production as of 2026-11-13.** PostgreSQL 16 integration and API quality CI passed at commit `ba87df7fdb967adf80d00b7b4771a823708b7582`. Production database, SSO/MFA provider activation, identity lifecycle, security assurance, backup/restore, business UAT and operational controls remain open.
+**NO-GO for production as of 2026-11-13.** API quality and PostgreSQL 16 integration CI passed at commit `ba87df7fdb967adf80d00b7b4771a823708b7582`. Web CI, including four OIDC endpoint transport-policy regression tests and the Vite production build, passed at commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c` ([run 43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233)). Production database provisioning, SSO/MFA provider activation, identity lifecycle, full security assurance, backup/restore, business UAT and operational controls remain open.
 
 Re-evaluate this decision only from the current [Project Status](PROJECT_STATUS.md) gap register and recorded evidence. Do not infer GO from a passing build or CI suite.
