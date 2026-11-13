@@ -136,7 +136,7 @@ The CI workflow `.github/workflows/people-api-ci.yml`:
 - Installs `.[test]`, compiles source/tests, runs pytest and checks Alembic upgrade/downgrade/upgrade on SQLite.
 - Uses read-only GitHub contents permission.
 
-SQLite CI does not replace PostgreSQL integration tests. The separate postgres-integration workflow starts PostgreSQL 16, applies the full migration chain, runs the complete API suite plus PostgreSQL-specific people/payroll persistence checks, and verifies downgrade/re-upgrade on the disposable CI database.
+SQLite CI does not replace PostgreSQL integration tests. The separate postgres-integration workflow starts PostgreSQL 16, applies all 15 migrations, runs the complete API suite plus PostgreSQL-specific people/payroll persistence checks, and verifies downgrade/re-upgrade on the disposable CI database. Latest passing evidence: [CI run 43406401957](https://github.com/ASAA1229/ASAA/actions/runs/43406401957).
 
 ## 7. Configuration reference
 
@@ -200,7 +200,7 @@ Set `VITE_API_BASE_URL` to the API origin at build time. Configure API `ASAA_AP_
 
 The PWA service worker caches only the application shell and same-origin static assets. API paths and cross-origin API requests are not cached. This supports installability and shell launch, not offline access to financial or personal records.
 
-The portal currently surfaces supplier/customer/invoice/receipt, timesheet and expense API records where the session has the relevant read permissions. Missing permissions or unavailable API areas are reported as unavailable; they are not silently treated as empty authoritative business data.
+The portal currently surfaces supplier/customer/invoice/receipt, timesheet, expense, HR and payroll workflows where the session has the relevant read/action permissions. HR includes employee directory/profile, employment lifecycle, onboarding/offboarding, leave and asset views. Payroll includes separately permissioned compensation, periods/runs, entries and maker-checker review. Missing permissions are not treated as grants; dashboard registers are requested only when the corresponding read permission is present.
 
 
 ## 11. Organization administration and SSO configuration
