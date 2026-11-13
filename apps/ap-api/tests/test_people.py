@@ -465,3 +465,56 @@ def test_future_dated_employment_change_preserves_current_status_until_effective
     ).json()
     assert history[0]["effective_from"] == future_date.isoformat()
     assert history[1]["effective_to"] == (future_date - timedelta(days=1)).isoformat()
+
+
+def test_payroll_period_rejects_duplicate_codes_and_overlapping_dates_with_org_scope(client):
+    first = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-12",
+        "start_date": "2026-12-01",
+        "end_date": "2026-12-31",
+    })
+    assert first.status_code == 201
+
+    duplicate_code = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-12",
+        "start_date": "2027-01-01",
+        "end_date": "2027-01-31",
+    })
+    assert duplicate_code.status_code == 409
+    assert duplicate_code.json()["detail"]["code"] == "payroll_period_code_exists"
+
+    overlap = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-12-OVERLAP",
+        "start_date": "2026-12-15",
+        "end_date": "2027-01-15",
+    })
+    assert overlap.status_code == 409
+    assert overlap.json()["detail"]["code"] == "payroll_period_overlap"
+    assert overlap.json()["detail"]["conflicting_period_code"] == "2026-12"
+
+    adjacent = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2027-01",
+        "start_date": "2027-01-01",
+        "end_date": "2027-01-31",
+    })
+    assert adjacent.status_code == 201
+
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-admin-b", "org-b", frozenset({"payroll:period:write"})
+    )
+    other_org = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-12",
+        "start_date": "2026-12-01",
+        "end_date": "2026-12-31",
+    })
+    assert other_org.status_code == 201
+
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-admin-a", "org-a", frozenset({"payroll:period:write"})
+    )
+    cross_org_overlap = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-12-ALT",
+        "start_date": "2026-12-10",
+        "end_date": "2026-12-20",
+    })
+    assert cross_org_overlap.status_code == 409
