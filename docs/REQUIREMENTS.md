@@ -380,7 +380,7 @@ Permissions:
 
 ## 16. Procurement request workflow — UI integration
 
-**Status:** Built — web build verification pending for the latest branch revision; API workflow was already verified at the backend implementation revision.
+**Status:** Built — web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded. API workflow was verified separately at its backend implementation revision.
 
 The responsive web client now consumes the existing Accounts Payable purchase-request API and exposes:
 - Organization-scoped request listing, with the API determining whether the user sees their own requests or all requests.
@@ -398,7 +398,7 @@ Verification evidence must be recorded against the exact commit and CI run. A su
 
 ## 17. Supplier management and verification — UI integration
 
-**Status:** Built — responsive supplier workspace added; web build verification pending for the latest supplier UI revision.
+**Status:** Built — responsive supplier workspace; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
 
 The Accounts Payable workspace now exposes the existing supplier API for:
 - Organization-scoped supplier search and record selection.
@@ -413,7 +413,7 @@ Remaining supplier gaps: structured address and document attachment management, 
 
 ## 18. Accounts receivable workflow — UI integration
 
-**Status:** Built — responsive AR workspace added; web build verification pending for the latest AR UI revision.
+**Status:** Built — responsive AR workspace; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
 
 The web client now connects to the existing AR API and exposes:
 - Customer-aware invoice draft creation with one or more line items, currency, issue/due dates, notes and server-calculated totals.
@@ -428,7 +428,7 @@ Remaining AR gaps include draft invoice editing, customer updates/status lifecyc
 
 ## 19. Workforce finance workflow — UI integration
 
-**Status:** Built — responsive timesheet and expense workflow UI added; web build verification pending for the latest workforce UI revision.
+**Status:** Built — responsive timesheet and expense workflow UI; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
 
 The web client now exposes the existing workforce-finance API for:
 - Timesheet draft creation with period dates and multiple dated work entries, project/task references, hours and billable flags.
