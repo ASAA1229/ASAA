@@ -1,3 +1,5 @@
+import ProcurementWorkspace from "./ProcurementWorkspace.jsx";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowDownLeft, ArrowUpRight, Bell, BriefcaseBusiness, Building2, CalendarDays,
@@ -153,7 +155,7 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [data, setData] = useState({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [] });
+  const [data, setData] = useState({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] });
   const [modal, setModal] = useState("");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
@@ -177,7 +179,7 @@ function App() {
     const jobs = [
       ["suppliers", "/api/v1/ap/suppliers"], ["customers", "/api/v1/ar/customers"],
       ["invoices", "/api/v1/ar/invoices"], ["receipts", "/api/v1/ar/receipts"],
-      ["timesheets", "/api/v1/workforce-finance/timesheets"], ["expenses", "/api/v1/workforce-finance/expenses"]
+      ["timesheets", "/api/v1/workforce-finance/timesheets"], ["expenses", "/api/v1/workforce-finance/expenses"], ["purchaseRequests", "/api/v1/ap/purchase-requests"]
     ];
     const results = await Promise.all(jobs.map(async ([key, path]) => {
       try { return [key, await api(path)]; }
@@ -225,7 +227,7 @@ function App() {
         {NAV.map(group => <div className="nav-group" key={group.group}><small className="nav-caption">{group.group}</small>{group.items.filter(([name])=>name.toLowerCase().includes(navSearch.toLowerCase())).map(([name, Icon]) => <button key={name} className={`nav-item ${section === name ? "active" : ""}`} onClick={() => { setSection(name); setMobileNav(false); setSearch(""); }}><Icon size={17}/><span>{name}</span>{name === "Expenses" && stats.pendingExpenses > 0 && token && <i>{stats.pendingExpenses}</i>}</button>)}</div>)}
       </nav>
       <div className="sidebar-bottom"><div className="secure-note"><ShieldCheck size={16}/><span>Secure workspace<br/><small>Access controlled by permissions</small></span></div><button className="nav-item" onClick={() => setModal("connection")}><Settings2 size={17}/>Connection settings</button></div>
-      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || (token ? "ASAA Administrator" : "Preview visitor")}</b><small>{token ? "Founder · CEO · Director · Current responsibilities" : "Unauthenticated UI preview"}</small></div><button className="icon-btn" title="Sign out" onClick={() => { setToken(""); setTokenInput(""); setConnected(false); setData({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [] }); }}><LogOut size={16}/></button></div>
+      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || (token ? "ASAA Administrator" : "Preview visitor")}</b><small>{token ? "Founder · CEO · Director · Current responsibilities" : "Unauthenticated UI preview"}</small></div><button className="icon-btn" title="Sign out" onClick={() => { setToken(""); setTokenInput(""); setConnected(false); setData({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] }); }}><LogOut size={16}/></button></div>
     </aside>
 
     <main className="main-area">
@@ -244,12 +246,12 @@ function App() {
           {section === "Overview" && (token ? <Overview data={data} stats={stats} loading={loading} setSection={setSection} setModal={setModal}/> : <PreviewOverview setSection={setSection}/>)}
           {section === "AR · Receivables" && (token ? <FinanceList title="Accounts receivable" subtitle="Customers, issued invoices and incoming receipts." kind="ar" data={data} search={search} setSearch={setSearch} setModal={setModal}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "AP · Payables" && (token ? <FinanceList title="Accounts payable" subtitle="Supplier directory and payable operations (invoice processing is a planned increment)." kind="ap" data={data} search={search} setSearch={setSearch} setModal={setModal}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
-          {section === "Timesheets" && (token ? <WorkList title="Time & timesheet management" data={data.timesheets} kind="timesheet" search={search} setSearch={setSearch}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
+          {section === "Procurement" && (token ? <ProcurementWorkspace requests={data.purchaseRequests} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>) }\n          {section === "Timesheets" && (token ? <WorkList title="Time & timesheet management" data={data.timesheets} kind="timesheet" search={search} setSearch={setSearch}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Expenses" && (token ? <WorkList title="Expense management" data={data.expenses} kind="expense" search={search} setSearch={setSearch} setModal={setModal}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
           {section === "Governance" && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           {section === "Reports" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name="Reports & dashboards" connected={false} setSection={setSection}/>)}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} setApiBase={setApiBase} claims={claims} openConnection={() => setModal("connection")}/>}
-          {!["Overview","AR · Receivables","AP · Payables","Timesheets","Expenses","Governance","Reports","Settings"].includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
+          {!["Overview","AR · Receivables","AP · Payables","Procurement","Timesheets","Expenses","Governance","Reports","Settings"].includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>
         </>}
       </div>
