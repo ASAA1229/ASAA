@@ -13,13 +13,13 @@
 
 All three workflows use read-only repository contents permissions. CI execution is not deployment.
 
-## 2. Build and dependency reproducibility
+Latest web evidence: [run 43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233), commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c`; npm install, the 4-test `test:web` suite and Vite production build all passed. The run reported 0 npm audit vulnerabilities for that dependency resolution, which is not a substitute for a recurring dedicated security scan.\n\n## 2. Build and dependency reproducibility
 
 Current observed state:
 - API dependencies are declared in `apps/ap-api/pyproject.toml` using version ranges.
 - Frontend dependencies are declared in root `package.json` using version ranges.
 - No root npm lockfile was present in the inspected branch tree.
-- Web CI uses `npm install`, not `npm ci`.
+- Web CI uses `npm install`, not `npm ci`. The web workflow now runs `npm run test:web` before the production build.
 - No dependency vulnerability scan, license policy, SBOM, signed provenance or artifact checksum workflow was evidenced.
 
 Required improvements:
