@@ -14,6 +14,8 @@ from asaa_ap.security import Principal, get_principal
 
 
 POSTGRES_URL = os.getenv("ASAA_AP_POSTGRES_TEST_URL")
+# Unique per run so reruns against the same database never collide with earlier records (periods, compensation).
+ORG = f"postgres-integration-org-{uuid4().hex[:10]}"
 pytestmark = pytest.mark.skipif(
     not POSTGRES_URL,
     reason="PostgreSQL integration test requires ASAA_AP_POSTGRES_TEST_URL",
@@ -35,7 +37,7 @@ def postgres_client():
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_principal] = lambda: Principal(
         "postgres-integration-tester",
-        "postgres-integration-org",
+        ORG,
         frozenset({
             "hr:employee:write", "hr:employee:read", "hr:employment:write",
             "payroll:compensation:write", "payroll:compensation:read", "payroll:compensation:approve",
@@ -126,7 +128,7 @@ def test_postgresql_readiness_and_people_payroll_round_trip(postgres_client):
     )
     assert maker_decision.status_code == 403
     app.dependency_overrides[get_principal] = lambda: Principal(
-        "postgres-independent-approver", "postgres-integration-org",
+        "postgres-independent-approver", ORG,
         frozenset({"payroll:compensation:approve"}),
     )
     approved_compensation = postgres_client.post(
@@ -136,7 +138,7 @@ def test_postgresql_readiness_and_people_payroll_round_trip(postgres_client):
     assert approved_compensation.status_code == 200
     assert approved_compensation.json()["status"] == "Approved"
     app.dependency_overrides[get_principal] = lambda: Principal(
-        "postgres-integration-tester", "postgres-integration-org",
+        "postgres-integration-tester", ORG,
         frozenset({
             "hr:employee:write", "hr:employee:read", "hr:employment:write",
             "payroll:compensation:write", "payroll:compensation:read", "payroll:compensation:approve",
@@ -178,7 +180,7 @@ def test_postgresql_readiness_and_people_payroll_round_trip(postgres_client):
 
     with SessionLocal() as session:
         actions = set(session.scalars(select(AuditEvent.action).where(
-            AuditEvent.organization_id == "postgres-integration-org",
+            AuditEvent.organization_id == ORG,
             AuditEvent.entity_id.in_([employee["id"], entry_response.json()["id"]]),
         )).all())
     assert "employee.created" in actions

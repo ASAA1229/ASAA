@@ -127,13 +127,14 @@ async def run_load(base_url: str, token: str, concurrency: int, duration: float,
         return summarize(samples, time.perf_counter() - started, errors)
 
 
-def spawn_api(database_url: str | None, workers: int, tmp: Path):
+def spawn_api(database_url: str | None, workers: int, tmp: Path, migrate_url: str | None = None):
     key, public = make_keys()
     port = free_port()
     url = database_url or f"sqlite:///{(tmp / 'load.db').as_posix()}"
     env = {**os.environ, "ASAA_AP_DATABASE_URL": url, "ASAA_AP_ENVIRONMENT": "test", "ASAA_AP_JWT_PUBLIC_KEY": public,
            "ASAA_AP_JWT_ISSUER": ISSUER, "ASAA_AP_JWT_AUDIENCE": AUDIENCE, "ASAA_AP_LOG_LEVEL": "WARNING"}
-    subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, env=env, check=True, capture_output=True)
+    migrate_env = {**env, "ASAA_AP_DATABASE_URL": migrate_url} if migrate_url else env
+    subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, env=migrate_env, check=True, capture_output=True)
     process = subprocess.Popen([sys.executable, "-m", "uvicorn", "asaa_ap.main:app", "--host", "127.0.0.1", "--port", str(port),
                                 "--workers", str(workers), "--log-level", "warning"], cwd=ROOT, env=env)
     base = f"http://127.0.0.1:{port}"
