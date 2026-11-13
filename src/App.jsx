@@ -188,11 +188,17 @@ function App() {
   const refresh = async () => {
     if (!token) return;
     setLoading(true); setError("");
-    const jobs = [
-      ["suppliers", "/api/v1/ap/suppliers"], ["customers", "/api/v1/ar/customers"],
-      ["invoices", "/api/v1/ar/invoices"], ["receipts", "/api/v1/ar/receipts"],
-      ["timesheets", "/api/v1/workforce-finance/timesheets"], ["expenses", "/api/v1/workforce-finance/expenses"], ["purchaseRequests", "/api/v1/ap/purchase-requests"]
+    const permittedJobs = [
+      ["suppliers", "/api/v1/ap/suppliers", "supplier:read"],
+      ["customers", "/api/v1/ar/customers", "ar:customer:read"],
+      ["invoices", "/api/v1/ar/invoices", "ar:invoice:read"],
+      ["receipts", "/api/v1/ar/receipts", "ar:receipt:read"],
+      ["timesheets", "/api/v1/workforce-finance/timesheets", "tms:timesheet:read"],
+      ["expenses", "/api/v1/workforce-finance/expenses", "expense:claim:read"],
+      ["purchaseRequests", "/api/v1/ap/purchase-requests", "procurement:request:read"]
     ];
+    const granted = new Set(Array.isArray(claims.permissions) ? claims.permissions : []);
+    const jobs = permittedJobs.filter(([, , permission]) => granted.has(permission)).map(([key, path]) => [key, path]);
     const results = await Promise.all(jobs.map(async ([key, path]) => {
       try { return [key, await api(path)]; }
       catch (e) { return [key, [], e.message]; }
