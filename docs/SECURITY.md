@@ -183,3 +183,8 @@ Current code provides security foundations, but production assurance is not comp
 - [ ] Record vulnerabilities, remediation, retest evidence and owner-approved residual risks.
 
 No production security approval is implied by the presence of these checklist items. Attach test reports, configuration evidence, revision and review approval before marking each item complete.
+
+
+## Security status and assurance evidence
+
+The current security gap state and verification evidence are tracked in [Project Status](PROJECT_STATUS.md), especially ASAA-002 through ASAA-006. This document defines required controls; it does not certify that the controls have passed production review. Release decisions follow [Release Readiness](RELEASE_READINESS.md).
