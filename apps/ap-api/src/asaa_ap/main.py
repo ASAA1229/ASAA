@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from fastapi.middleware.cors import CORSMiddleware
 from asaa_ap.api import router as ap_router
 from asaa_ap.purchase_requests import router as purchase_requests_router
@@ -7,6 +9,7 @@ from asaa_people.api import hr_router, onboarding_router, payroll_router
 from asaa_people.lifecycle import router as hr_lifecycle_router
 from asaa_people.workflows import router as people_workflows_router
 from asaa_ap.config import get_settings
+from asaa_ap.database import engine
 from asaa_governance.api import router as master_data_router
 from asaa_governance.authority import router as governance_router
 from asaa_governance.administration import router as administration_router
@@ -40,3 +43,13 @@ app.include_router(workforce_finance_router)
 @app.get("/health", tags=["Operations"])
 def health():
     return {"status": "ok", "service": "asaa-enterprise-api"}
+
+
+@app.get("/ready", tags=["Operations"])
+def readiness():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Database is unavailable") from exc
+    return {"status": "ready", "database": "available"}
