@@ -3,6 +3,7 @@ import SupplierWorkspace from "./SupplierWorkspace.jsx";
 import ReceivablesWorkspace from "./ReceivablesWorkspace.jsx";
 import WorkforceFinanceWorkspace from "./WorkforceFinanceWorkspace.jsx";
 import AdministrationWorkspace from "./AdministrationWorkspace.jsx";
+import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useState } from "react";
@@ -261,11 +262,12 @@ function App() {
           {section === "Procurement" && (token ? <ProcurementWorkspace requests={data.purchaseRequests} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Timesheets" && (token ? <WorkforceFinanceWorkspace kind="timesheet" records={data.timesheets} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Expenses" && (token ? <WorkforceFinanceWorkspace kind="expense" records={data.expenses} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
+          {["People directory","Employment lifecycle","Onboarding","Offboarding","Leave management","Employee assets"].includes(section) && <PeopleWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Governance" && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Reports" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name="Reports & dashboards" connected={false} setSection={setSection}/>)}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} setApiBase={setApiBase} claims={claims} openConnection={() => setModal("connection")}/>}
-          {!["Overview","AR · Receivables","AP · Payables","Procurement","Timesheets","Expenses","Governance","Reports","Settings","Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
+          {!["Overview","AR · Receivables","AP · Payables","Procurement","Timesheets","Expenses","People directory","Employment lifecycle","Onboarding","Offboarding","Leave management","Employee assets","Compensation & payroll","Governance","Reports","Settings","Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>
         </>}
       </div>
