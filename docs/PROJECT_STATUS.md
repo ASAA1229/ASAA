@@ -3,7 +3,8 @@
 **As of:** 2026-11-13  
 **Assessed branch:** `new`  
 **Initial assessment head:** `3257d883382f8cf7591457f29d267f0ebd4d7d08`  
-**Latest application/test commit:** `69e08b2b591cc570d0af0eb4d8121cb32989b00c`  
+**Latest verified application commit:** `69e08b2b591cc570d0af0eb4d8121cb32989b00c`  
+**Latest documentation refresh:** 2026-11-13  
 **Initial maturity:** 4.5/10; **current after first verified increment:** 4.6/10 (equal-weight average of 11 dimensions)  
 **Release decision:** NO-GO
 
@@ -66,8 +67,8 @@ Scores are repository maturity, not the organization-wide ASAA score. They are e
 - API: Python 3.11+, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, PyJWT.
 - Database: local SQLite default; PostgreSQL 16 integration workflow; 15 migration revisions documented in the development guide.
 - API tests are present under `apps/ap-api/tests`, including security, authorization, people, AP/AR, governance and PostgreSQL integration.
-- No frontend test/lint scripts or frontend test suite are declared in the root `package.json`.
-- No package lockfile was present in the root listing inspected; frontend CI uses `npm install`, not `npm ci`.
+- A dependency-free Node.js web regression suite is now declared as `npm run test:web` and runs in web CI; broader UI/component/E2E suites and lint/type-check scripts remain absent.
+- No root npm package lockfile was present in the inspected branch tree; frontend CI still uses `npm install`, not `npm ci`.
 
 ### CI evidence
 - API quality: [run 43411431405](https://github.com/ASAA1229/ASAA/actions/runs/43411431405), **CI VERIFIED**, commit `ba87df7fdb967adf80d00b7b4771a823708b7582`.
