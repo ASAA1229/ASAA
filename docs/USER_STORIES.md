@@ -3,7 +3,7 @@
 **Product:** Internal ASAA Enterprise Operating Platform  
 **Baseline branch:** `new`  
 **Backlog status:** Refined from the current repository implementation and documented operational evidence  
-**Rule:** Built code is not automatically Verified. Provider, policy, jurisdiction and infrastructure decisions remain explicit dependencies.
+**Rule:** IMPLEMENTED code is not automatically TEST PASSED, CI VERIFIED or ACCEPTED. Provider, policy, jurisdiction and infrastructure decisions remain explicit dependencies.
 
 ## Status vocabulary
 
@@ -27,7 +27,7 @@ Acceptance criteria:
 - Migration rehearsal, backup and recovery evidence is attached to the release.
 
 ### ASAA-P0-02 — Recover the platform
-**Status:** NOT STARTED — — RPO, RTO, retention and hosting decisions required.
+**Status:** NOT STARTED — RPO, RTO, retention and hosting decisions required.
 
 As an operations owner, I want encrypted backups, point-in-time recovery and rehearsed restore procedures so that service and data can be recovered after failure.
 
@@ -51,7 +51,7 @@ Acceptance criteria:
 - No client secret or long-lived sensitive token is shipped or persisted in browser storage.
 
 ### ASAA-P0-04 — Provision and revoke identities
-**Status:** NOT STARTED — — provider selection and authoritative identity mapping required.
+**Status:** NOT STARTED — provider selection and authoritative identity mapping required.
 
 As an authorized administrator, I want employee lifecycle and approved access assignments synchronized with the identity provider so that access is granted and removed at the correct time.
 
@@ -90,7 +90,7 @@ Acceptance criteria:
 - Production logs and errors do not expose tokens, secrets or restricted personal/financial data.
 
 ### ASAA-P0-07 — Operate and observe releases
-**Status:** NOT STARTED — — hosting and monitoring provider decisions required.
+**Status:** NOT STARTED — hosting and monitoring provider decisions required.
 
 As an operator, I want observable services and controlled releases so that failures are detected and changes can be recovered safely.
 
@@ -219,7 +219,7 @@ Acceptance criteria:
 - Accounting exports reconcile to authoritative finance records.
 
 ### ASAA-P1-10 — Standardize shared workflow and notifications
-**Status:** Not Started — selected domain-specific maker-checker flows exist.
+**Status:** NOT STARTED — selected domain-specific maker-checker flows exist.
 
 As a workflow owner, I want consistent approvals, delegation, escalation, reminders and retry handling so that business work does not become stuck or bypass controls.
 
@@ -299,7 +299,7 @@ Acceptance criteria:
 - Record findings, severity, owner, remediation, retest and explicit residual-risk acceptance.
 
 #### ASAA-P0-12 — Establish production operations and recovery
-**Status:** NOT STARTED — — hosting, monitoring and recovery objectives require owner decisions.
+**Status:** NOT STARTED — hosting, monitoring and recovery objectives require owner decisions.
 
 Acceptance criteria:
 - Approve RPO, RTO, backup retention, data residency, support hours and incident escalation ownership.
@@ -342,23 +342,23 @@ Acceptance criteria: approved effective-dated employment and leave policies; bal
 Acceptance criteria: source-linked payroll inputs; duplicate and currency validation; decimal-safe gross/deduction/net reconciliation; versioned approved calculation rules; independent review/closure; restricted payslip/output access; payment execution kept as a separate integration; no statutory calculation until jurisdiction-specific rules are approved and independently tested.
 
 #### ASAA-P1-15 — Integrate private documents and notifications
-**Status:** NOT STARTED — — storage and delivery providers not selected.
+**Status:** NOT STARTED — storage and delivery providers not selected.
 
 Acceptance criteria: private object storage, short-lived authorized access, malware/upload validation, classification/version/retention/legal hold, access audit; notification templates/preferences, delivery status, retries, dead-letter visibility and sensitive-content minimization.
 
 #### ASAA-P1-16 — Standardize workflow orchestration and integration operations
-**Status:** Not Started — selected domain workflows exist; reusable shared services and operational visibility remain.
+**Status:** NOT STARTED — selected domain workflows exist; reusable shared services and operational visibility remain.
 
 Acceptance criteria: versioned workflow definitions, common transition semantics, idempotent commands, concurrency controls, delegation/escalation, integration registry, scoped credentials, sync history, retry/reconciliation and actionable health dashboards.
 
 #### ASAA-P1-17 — Complete end-to-end quality and accessibility validation
-**Status:** NEEDS TESTING — — comprehensive release evidence not recorded.
+**Status:** NEEDS TESTING — comprehensive release evidence not recorded.
 
 Acceptance criteria: automated unit, API, database migration, UI, end-to-end, regression, security, performance and accessibility coverage for launch workflows; supported browser/device checks; keyboard and screen-reader review; documented test environment, revision, results and defect disposition.
 
 ### Release exit rule
 
-The first production release is blocked until every P0 story above is Passed or has an explicitly approved, documented exception that does not weaken security, legal compliance, data integrity or recovery. P1 stories must be either accepted in the launch scope with Passed evidence or explicitly excluded/disabled with clear user-facing boundaries. P2 expansion stories remain outside the first-release gate unless the owner brings them into scope.
+The first production release is blocked until every P0 story above reaches its required verification state and owner acceptance is recorded, or has an explicitly approved, documented exception that does not weaken security, legal compliance, data integrity or recovery. P1 stories must be either accepted in the launch scope with Passed evidence or explicitly excluded/disabled with clear user-facing boundaries. P2 expansion stories remain outside the first-release gate unless the owner brings them into scope.
 
 
 ## Status source
