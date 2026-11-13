@@ -17,7 +17,7 @@ from asaa_people.models import (
 from asaa_people.schemas import (
     EmployeeCreate, EmploymentRecordCreate, OnboardingTemplateCreate,
     OnboardingAssignmentCreate, OnboardingTaskUpdate, CompensationCreate,
-    PayrollPeriodCreate, PayrollRunCreate, PayrollEntryCreate,
+    PayrollPeriodCreate, PayrollRunCreate, PayrollEntryCreate, CompensationDecision,
 )
 
 Db = Annotated[Session, Depends(get_db)]
@@ -283,16 +283,91 @@ def update_onboarding_task(task_id: str, payload: OnboardingTaskUpdate, db: Db,
 def create_compensation(payload: CompensationCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:compensation:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
-    employee_or_404(db, payload.employee_id, principal.organization_id)
+    employee = db.scalar(select(Employee).where(
+        Employee.id == payload.employee_id,
+        Employee.organization_id == principal.organization_id,
+    ).with_for_update())
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    overlap = db.scalar(select(CompensationRecord).where(
+        CompensationRecord.organization_id == principal.organization_id,
+        CompensationRecord.employee_id == payload.employee_id,
+        CompensationRecord.status.in_({"Pending Approval", "Approved"}),
+        CompensationRecord.effective_from <= (payload.effective_to or date.max),
+        (CompensationRecord.effective_to.is_(None) |
+         (CompensationRecord.effective_to >= payload.effective_from)),
+    ).limit(1))
+    if overlap:
+        raise HTTPException(status_code=409, detail={
+            "code": "compensation_effective_period_overlap",
+            "conflicting_record_id": overlap.id,
+            "conflicting_status": overlap.status,
+        })
+
     row = CompensationRecord(
         organization_id=principal.organization_id, **payload.model_dump(),
         created_by=principal.subject,
     )
     db.add(row)
     db.flush()
-    audit(db, principal, "compensation.created", "pay_compensation_record", row.id,
+    audit(db, principal, "compensation.proposed", "pay_compensation_record", row.id,
           {"employee_id": row.employee_id, "effective_from": row.effective_from.isoformat(),
+           "effective_to": row.effective_to.isoformat() if row.effective_to else None,
            "status": row.status}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return view(row)
+
+
+@payroll_router.post("/compensation/{record_id}/decision")
+def decide_compensation(record_id: str, payload: CompensationDecision, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("payroll:compensation:approve"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    row = db.scalar(select(CompensationRecord).where(
+        CompensationRecord.id == record_id,
+        CompensationRecord.organization_id == principal.organization_id,
+    ).with_for_update())
+    if not row:
+        raise HTTPException(status_code=404, detail="Compensation record not found")
+    if row.created_by == principal.subject:
+        raise HTTPException(status_code=403, detail={"code": "maker_cannot_approve_own_compensation"})
+    if row.status != "Pending Approval":
+        raise HTTPException(status_code=409, detail={
+            "code": "compensation_not_pending", "current_status": row.status,
+        })
+
+    if payload.decision == "Approved":
+        employee = db.scalar(select(Employee).where(
+            Employee.id == row.employee_id,
+            Employee.organization_id == principal.organization_id,
+        ).with_for_update())
+        if not employee:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        overlap = db.scalar(select(CompensationRecord).where(
+            CompensationRecord.organization_id == principal.organization_id,
+            CompensationRecord.employee_id == row.employee_id,
+            CompensationRecord.id != row.id,
+            CompensationRecord.status == "Approved",
+            CompensationRecord.effective_from <= (row.effective_to or date.max),
+            (CompensationRecord.effective_to.is_(None) |
+             (CompensationRecord.effective_to >= row.effective_from)),
+        ).limit(1))
+        if overlap:
+            raise HTTPException(status_code=409, detail={
+                "code": "compensation_effective_period_overlap",
+                "conflicting_record_id": overlap.id,
+            })
+        row.status = "Approved"
+    else:
+        row.status = "Rejected"
+
+    row.approved_by = principal.subject
+    row.approved_at = datetime.now(timezone.utc)
+    row.approval_note = payload.approval_note
+    audit(db, principal, "compensation.decided", "pay_compensation_record", row.id,
+          {"decision": payload.decision, "status": row.status,
+           "employee_id": row.employee_id}, x_correlation_id)
     db.commit()
     db.refresh(row)
     return view(row)
