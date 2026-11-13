@@ -27,7 +27,12 @@ async function verifyIdToken(idToken, transaction) {
   const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
   const valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, decodeBase64Url(parts[2]), new TextEncoder().encode(parts[0] + "." + parts[1]));
   const now = Math.floor(Date.now() / 1000); const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-  if (!valid || claims.iss !== transaction.issuer || !audiences.includes(CLIENT_ID) || !Number.isFinite(claims.exp) || claims.exp <= now || !Number.isFinite(claims.iat) || claims.iat > now + 60 || claims.nonce !== transaction.nonce || !claims.sub) throw new Error("The identity provider ID token failed signature, issuer, audience, time or nonce validation.");
+  const authorizedPartyValid = audiences.length <= 1 || claims.azp === CLIENT_ID;
+  if (!valid || claims.iss !== transaction.issuer || !audiences.includes(CLIENT_ID) || !authorizedPartyValid ||
+      !Number.isFinite(claims.exp) || claims.exp <= now || !Number.isFinite(claims.iat) || claims.iat > now + 60 ||
+      (Number.isFinite(claims.nbf) && claims.nbf > now + 60) || claims.nonce !== transaction.nonce || !claims.sub) {
+    throw new Error("The identity provider ID token failed signature, issuer, audience, time or nonce validation.");
+  }
 }
 
 
