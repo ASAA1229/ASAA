@@ -144,3 +144,12 @@ Before production:
 - The access token must carry the organization and permission claims expected by the API. Provider claim mapping must be reviewed and tested.
 - Do not treat a Retain/Modify/Revoke access-review decision as an actual provider entitlement change. Automated provisioning, deprovisioning, session revocation, refresh and logout require a separately implemented provider adapter and verified provider APIs.
 - Real SSO/MFA is not operationally accepted until a provider, tenant, public client, API audience, JWKS endpoint, redirect URIs, MFA policy and lifecycle integration are selected and tested.
+
+
+## 15. Role and access assignment governance
+
+- Role templates accept explicit permission identifiers only; wildcard permissions are rejected.
+- Role template activation and subject access assignment approval require independent reviewers and reasons.
+- Assignment approval is scoped and effective-dated; revocation is reasoned and audited.
+- These records are not an authorization engine. They do not add or remove JWT claims, create provider accounts, disable sessions or revoke provider grants.
+- Production authorization requires an approved provider adapter to map active approved assignments into token claims, enforce scope, expire/revoke grants and reconcile provider state. Until then, API authorization continues to trust only validated JWT permission claims and verified organization scope.
