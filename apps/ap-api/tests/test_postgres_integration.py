@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
@@ -37,7 +37,7 @@ def postgres_client():
         "postgres-integration-tester",
         "postgres-integration-org",
         frozenset({
-            "hr:employee:write", "hr:employee:read",
+            "hr:employee:write", "hr:employee:read", "hr:employment:write",
             "payroll:compensation:write", "payroll:compensation:read",
             "payroll:period:write", "payroll:run:write",
             "payroll:entry:write", "payroll:read",
@@ -66,6 +66,36 @@ def test_postgresql_readiness_and_people_payroll_round_trip(postgres_client):
     })
     assert employee_response.status_code == 201
     employee = employee_response.json()
+
+    initial_employment = postgres_client.post(
+        f"/api/v1/hr/employees/{employee['id']}/employment-records",
+        json={
+            "position_title": "Analyst",
+            "employment_type": "Employee",
+            "status": "Active",
+            "effective_from": date.today().isoformat(),
+            "reason": "Initial appointment",
+        },
+    )
+    assert initial_employment.status_code == 201
+    future_date = date.today() + timedelta(days=1)
+    scheduled_employment = postgres_client.post(
+        f"/api/v1/hr/employees/{employee['id']}/employment-records",
+        json={
+            "position_title": "Senior Analyst",
+            "employment_type": "Employee",
+            "status": "Active",
+            "effective_from": future_date.isoformat(),
+            "reason": "Scheduled promotion",
+        },
+    )
+    assert scheduled_employment.status_code == 201
+    assert postgres_client.get(f"/api/v1/hr/employees/{employee['id']}").json()["status"] == "Active"
+    history = postgres_client.get(
+        f"/api/v1/hr/employees/{employee['id']}/employment-records"
+    ).json()
+    assert history[0]["effective_from"] == future_date.isoformat()
+    assert history[1]["effective_to"] == (future_date - timedelta(days=1)).isoformat()
 
     compensation_response = postgres_client.post("/api/v1/payroll/compensation", json={
         "employee_id": employee["id"],
