@@ -95,8 +95,6 @@ def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db:
     principal: Annotated[Principal, Depends(require_permission("hr:employment:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     employee = employee_or_404(db, employee_id, principal.organization_id)
-    if payload.effective_from > date.today():
-        raise HTTPException(status_code=422, detail={"code": "future_employment_record_not_supported"})
     if payload.manager_employee_id:
         if payload.manager_employee_id == employee_id:
             raise HTTPException(status_code=422, detail={"code": "employee_cannot_manage_self"})
