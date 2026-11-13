@@ -223,7 +223,7 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
         </form>}
         <div className="people-table-wrap"><table className="people-table"><thead><tr><th>Employee</th><th>Leave type</th><th>Dates</th><th>Status</th><th>Decision</th></tr></thead><tbody>
           {data.leave.map(item=><tr key={item.id}><td>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</td><td>{item.leave_category}</td><td>{dateText(item.start_date)} – {dateText(item.end_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td>{item.status==="Submitted"&&can("hr:leave:review")?<div className="people-inline-actions"><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Approved",review_note:"Reviewed in HR workspace"},"Leave request approved.")}>Approve</button><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Rejected",review_note:"Reviewed in HR workspace"},"Leave request rejected.")}>Reject</button></div>:item.reviewer_subject||"—"}</td></tr>)}
-        </tbody></table>{!data.leave.length&&<Empty icon={CalendarDays} title="No leave requests" text="Submitted requests will appear here."/></div>
+        </tbody></table>{!data.leave.length&&<Empty icon={CalendarDays} title="No leave requests" text="Submitted requests will appear here."/>}</div>
       </section>
     </>}
 
