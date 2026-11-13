@@ -38,7 +38,7 @@ def postgres_client():
         "postgres-integration-org",
         frozenset({
             "hr:employee:write", "hr:employee:read", "hr:employment:write",
-            "payroll:compensation:write", "payroll:compensation:read",
+            "payroll:compensation:write", "payroll:compensation:read", "payroll:compensation:approve",
             "payroll:period:write", "payroll:run:write",
             "payroll:entry:write", "payroll:read",
         }),
@@ -111,6 +111,38 @@ def test_postgresql_readiness_and_people_payroll_round_trip(postgres_client):
     )
     assert compensation.status_code == 200
     assert Decimal(str(compensation.json()[0]["gross_amount"])) == Decimal("87500.25")
+
+    overlapping_compensation = postgres_client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "90000.00", "frequency": "Monthly",
+        "effective_from": date.today().isoformat(),
+    })
+    assert overlapping_compensation.status_code == 409
+    assert overlapping_compensation.json()["detail"]["code"] == "compensation_effective_period_overlap"
+
+    maker_decision = postgres_client.post(
+        f"/api/v1/payroll/compensation/{compensation_response.json()['id']}/decision",
+        json={"decision": "Approved", "approval_note": "Must not self approve"},
+    )
+    assert maker_decision.status_code == 403
+    app.dependency_overrides[get_principal] = lambda: Principal(
+        "postgres-independent-approver", "postgres-integration-org",
+        frozenset({"payroll:compensation:approve"}),
+    )
+    approved_compensation = postgres_client.post(
+        f"/api/v1/payroll/compensation/{compensation_response.json()['id']}/decision",
+        json={"decision": "Approved", "approval_note": "PostgreSQL integration approval"},
+    )
+    assert approved_compensation.status_code == 200
+    assert approved_compensation.json()["status"] == "Approved"
+    app.dependency_overrides[get_principal] = lambda: Principal(
+        "postgres-integration-tester", "postgres-integration-org",
+        frozenset({
+            "hr:employee:write", "hr:employee:read", "hr:employment:write",
+            "payroll:compensation:write", "payroll:compensation:read", "payroll:compensation:approve",
+            "payroll:period:write", "payroll:run:write", "payroll:entry:write", "payroll:read",
+        }),
+    )
 
     period_response = postgres_client.post("/api/v1/payroll/periods", json={
         "period_code": f"PG-{suffix}",
