@@ -189,3 +189,42 @@ Set `VITE_API_BASE_URL` to the API origin at build time. Configure API `ASAA_AP_
 The PWA service worker caches only the application shell and same-origin static assets. API paths and cross-origin API requests are not cached. This supports installability and shell launch, not offline access to financial or personal records.
 
 The portal currently surfaces supplier/customer/invoice/receipt, timesheet and expense API records where the session has the relevant read permissions. Missing permissions or unavailable API areas are reported as unavailable; they are not silently treated as empty authoritative business data.
+
+
+## 11. Organization administration and SSO configuration
+
+The organization administration endpoints are under /api/v1/administration:
+- GET/PUT/PATCH /profile
+- GET/POST /units and PATCH /units/{id}
+- GET/POST /access-reviews
+- POST /access-reviews/items/{id}/decision
+
+Master-data domain and record endpoints remain under /api/v1/master-data. Administration routes require explicit permissions: organization:profile:read/write, organization:structure:read/write, identity:access-review:read/create/review, plus the separate masterdata permissions. Never grant these solely from a job title.
+
+For a selected OIDC provider, configure the frontend build environment:
+
+| Variable | Purpose |
+|---|---|
+| VITE_OIDC_AUTHORITY | Exact OIDC issuer/authority URL |
+| VITE_OIDC_CLIENT_ID | Public SPA client ID; never a client secret |
+| VITE_OIDC_REDIRECT_URI | Exact registered redirect URI; defaults to current origin |
+| VITE_OIDC_SCOPES | Requested scopes; defaults to openid profile email |
+
+Register the SPA as a public client using Authorization Code + PKCE (S256), exact redirect URIs and provider-supported browser token exchange. Configure provider MFA/conditional-access policy independently. The API access token must be a signed RS256 JWT accepted by the API and contain sub, org_id, iss, aud, exp and a permissions string array. The token issuer and audience must match API settings.
+
+API identity settings:
+
+| Variable | Purpose |
+|---|---|
+| ASAA_AP_JWT_JWKS_URL | HTTPS JWKS endpoint for signing-key discovery/rotation; preferred for providers |
+| ASAA_AP_JWT_PUBLIC_KEY | Static RS256 public key fallback |
+| ASAA_AP_JWT_ISSUER | Exact expected issuer |
+| ASAA_AP_JWT_AUDIENCE | Expected API audience |
+| ASAA_AP_JWT_ALGORITHM | RS256 only |
+| ASAA_AP_JWT_LEEWAY_SECONDS | Clock-skew tolerance (default 30) |
+| ASAA_AP_REQUIRED_ACR | Optional exact required authentication context |
+| ASAA_AP_REQUIRED_AMR | Optional required authentication method value |
+
+The identity provider must issue the configured acr/amr claims if the corresponding requirement is enabled. Do not assume a generic MFA claim name; map to the provider's documented claim semantics. Browser-based code exchange requires provider CORS support for the SPA origin. Access tokens are memory-only; refresh tokens are not persisted or renewed. Provider logout, token revocation, SCIM provisioning/deprovisioning and group synchronization are not implemented. Until a provider is selected and tested, development token connection remains a development-only fallback.
+
+Do not use production identities or real access tokens in automated tests. Use explicit test principals and isolated signing keys.
