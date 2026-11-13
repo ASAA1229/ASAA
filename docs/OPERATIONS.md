@@ -119,3 +119,46 @@ No incident commander, SLA or notification authority is assumed until assigned.
 Not yet evidenced as implemented: production hosting/deployment automation, production PostgreSQL provisioning/TLS and load validation, automated backup and restore, disaster-recovery exercises, centralized monitoring/alerting, log retention, incident response ownership, production secrets management, document storage operations, notification delivery operations, integration health dashboards and support SLAs. PostgreSQL 16 migration and API integration checks run in CI, but do not constitute production validation.
 
 These are production release gates, not optional documentation tasks.
+
+
+## 10. First-release execution checklist (baseline: 2026-11-13)
+
+This checklist converts the documented operational gaps into release tasks. Current status is not started or blocked unless explicit evidence is attached; do not mark a task complete because a runbook or script exists.
+
+### Environment and database
+- [ ] Approve hosting provider/region, network topology, data residency and environment owners.
+- [ ] Provision isolated development, staging and production environments; configure HTTPS and trusted origins.
+- [ ] Provision PostgreSQL 16+ with encryption at rest and certificate-verified TLS.
+- [ ] Create separate migration/runtime roles and prove least privilege on the target database.
+- [ ] Configure pool limits, timeouts, storage/capacity alerts and production secret delivery/rotation.
+- [ ] Rehearse all migrations from the supported starting revision on a production-like copy.
+- [ ] Run `ASAA_AP_ENVIRONMENT=production python scripts/validate_postgresql.py` against the actual target using the runtime role; retain redacted output.
+- [ ] Run load, concurrency, connection saturation and failure-recovery tests; record thresholds and results.
+
+### Identity and access lifecycle
+- [ ] Select provider and record tenant, issuer, audience, public client, redirect/logout URIs and JWKS endpoint.
+- [ ] Configure PKCE, issuer/audience/signature/expiry validation and signing-key rotation.
+- [ ] Enforce MFA at the provider and test required assurance/method claims.
+- [ ] Validate login/logout, session expiry, refresh/revocation, account disablement and recovery.
+- [ ] Implement and test joiner/mover/leaver provisioning, role/scope synchronization and reconciliation.
+- [ ] Verify revoked/expired access is removed within an owner-approved service target, including active sessions.
+
+### Observability, security and recovery
+- [ ] Centralize structured logs, metrics, traces and health checks; redact tokens, secrets and restricted personal/financial data.
+- [ ] Assign alert severity, on-call owner, runbook, acknowledgement and escalation for service, database, audit, identity, integration and backup failures.
+- [ ] Define and approve RPO, RTO, retention, backup encryption and recovery ownership.
+- [ ] Enable automated backups/PITR where supported and alert on missed/failed backups.
+- [ ] Restore database and document metadata into an isolated environment; record integrity checks and measured recovery time.
+- [ ] Establish incident response, vulnerability remediation, credential/key rotation and audit-retention procedures.
+
+### Delivery and business acceptance
+- [ ] Automate reviewed build, test, migration and deployment stages with approval gates and migration-only credentials.
+- [ ] Record artifact/commit, migration revision, approvals and release notes for every deployment.
+- [ ] Exercise smoke tests, rollback/forward recovery and post-deployment verification.
+- [ ] Name business owners and approve role matrix, authority limits, HR/leave, payroll, expense, procurement, retention and jurisdiction-specific policies.
+- [ ] Complete scripted UAT for every included workflow using synthetic or approved minimized data.
+- [ ] Resolve release-blocking defects and record business, security and operations sign-off.
+
+### Operational release decision
+
+Production deployment is **NO-GO** while any mandatory P0 task is unchecked, unless a formally approved exception is documented and does not compromise security, legal obligations, data integrity or recoverability. The current PostgreSQL CI run is useful evidence for migration/API compatibility only; it does not close the production database checklist.
