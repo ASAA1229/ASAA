@@ -7,11 +7,11 @@
 
 | Layer | Required coverage | Current repository evidence |
 |---|---|---|
-| Static/compile | Python compile, frontend build, lint/type checks | Python compile in API CI; web build workflow configured; frontend lint/type scripts absent. |
+| Static/compile | Python compile, frontend build, lint/type checks | Python compile in API CI; Vite production build passed in web CI; frontend lint/type scripts absent. |
 | Unit | Domain rules, schemas, state transitions, calculations | API pytest suite exists; coverage percentage not recorded. |
 | API/integration | Authentication, authorization, CRUD, workflow transitions, errors and audit | API tests exist and full suite passed in recorded CI. |
 | Database/migrations | Upgrade, downgrade/re-upgrade, constraints, transaction and concurrency behavior | SQLite migration checks and PostgreSQL 16 migration/integration CI passed. |
-| UI/component | Rendering, validation, role-aware controls, errors and accessibility semantics | No frontend test suite evidenced. |
+| UI/component | Rendering, validation, role-aware controls, errors and accessibility semantics | Four Node.js regression tests cover OIDC endpoint transport policy; React component/UI tests not evidenced. |
 | E2E | Real user journeys across UI/API/database | Not evidenced. |
 | Security | Authentication, MFA, tenant isolation, IDOR, privilege escalation, SoD, sensitive fields, audit | Focused API security/authorization tests exist; full independent assurance pending. |
 | Performance | Load, stress, soak, concurrency, pool/capacity and response budgets | Not evidenced. |
@@ -46,9 +46,9 @@ Latest inspected successful run: [43411431368](https://github.com/ASAA1229/ASAA/
 Workflow: `.github/workflows/portal-ci.yml`
 
 - Uses Node.js 22.
-- Runs `npm install` and `npm run build`.
+- Runs `npm install`, `npm run test:web` and `npm run build`.
 - Latest inspected successful run: [43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233), commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c`. The `test:web` step passed all 4 Node.js tests (4 passed, 0 failed, 0 skipped), followed by a successful Vite production build.
-- No root lockfile, frontend test or lint script was found in the inspected tree.
+- No root npm lockfile or frontend lint/type-check script was found in the inspected tree. The focused `test:web` script is present.
 
 ## 3. Local verification commands
 
