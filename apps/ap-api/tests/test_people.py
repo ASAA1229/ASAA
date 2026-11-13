@@ -592,3 +592,27 @@ def test_rejected_compensation_proposal_does_not_block_future_timeline(client):
         "gross_amount": "66000.00", "frequency": "Monthly", "effective_from": "2026-12-01"
     })
     assert replacement.status_code == 201
+
+
+def test_payroll_run_rejects_duplicate_employee_entries(client):
+    employee = create_employee(client)
+    period = client.post("/api/v1/payroll/periods", json={
+        "period_code": "2026-12-DUPLICATE-ENTRY",
+        "start_date": "2026-12-01", "end_date": "2026-12-31"
+    })
+    assert period.status_code == 201
+    run = client.post("/api/v1/payroll/runs", json={
+        "period_id": period.json()["id"], "run_code": "2026-12-DUPLICATE-ENTRY-01", "currency": "INR"
+    })
+    assert run.status_code == 201
+    payload = {
+        "employee_id": employee["id"], "currency": "INR",
+        "gross_amount": "50000.00", "deduction_total": "5000.00",
+        "net_amount": "45000.00", "breakdown": {"source": "approved manual input"}
+    }
+    first = client.post("/api/v1/payroll/runs/" + run.json()["id"] + "/entries", json=payload)
+    assert first.status_code == 201
+    duplicate = client.post("/api/v1/payroll/runs/" + run.json()["id"] + "/entries", json=payload)
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"]["code"] == "payroll_employee_entry_exists"
+    assert duplicate.json()["detail"]["existing_entry_id"] == first.json()["id"]
