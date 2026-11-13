@@ -12,6 +12,8 @@ class Base(DeclarativeBase):
 
 def build_session_factory(database_url: str | None = None):
     url = database_url or get_settings().database_url
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url.removeprefix("postgresql://")
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
     options = {"pool_pre_ping": True, "connect_args": connect_args}
     if url.startswith(("postgresql://", "postgresql+psycopg://")):
