@@ -118,3 +118,10 @@ Organization-wide default branch names are `main`, `dev`, `new`, `fix` and `test
 **Production release status: NO-GO.** The current branch contains a substantial executable slice, and PostgreSQL 16 migration/API integration checks pass in CI. Production database provisioning and preflight, provider-specific SSO/MFA activation, automated identity lifecycle, full security assurance, backup/restore, monitoring, deployment rehearsal and business UAT are not yet evidenced. Do not use this repository with real employee/payroll/financial data in production until the mandatory gates in [User Stories](docs/USER_STORIES.md), [Operations](docs/OPERATIONS.md) and [Security](docs/SECURITY.md) are passed and approved.
 
 The first release should be limited to a coherent set of validated governance, workforce and finance workflows. Recruitment, CRM, portfolio/project/product management, service delivery, inventory/facilities, advanced analytics and AI remain expansion scope unless explicitly brought into the approved launch scope. Preview workspaces must not be represented as operational modules.
+
+
+## Project status and release controls
+
+The single authoritative maturity assessment, current gap register and verified progress record is [Project Status](docs/PROJECT_STATUS.md). Use [POC](docs/POC.md) for the current executable scope, [Roadmap](docs/ROADMAP.md) for delivery sequence, [Testing](docs/TESTING.md) for test evidence, [DevOps](docs/DEVOPS.md) for CI/CD controls and [Release Readiness](docs/RELEASE_READINESS.md) for GO/NO-GO gates.
+
+**Current release decision: NO-GO.** PostgreSQL 16 CI integration and API quality checks passed at the recorded application commit; this does not establish production database, identity-provider, backup/recovery, security-assurance or business-acceptance readiness.
