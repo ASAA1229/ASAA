@@ -558,3 +558,39 @@ This section separates implemented foundations from operationally accepted capab
 4. Prefer incremental changes and existing module boundaries. Do not rewrite stable modules to satisfy unrelated gaps.
 5. A workflow is **Verified** only when positive, negative, organization-isolation, audit and failure-path tests pass on the stated revision. Production claims additionally require production-like operational evidence.
 6. P1-01 payroll period integrity and P1-02 compensation timeline integrity are implemented and CI-verified. Continue with P1-03 payroll source/input controls; remaining P0/P1 gaps stay visible and are not marked complete by documentation alone.
+
+
+## 10. First production release scope and remaining work (2026-11-13)
+
+The current repository is an executable foundation for selected governance, workforce and finance workflows. It is not a complete enterprise operating platform. The first release must be a deliberately bounded internal operating release, not an attempt to activate every planned domain.
+
+### P0 — mandatory release foundations
+
+1. **Production data platform:** provision PostgreSQL 16+ in the approved environment; TLS certificate verification, encryption at rest, least-privilege migration/runtime roles, connection/resource limits, secret management, production preflight, migration rehearsal and load/concurrency evidence.
+2. **Identity:** select and configure the actual OIDC provider/tenant/client; verify issuer, audience, JWKS/signing-key rotation, PKCE, redirect/logout, MFA assurance, session lifecycle and recovery.
+3. **Identity lifecycle:** implement provider synchronization for joiner/mover/leaver events, approved effective-dated entitlements, revocation/session invalidation, reconciliation and failure handling.
+4. **Authorization assurance:** complete route/action permission inventory, organization and record isolation, field-level HR/payroll restrictions, maker-checker, delegation, access review and privilege-escalation tests.
+5. **Security/privacy:** threat model, data classification, jurisdiction and privacy review, dependency/static/dynamic testing, penetration testing, audit protection, log redaction and residual-risk sign-off.
+6. **Operations:** production hosting and HTTPS, controlled CI/CD, secrets and key rotation, logs/metrics/traces, alert ownership, incident runbooks, encrypted backup/PITR, demonstrated restore, RPO/RTO and rollback/forward-recovery rehearsal.
+7. **Business acceptance:** approve the launch organization, owners, roles, policies and approval limits; complete UAT on every included workflow; record business/security/operations approval.
+
+### P1 — complete or explicitly exclude from first release
+
+- **People:** validate employee lifecycle, onboarding/offboarding tasks, leave entitlement/balance policies, asset handover/return and access revocation evidence.
+- **Payroll:** complete source lineage, input validation, decimal-safe reconciliation, exception handling, independent review/closure and restricted outputs. Do not enable statutory payroll/tax calculations or payment execution without approved jurisdictional rules and separately authorized integrations.
+- **Procure-to-pay:** quotations, purchase orders, receipts, invoice matching, duplicate prevention, payment approval and settlement reconciliation.
+- **Receivables:** invoice adjustments, credit/debit notes, refunds/disputes, receipt allocation, ageing and bank reconciliation; tax/e-invoice activation depends on jurisdictional approval.
+- **Shared services:** private document storage and retention, notification delivery/retries, reusable workflow orchestration, integration registry and reconciliation.
+- **Quality:** full launch-scope regression, API/UI/E2E, security, performance, accessibility and supported-device/browser validation.
+
+### P2 — expansion after the first stable release
+
+Recruitment; performance and learning; employee relations; CRM/sales/marketing; portfolio/project/product management; client delivery/support; inventory/facilities; legal/risk/compliance expansion; knowledge/collaboration; advanced analytics and permission-aware AI.
+
+### Release measurement rules
+
+- Do not publish an unqualified product-completion percentage. Report separately: implemented scope, verified acceptance criteria, production-operational controls and deferred roadmap scope.
+- Every capability status must identify evidence, commit/revision, environment and verification date.
+- A passing CI integration suite does not prove production provisioning, security configuration, backup recovery, load capacity or business acceptance.
+- Preview-only modules must be clearly labelled and must not imply that their underlying workflows are available.
+- Disable or exclude incomplete sensitive workflows from a production launch rather than presenting unverified functionality as operational.
