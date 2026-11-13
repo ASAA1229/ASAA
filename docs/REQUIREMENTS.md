@@ -509,3 +509,52 @@ Provider-dependent work remains blocked until an owner selects and configures th
 - Dashboard register loading now respects granted read permissions rather than issuing requests to every module.
 
 **Policy and production boundaries:** do not invent leave balances/accrual, salary rules, tax/statutory calculations, payslips or payment execution. These require approved policy inputs, source integration and external validation. Payroll entry values remain explicitly supplied inputs, not calculated statutory payroll.
+
+
+## 25. Refined gap register and next delivery sequence
+
+This section separates implemented foundations from operationally accepted capabilities. A feature is not considered production-ready solely because its API or UI exists.
+
+### P0 — Production safety and control-plane completion
+
+| ID | Gap | Current evidence / boundary | Required closure |
+|---|---|---|---|
+| P0-01 | Production PostgreSQL operations | PostgreSQL 16 migrations and integration tests pass in CI; no production database has been provisioned or validated | Provision an isolated production-like database, enforce verified TLS, separate migration/runtime roles, run the production preflight, prove connection limits and load behaviour, and record operational approval |
+| P0-02 | Backup, point-in-time recovery and disaster recovery | Design requirements exist; no restore rehearsal or approved RPO/RTO is evidenced | Approve RPO/RTO and retention; automate encrypted backups/PITR; rehearse restore and application/database recovery; record measured outcomes |
+| P0-03 | Real SSO/MFA and identity lifecycle | OIDC browser flow and RS256/JWKS validation foundations exist; provider is not selected and account lifecycle is not connected | Select provider; configure issuer, audience, public SPA client, redirect URIs and MFA policy; implement provisioning, disablement, group/role mapping, refresh/revocation and logout; test key rotation and failure cases |
+| P0-04 | Governance-to-enforcement binding | Organization structure, authority, role templates and access-assignment workflows exist; approved assignments do not change provider entitlements or JWT permissions | Validate subject and scope references against authoritative records; implement policy/identity adapter, effective-date evaluation, expiry/revocation, reconciliation and emergency access review |
+| P0-05 | Security and audit operational assurance | Server-side permissions, organization scoping and application audit events exist; infrastructure-level immutability and production security assurance are unverified | Complete threat model, data classification/privacy review, negative authorization matrix, penetration/dependency testing, protected audit retention, alerting and incident exercises |
+| P0-06 | Production observability and release controls | Health/readiness endpoints and CI workflows exist; centralized monitoring, alert ownership and production deployment are not evidenced | Add structured logs/metrics/traces, alert/runbook ownership, deployment approvals, migration orchestration, rollback/forward-recovery and post-release smoke tests |
+
+### P1 — Core operating workflows
+
+| ID | Gap | Current evidence / boundary | Required closure |
+|---|---|---|---|
+| P1-01 | Payroll period integrity | Period creation validates date order but does not yet prevent overlapping periods or give a controlled duplicate-code conflict | Enforce organization-scoped unique period codes and non-overlapping date windows; add boundary, cross-organization and concurrency tests |
+| P1-02 | Compensation timeline integrity | Effective-dated compensation and approval foundation exist; complete timeline amendment/overlap controls need verification | Prevent conflicting effective intervals; define safe correction/supersession workflow; preserve approved history and independent review |
+| P1-03 | Payroll source and calculation controls | Payroll entries accept explicitly supplied inputs and reconcile gross, deductions and net; no statutory/policy engine is enabled | Define approved source feeds and versioned payroll rules only after policy/jurisdiction confirmation; add input reconciliation, exception handling, payslip review and finance posting |
+| P1-04 | HR policy engine | Employee, lifecycle, leave request and checklist foundations exist; balances, accruals, holidays, attendance and shifts are not configured | Add effective-dated leave/holiday/attendance policies after owner approval; calculate entitlements transparently; test proration, carry-forward, corrections and approvals |
+| P1-05 | HR lifecycle automation | Onboarding/offboarding checklists exist; identity/device/document revocation is not connected | Add due-date reminders, escalation, access revocation tasks, handover evidence, final-settlement inputs and lifecycle reconciliation |
+| P1-06 | Employee document operations | Document metadata and classification exist; private binary storage, signed access URLs, retention/legal hold and expiry notifications are not integrated | Integrate approved private object storage and malware scanning; enforce per-document access, retention, legal hold, expiry and download audit |
+| P1-07 | Workforce time and expense controls | Timesheets/expenses support submission, independent review and reimbursement-reference recording | Validate project/task references, policy limits, duplicate claims, attachment evidence, period locking, manager delegation and finance export; do not imply reimbursement initiates a bank transfer |
+| P1-08 | Procurement/AP completion | Supplier and purchase-request foundation exists | Add quotation comparison, purchase orders, receipt/acceptance, supplier invoice capture, three-way matching, disputes, approvals and payment integration as separately authorized steps |
+| P1-09 | AR and financial reconciliation | Customer, invoice and receipt allocation foundations exist | Add credit/debit notes, refunds, disputes, ageing, bank reconciliation, accounting export and jurisdiction-approved tax/invoice controls |
+| P1-10 | Shared workflow and notifications | Selected maker-checker workflows exist; no general workflow/notification orchestration is established | Standardize state transitions, idempotency, delegation, escalation, notification delivery/retry and stale-work queues without weakening domain permissions |
+
+### P2 — Expansion after foundations are accepted
+
+- Recruitment and candidate lifecycle; performance, learning, training and employee relations.
+- CRM, sales pipeline, contracts, proposals, customer onboarding and support.
+- Project/program/product portfolio, engineering quality, releases and deployment intelligence.
+- Inventory, asset lifecycle, facilities, travel and logistics.
+- Knowledge, collaboration, calendars, meetings and controlled document publishing.
+- Cross-domain analytics, KPI lineage, forecasting and approved AI-assisted search/recommendations.
+
+### Delivery and verification rules
+
+1. Work in dependency order: P0 security/identity/database controls before external production access; P1 business workflows after the required policies and reference data are approved.
+2. Each gap must have an owner, dependencies, acceptance criteria, implementation status, test evidence, revision and environment.
+3. Keep provider-, jurisdiction- and policy-dependent capabilities explicitly Blocked until the required decision is recorded. Do not invent a provider, tax rate, leave entitlement, payroll formula, RPO/RTO or legal obligation.
+4. Prefer incremental changes and existing module boundaries. Do not rewrite stable modules to satisfy unrelated gaps.
+5. A workflow is **Verified** only when positive, negative, organization-isolation, audit and failure-path tests pass on the stated revision. Production claims additionally require production-like operational evidence.
+6. This cycle starts with P1-01 payroll period integrity as a self-contained control improvement. The remaining P0/P1 gaps stay visible in the user-story backlog and are not marked complete by documentation alone.
