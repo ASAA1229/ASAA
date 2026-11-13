@@ -350,11 +350,22 @@ def decide_access_item(item_id: str, payload: ReviewDecision, db: Session = Depe
     if not item: raise HTTPException(status_code=404, detail="Access review item not found")
     if item.decision != "Pending": raise HTTPException(status_code=409, detail={"code": "access_review_item_already_decided"})
     if item.version != payload.expected_version: raise HTTPException(status_code=409, detail={"code": "stale_access_review_item_version"})
-    if item.subject == principal.subject: raise HTTPException(status_code=403, detail={"code": "self_access_review_forbidden"})
+    campaign = db.scalar(select(AccessReviewCampaign).where(
+        AccessReviewCampaign.id == item.campaign_id,
+        AccessReviewCampaign.organization_id == principal.organization_id))
+    if item.subject == principal.subject or campaign.created_by == principal.subject:
+        raise HTTPException(status_code=403, detail={"code": "self_access_review_forbidden"})
     item.decision = payload.decision; item.review_reason = payload.reason
     item.reviewed_by = principal.subject; item.reviewed_at = utcnow()
     db.flush()
+    remaining = db.scalar(select(AccessReviewItem.id).where(
+        AccessReviewItem.campaign_id == campaign.id,
+        AccessReviewItem.organization_id == principal.organization_id,
+        AccessReviewItem.decision == "Pending"))
+    if not remaining:
+        campaign.status = "Completed"
     audit(db, principal, "identity_access_review.decided", "access_review_item", item.id,
-          {"subject": item.subject, "decision": item.decision, "reason": item.review_reason}, x_correlation_id)
+          {"subject": item.subject, "decision": item.decision, "reason": item.review_reason,
+           "campaign_status": campaign.status}, x_correlation_id)
     db.commit(); db.refresh(item)
     return dump(item)
