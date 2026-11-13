@@ -1,5 +1,6 @@
 import ProcurementWorkspace from "./ProcurementWorkspace.jsx";
 import SupplierWorkspace from "./SupplierWorkspace.jsx";
+import ReceivablesWorkspace from "./ReceivablesWorkspace.jsx";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -245,7 +246,7 @@ function App() {
           <div className="welcome-row"><div><div className="eyebrow">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).toUpperCase()} · EXECUTIVE OVERVIEW</div><h1>{section === "Overview" ? "Good afternoon." : section}</h1><p>{section === "Overview" ? "Your company, operations and financial position at a glance." : sectionDescription(section)}</p></div><div className="welcome-actions">{token && <><button className="btn btn-quiet" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""}/> Refresh</button><button className="btn btn-primary" onClick={() => setModal("quick")}><Plus size={16}/> Create new</button></>}</div></div>
           {error && <div className="notice"><Activity size={16}/><span>{error}</span></div>}
           {section === "Overview" && (token ? <Overview data={data} stats={stats} loading={loading} setSection={setSection} setModal={setModal}/> : <PreviewOverview setSection={setSection}/>)}
-          {section === "AR · Receivables" && (token ? <FinanceList title="Accounts receivable" subtitle="Customers, issued invoices and incoming receipts." kind="ar" data={data} search={search} setSearch={setSearch} setModal={setModal}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
+          {section === "AR · Receivables" && (token ? <ReceivablesWorkspace customers={data.customers} invoices={data.invoices} receipts={data.receipts} api={api} claims={claims} onChanged={refresh} onAddCustomer={() => setModal("customer")}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "AP · Payables" && (token ? <><SupplierWorkspace suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/><ProcurementWorkspace requests={data.purchaseRequests} suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/></> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Procurement" && (token ? <ProcurementWorkspace requests={data.purchaseRequests} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Timesheets" && (token ? <WorkList title="Time & timesheet management" data={data.timesheets} kind="timesheet" search={search} setSearch={setSearch}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
