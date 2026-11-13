@@ -136,13 +136,14 @@ Acceptance criteria:
 - Maker-checker and audit tests pass.
 
 ### ASAA-P1-03 — Reconcile payroll inputs and outputs
-**Status:** Built — supplied-input workflow exists; policy engine Blocked.
+**Status:** In Progress — duplicate employee entries are now rejected per run; remaining source lineage and exception controls pending.
 
 As a payroll reviewer, I want payroll inputs, gross, deductions and net amounts reconciled before approval so that errors are caught without inventing statutory calculations.
 
 Acceptance criteria:
 - Inputs identify their authoritative source and period.
-- Duplicate employee entries and currency mismatches are rejected.
+- Duplicate employee entries within one payroll run and currency mismatches are rejected with controlled conflicts.
+- Payroll run entry creation is serialized per run on databases supporting row-level locks.
 - Gross less deductions equals net using decimal-safe arithmetic.
 - Changes after submission require return/resubmission and independent review.
 - Approved rules are versioned and independently validated before any statutory calculation is enabled.
