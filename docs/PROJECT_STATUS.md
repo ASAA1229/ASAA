@@ -2,9 +2,9 @@
 
 **As of:** 2026-11-13  
 **Assessed branch:** `new`  
-**Assessed head:** `3257d883382f8cf7591457f29d267f0ebd4d7d08`  
-**Latest application/test commit:** `ba87df7fdb967adf80d00b7b4771a823708b7582`  
-**Overall repository maturity:** 4.5/10 (equal-weight average of 11 dimensions)  
+**Initial assessment head:** `3257d883382f8cf7591457f29d267f0ebd4d7d08`  
+**Latest application/test commit:** `69e08b2b591cc570d0af0eb4d8121cb32989b00c`  
+**Initial maturity:** 4.5/10; **current after first verified increment:** 4.6/10 (equal-weight average of 11 dimensions)  
 **Release decision:** NO-GO
 
 This is the single authoritative source for current project status, maturity scores, verified evidence and cross-cutting gap state. Other documents define requirements, architecture, test procedures, delivery processes and acceptance criteria; they must link here rather than maintain competing project-wide status summaries.
@@ -37,19 +37,19 @@ A status must include evidence, commit/revision, environment, date and reviewer 
 
 Scores are repository maturity, not the organization-wide ASAA score. They are evidence-based baseline judgements and will be rescored after each verified delivery increment.
 
-| Dimension | Baseline | After improvement | Evidence / current limitation |
+| Dimension | Baseline | Current | Evidence / current limitation |
 |---|---:|---:|---|
-| Architecture and maintainability | 6.5 | Pending | Domain-separated API packages and shared DB/security services; central frontend composition and deeper maintainability review remain. |
-| Requirements and documentation | 5.5 | Pending | Requirements, stories, architecture, security and operations exist; this status baseline and delivery evidence set are being established. |
-| Implementation completeness | 5.5 | Pending | Governance, AP/AR, HR/payroll and workforce foundations exist; enterprise scope and provider integrations remain incomplete. |
-| Unit, integration, API, UI and E2E testing | 6.5 | Pending | API suite and PostgreSQL integration passed in CI; UI/E2E and broad regression evidence are absent. |
-| Security and privacy | 5.0 | Pending | RS256/JWKS, permission checks and MFA assurance hooks exist; provider activation, identity lifecycle, audit assurance and production review remain. |
-| Performance and scalability | 4.0 | Pending | PostgreSQL pool settings exist; no load, concurrency or capacity results recorded. |
-| Accessibility and compatibility | 3.5 | Pending | Responsive UI exists; no formal accessibility or device/browser evidence recorded. |
-| CI/CD and DevOps | 5.5 | Pending | Three GitHub Actions workflows configured; security scanning, reproducible frontend install, artifact controls and deployment execution remain. |
-| Deployment and infrastructure readiness | 2.5 | Pending | Production PostgreSQL preflight script exists; no production target or deployment evidence. |
-| Monitoring, backup and disaster recovery | 2.0 | Pending | Requirements and operational guidance exist; live monitoring, backup and restore evidence absent. |
-| Release readiness and operational support | 2.5 | Pending | Release gates documented; P0 controls, UAT, support ownership and operational sign-off remain. |
+| Architecture and maintainability | 6.5 | 6.5 | Domain-separated API packages and shared DB/security services; central frontend composition and deeper maintainability review remain. |
+| Requirements and documentation | 5.5 | 6.0 | Requirements, stories, architecture, security and operations exist; this status baseline and delivery evidence set are being established. |
+| Implementation completeness | 5.5 | 5.5 | Governance, AP/AR, HR/payroll and workforce foundations exist; enterprise scope and provider integrations remain incomplete. |
+| Unit, integration, API, UI and E2E testing | 6.5 | 6.8 | API suite and PostgreSQL integration passed in CI; UI/E2E and broad regression evidence are absent. |
+| Security and privacy | 5.0 | 5.3 | RS256/JWKS, permission checks and MFA assurance hooks exist; provider activation, identity lifecycle, audit assurance and production review remain. |
+| Performance and scalability | 4.0 | 4.0 | PostgreSQL pool settings exist; no load, concurrency or capacity results recorded. |
+| Accessibility and compatibility | 3.5 | 3.5 | Responsive UI exists; no formal accessibility or device/browser evidence recorded. |
+| CI/CD and DevOps | 5.5 | 5.8 | Three GitHub Actions workflows configured; security scanning, reproducible frontend install, artifact controls and deployment execution remain. |
+| Deployment and infrastructure readiness | 2.5 | 2.5 | Production PostgreSQL preflight script exists; no production target or deployment evidence. |
+| Monitoring, backup and disaster recovery | 2.0 | 2.0 | Requirements and operational guidance exist; live monitoring, backup and restore evidence absent. |
+| Release readiness and operational support | 2.5 | 2.7 | Release gates documented; P0 controls, UAT, support ownership and operational sign-off remain. |
 
 ## 4. Verified repository baseline
 
@@ -73,7 +73,7 @@ Scores are repository maturity, not the organization-wide ASAA score. They are e
 - API quality: [run 43411431405](https://github.com/ASAA1229/ASAA/actions/runs/43411431405), **CI VERIFIED**, commit `ba87df7fdb967adf80d00b7b4771a823708b7582`.
 - PostgreSQL integration: [run 43411431368](https://github.com/ASAA1229/ASAA/actions/runs/43411431368), **CI VERIFIED**, same commit. PostgreSQL 16 service started; all migrations applied; API suite passed; downgrade/re-upgrade passed.
 - The latest branch head is a later documentation-only commit. These application CI runs do not validate production infrastructure.
-- Web CI is configured in `.github/workflows/portal-ci.yml`; successful run evidence has not yet been established in this baseline.
+- Web CI passed at [run 43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233), commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c`; npm install, 4 regression tests and Vite build all succeeded.
 - No verified Jenkins agent execution, Nexus publishing/retrieval, production deployment, monitoring stack or restore exercise is recorded.
 
 ## 5. Critical gap register
@@ -87,7 +87,7 @@ Scores are repository maturity, not the organization-wide ASAA score. They are e
 | ASAA-005 | P0 | NOT STARTED | Operations document defines backup/recovery requirements; no actual backup/restore evidence. | Approved RPO/RTO/retention; encrypted automated backups; alerts; isolated restore and integrity verification. | Hosting/storage, owner-approved recovery objectives. | Timed restore exercise and evidence record. |
 | ASAA-006 | P0 | OWNER ACCEPTANCE PENDING | Workflows and UI foundations exist; policy and business UAT are not accepted. | Approve organization/authority, HR/leave, payroll, procurement and finance rules; complete first-release UAT. | Named business owners and policy decisions. | Scripted UAT, signed outcomes and defect disposition. |
 | ASAA-007 | P1 | NOT STARTED | API tests exist; no UI/E2E suite or accessibility evidence found. | Launch-workflow UI/E2E regression, keyboard/screen-reader and supported-browser/device tests. | Stable launch scope and test environment. | Automated reports and manual accessibility/device records. |
-| ASAA-008 | P1 | NEEDS TESTING | Web workflow runs npm install/build; no lockfile or web test/lint scripts found. | Deterministic dependency installation, lockfile, lint/test/build and dependency/security scanning. | Dependency review and chosen npm lock strategy. | Clean CI install, lockfile consistency and scan reports. |
+| ASAA-008 | P1 | NEEDS TESTING | Four Node.js identity transport-policy tests and Vite build now pass in web CI; no lockfile, frontend lint suite or dedicated recurring dependency/security scan. | Deterministic dependency installation, lockfile, broader UI/E2E tests, lint and dependency/security scanning. | Dependency review and approved npm lock strategy. | Clean CI install, lockfile consistency, UI/E2E reports and scan results. |
 | ASAA-009 | P1 | NOT STARTED | PostgreSQL pool settings exist; no measured performance results. | Define budgets and validate load, concurrency, pool saturation and capacity. | Target infrastructure and workload profile. | Reproducible load-test report and remediation evidence. |
 | ASAA-010 | P1 | NOT STARTED | GitHub Actions validate code; no deployment workflow or infrastructure evidence found. | Approved environment promotion, approvals, smoke tests and rollback/forward recovery. | Hosting and release ownership. | Non-production deployment rehearsal with rollback evidence. |
 | ASAA-011 | P1 | NOT STARTED | Operations requirements documented; no live observability/backup service evidence. | Centralized redacted logs, metrics, traces, alert routing, incident runbooks and backup monitoring. | Hosting/monitoring provider and operational owners. | Injected-failure alert tests and operational review. |
@@ -99,7 +99,7 @@ Scores are repository maturity, not the organization-wide ASAA score. They are e
 
 A successful PostgreSQL CI run proves only that the tested migration/API behavior worked against the disposable CI database at the recorded commit. It does not prove production TLS, least privilege, capacity, backup, restore, monitoring or UAT.
 
-## 7. Delivery update protocol
+## 7. Verified closure increments\n\n### ASAA-013 — Enforce HTTPS for OIDC JWKS retrieval\n**Status:** CI VERIFIED. The OIDC browser client now applies the secure-endpoint policy to the JWKS URI as well as authorization and token endpoints. Four Node.js tests passed (HTTPS, localhost development exception, remote HTTP rejection and non-HTTP scheme rejection), and the Vite production build passed in [web CI run 43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233) at commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c`. This does not close provider activation or end-to-end SSO/MFA acceptance.\n\n## 8. Delivery update protocol
 
 After each increment:
 1. Record exact branch and commit.
