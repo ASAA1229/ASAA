@@ -584,6 +584,9 @@ def test_rejected_compensation_proposal_does_not_block_future_timeline(client):
     assert rejected.status_code == 200
     assert rejected.json()["status"] == "Rejected"
 
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-maker", "org-a", frozenset({"payroll:compensation:write"})
+    )
     replacement = client.post("/api/v1/payroll/compensation", json={
         "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
         "gross_amount": "66000.00", "frequency": "Monthly", "effective_from": "2026-12-01"
