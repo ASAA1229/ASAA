@@ -8,6 +8,7 @@ const statusClass = value => "status status-" + String(value || "unknown").toLow
 export default function PeopleWorkspace({ name, api, claims, connected, onChanged }) {
   const [data, setData] = useState({ employees: [], templates: [], assignments: [], leave: [], exits: [], assets: [] });
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [editingEmployeeId, setEditingEmployeeId] = useState("");
   const [form, setForm] = useState({});
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -68,6 +69,7 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
       await apiRef.current(path, { method, ...(payload === undefined ? {} : { body: JSON.stringify(payload) }) });
       setNotice(message);
       setForm({});
+      if (name === "People directory") setEditingEmployeeId("");
       await load();
       if (changedRef.current) await changedRef.current();
       if (name === "Employment lifecycle" && selectedEmployeeId && can("hr:employee:read")) {
@@ -134,9 +136,10 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
           {field("hire_date", "Hire date", "date", false)}
           <button className="btn btn-primary" disabled={busy}><UserPlus size={14}/>Add employee</button>
         </form>}
+        {editingEmployeeId && can("hr:employee:write") && (()=>{const selected=data.employees.find(x=>x.id===editingEmployeeId);return selected?<form className="people-form" onSubmit={e=>submit(e,"/api/v1/hr/employees/"+editingEmployeeId,"PATCH",{employee_code:form.employee_code??selected.employee_code,first_name:form.first_name,last_name:form.last_name,preferred_name:form.preferred_name||null,work_email:form.work_email||null,work_phone:form.work_phone||null},"Employee profile updated.")}><h3>Edit employee profile</h3>{field("employee_code","Employee code","text",false)}{field("first_name","First name")}{field("last_name","Last name")}{field("preferred_name","Preferred name","text",false)}{field("work_email","Work email","email",false)}{field("work_phone","Work phone","text",false)}<button className="btn btn-primary" disabled={busy}>Save profile</button><button type="button" className="btn btn-quiet" onClick={()=>{setEditingEmployeeId("");setForm({});}}>Cancel</button></form>:null})()}
         {!can("hr:employee:read") ? <Empty icon={ShieldCheck} title="Directory access not granted" text="This session does not include hr:employee:read."/> :
-          <div className="people-table-wrap"><table className="people-table"><thead><tr><th>Employee</th><th>Code</th><th>Employment</th><th>Hire date</th><th>Status</th></tr></thead><tbody>
-            {data.employees.map(item => <tr key={item.id}><td><b>{item.first_name} {item.last_name}</b><small>{item.work_email || "No work email"}</small></td><td>{item.employee_code || "—"}</td><td>{item.employment_type}</td><td>{dateText(item.hire_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td></tr>)}
+          <div className="people-table-wrap"><table className="people-table"><thead><tr><th>Employee</th><th>Code</th><th>Employment</th><th>Hire date</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+            {data.employees.map(item => <tr key={item.id}><td><b>{item.first_name} {item.last_name}</b><small>{item.work_email || "No work email"}</small></td><td>{item.employee_code || "—"}</td><td>{item.employment_type}</td><td>{dateText(item.hire_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td>{can("hr:employee:write")&&<button className="btn btn-quiet" onClick={()=>{setEditingEmployeeId(item.id);setForm({employee_code:item.employee_code||"",first_name:item.first_name,last_name:item.last_name,preferred_name:item.preferred_name||"",work_email:item.work_email||"",work_phone:item.work_phone||""});}}>Edit</button>}</td></tr>)}
           </tbody></table>{!data.employees.length && <Empty icon={Users} title="No employee records" text="Create an employee record when authorized and supported by the approved HR process."/>}</div>}
       </section>
     </>}
