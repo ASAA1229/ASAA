@@ -157,6 +157,13 @@ class UnitUpdate(StrictModel):
     effective_from: date | None = None
     effective_to: date | None = None
 
+    @model_validator(mode="after")
+    def reject_null_required_updates(self):
+        for field in ("name", "status"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
+
 
 class ReviewItemInput(StrictModel):
     subject: str = Field(min_length=1, max_length=128)
