@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.orm.exc import StaleDataError
 
 from asaa_ap.database import get_db
-from asaa_ap.models import AuditEvent, PurchaseRequest, PurchaseRequestLine
-from asaa_ap.schemas import PurchaseRequestCreate, PurchaseRequestRead, PurchaseRequestReview
+from asaa_ap.models import AuditEvent
+from asaa_ap.procurement_models import PurchaseRequest, PurchaseRequestLine
+from asaa_ap.procurement_schemas import PurchaseRequestCreate, PurchaseRequestRead, PurchaseRequestReview, PurchaseRequestSubmit
 from asaa_ap.security import Principal, require_permission
 
 router = APIRouter(prefix="/api/v1/ap/purchase-requests", tags=["Accounts Payable - Procurement"])
@@ -126,7 +127,7 @@ def get_purchase_request(
 @router.post("/{request_id}/submit", response_model=PurchaseRequestRead)
 def submit_purchase_request(
     request_id: str,
-    payload: PurchaseRequestReview,
+    payload: PurchaseRequestSubmit,
     db: Db,
     principal: Annotated[Principal, Depends(require_permission("procurement:request:submit"))],
     x_correlation_id: Annotated[str | None, Header()] = None,
