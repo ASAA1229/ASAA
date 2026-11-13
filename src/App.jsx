@@ -2,6 +2,8 @@ import ProcurementWorkspace from "./ProcurementWorkspace.jsx";
 import SupplierWorkspace from "./SupplierWorkspace.jsx";
 import ReceivablesWorkspace from "./ReceivablesWorkspace.jsx";
 import WorkforceFinanceWorkspace from "./WorkforceFinanceWorkspace.jsx";
+import AdministrationWorkspace from "./AdministrationWorkspace.jsx";
+import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -162,6 +164,7 @@ function App() {
   const [modal, setModal] = useState("");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
+  const [ssoError, setSsoError] = useState("");
   const claims = useMemo(() => decodeClaims(token), [token]);
 
   const api = async (path, options = {}) => {
@@ -201,6 +204,8 @@ function App() {
     setToken(tokenInput.trim()); setError(""); setLoading(true);
   };
   useEffect(() => { if (token) refresh(); }, [token]);
+  useEffect(() => { completeSsoSignIn().then(accessToken => { if (accessToken) { setToken(accessToken); setTokenInput(""); setSsoError(""); } }).catch(err => setSsoError(err.message || "SSO sign-in failed.")); }, []);
+  const signInSso = async () => { try { setSsoError(""); await startSsoSignIn(); } catch (err) { setSsoError(err.message || "SSO sign-in could not start."); } };
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(""), 2800); return () => clearTimeout(id); }, [toast]);
 
   const stats = useMemo(() => {
@@ -241,7 +246,7 @@ function App() {
       </header>
 
       <div className="content">
-        {!token && !previewMode ? <ConnectScreen apiBase={apiBase} setApiBase={setApiBase} tokenInput={tokenInput} setTokenInput={setTokenInput} connect={connect} error={error} onExplore={() => setPreviewMode(true)}/> :
+        {!token && !previewMode ? <ConnectScreen apiBase={apiBase} setApiBase={setApiBase} tokenInput={tokenInput} setTokenInput={setTokenInput} connect={connect} error={error} ssoError={ssoError} ssoConfigured={isSsoConfigured} onSsoSignIn={signInSso} onExplore={() => setPreviewMode(true)}/> :
         <>
           {!token && <div className="preview-banner"><ShieldCheck size={16}/><span><b>UI preview mode</b> — live company records are hidden until you connect an authorized API session.</span><button className="btn btn-quiet" onClick={() => setModal("connection")}>Connect live data</button></div>}
           <div className="welcome-row"><div><div className="eyebrow">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).toUpperCase()} · EXECUTIVE OVERVIEW</div><h1>{section === "Overview" ? "Good afternoon." : section}</h1><p>{section === "Overview" ? "Your company, operations and financial position at a glance." : sectionDescription(section)}</p></div><div className="welcome-actions">{token && <><button className="btn btn-quiet" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""}/> Refresh</button><button className="btn btn-primary" onClick={() => setModal("quick")}><Plus size={16}/> Create new</button></>}</div></div>
@@ -253,16 +258,17 @@ function App() {
           {section === "Timesheets" && (token ? <WorkforceFinanceWorkspace kind="timesheet" records={data.timesheets} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Expenses" && (token ? <WorkforceFinanceWorkspace kind="expense" records={data.expenses} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
           {section === "Governance" && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
+          {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Reports" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name="Reports & dashboards" connected={false} setSection={setSection}/>)}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} setApiBase={setApiBase} claims={claims} openConnection={() => setModal("connection")}/>}
-          {!["Overview","AR · Receivables","AP · Payables","Procurement","Timesheets","Expenses","Governance","Reports","Settings"].includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
+          {!["Overview","AR · Receivables","AP · Payables","Procurement","Timesheets","Expenses","Governance","Reports","Settings","Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>
         </>}
       </div>
     </main>
 
     {modal && <Modal title={modal === "connection" ? "API connection" : modal === "expense" ? "New expense claim" : modal === "customer" ? "Add customer" : modal === "supplier" ? "Add supplier" : "Create a record"} onClose={() => setModal("")}>
-      {modal === "connection" ? <ConnectionForm apiBase={apiBase} setApiBase={setApiBase} tokenInput={tokenInput} setTokenInput={setTokenInput} connect={connect} connected={connected}/> :
+      {modal === "connection" ? <ConnectionForm apiBase={apiBase} setApiBase={setApiBase} tokenInput={tokenInput} setTokenInput={setTokenInput} connect={connect} connected={connected} ssoConfigured={isSsoConfigured} onSsoSignIn={signInSso} ssoError={ssoError}/> :
        modal === "quick" ? <div className="quick-grid">{[["expense","Expense claim",Receipt],["customer","Customer",Users],["supplier","Supplier",Building2]].map(([key,label,Icon]) => <button className="quick-option" key={key} onClick={() => setModal(key)}><Icon size={20}/><b>{label}</b><span>Create a new {label.toLowerCase()}</span></button>)}</div> :
        <RecordForm kind={modal} onCancel={() => setModal("")} onSave={createRecord}/>}
     </Modal>}
@@ -270,8 +276,8 @@ function App() {
   </div>;
 }
 
-function ConnectScreen({ apiBase, setApiBase, tokenInput, setTokenInput, connect, error, onExplore }) {
-  return <div className="connect-layout"><div className="connect-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="connect-emblem">A</div><div className="art-label"><span/> ONE WORKSPACE. EVERYWHERE.</div></div><div className="connect-card"><div className="eyebrow">ASAA · EXECUTIVE ACCESS</div><h1>Welcome back.</h1><p>Connect to your secure ASAA workspace to manage finance, people and operations from any device.</p><label>API endpoint</label><input value={apiBase} onChange={e => setApiBase(e.target.value)} placeholder="https://api.your-domain.com"/><label>Identity access token</label><textarea rows="3" value={tokenInput} onChange={e => setTokenInput(e.target.value)} placeholder="Paste a valid access token from your identity provider"/><small className="field-help">Your token stays in memory for this session and is not saved to this device.</small>{error && <div className="form-error">{error}</div>}<button className="btn btn-primary btn-full" onClick={connect}>Connect to ASAA <ArrowUpRight size={16}/></button><button className="btn btn-quiet btn-full" onClick={onExplore}>Explore all module UIs <LayoutDashboard size={15}/></button><div className="connect-security"><ShieldCheck size={16}/> Verified by your configured identity provider</div><div className="connect-foot">Desktop · Tablet · Mobile · Installable app</div></div></div>;
+function ConnectScreen({ apiBase, setApiBase, tokenInput, setTokenInput, connect, error, ssoError, ssoConfigured, onSsoSignIn, onExplore }) {
+  return <div className="connect-layout"><div className="connect-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="connect-emblem">A</div><div className="art-label"><span/> ONE WORKSPACE. EVERYWHERE.</div></div><div className="connect-card"><div className="eyebrow">ASAA · EXECUTIVE ACCESS</div><h1>Welcome back.</h1><p>Connect to your secure ASAA workspace to manage finance, people and operations from any device.</p><label>API endpoint</label><input value={apiBase} onChange={e => setApiBase(e.target.value)} placeholder="https://api.your-domain.com"/>{ssoConfigured && <button className="btn btn-primary btn-full" onClick={onSsoSignIn}>Sign in with SSO <ArrowUpRight size={16}/></button>}{ssoError && <div className="form-error">{ssoError}</div>}<div className="connect-divider">Development access</div><label>Identity access token</label><textarea rows="3" value={tokenInput} onChange={e => setTokenInput(e.target.value)} placeholder="Paste a development access token"/><small className="field-help">Development fallback only. The token stays in memory and is not saved to this device.</small>{error && <div className="form-error">{error}</div>}<button className="btn btn-quiet btn-full" onClick={connect}>Connect with development token <ArrowUpRight size={16}/></button><button className="btn btn-quiet btn-full" onClick={onExplore}>Explore all module UIs <LayoutDashboard size={15}/></button><div className="connect-security"><ShieldCheck size={16}/> Verified by your configured identity provider</div><div className="connect-foot">Desktop · Tablet · Mobile · Installable app</div></div></div>;
 }
 
 function Overview({ data, stats, loading, setSection, setModal }) {
@@ -349,7 +355,7 @@ function RecordForm({kind,onCancel,onSave}) {
   return <form className="record-form" onSubmit={submit}>{fields.map(([key,label,type])=><label key={key}>{label}<input required={!label.includes("optional")} type={type} value={form[key]||""} onChange={e=>setForm({...form,[key]:e.target.value})}/></label>)}{error&&<div className="form-error">{error}</div>}<div className="modal-actions"><button type="button" className="btn btn-quiet" onClick={onCancel}>Cancel</button><button className="btn btn-primary" disabled={busy}>{busy?"Saving…":"Save record"}</button></div></form>;
 }
 
-function ConnectionForm({apiBase,setApiBase,tokenInput,setTokenInput,connect,connected}) { return <div className="record-form"><label>API endpoint<input value={apiBase} onChange={e=>setApiBase(e.target.value)}/></label><label>Access token<textarea rows="4" value={tokenInput} onChange={e=>setTokenInput(e.target.value)} placeholder="Paste an identity-provider token"/></label><small className="field-help">The token is held in memory only. Disconnect or refresh to clear it.</small><div className="modal-actions"><span className="field-help">{connected?"API session active":"No active API session"}</span><button className="btn btn-primary" onClick={connect}>Connect</button></div></div>; }
+function ConnectionForm({apiBase,setApiBase,tokenInput,setTokenInput,connect,connected,ssoConfigured,onSsoSignIn,ssoError}) { return <div className="record-form">{ssoConfigured && <button className="btn btn-primary" onClick={onSsoSignIn}>Sign in with SSO</button>}{ssoError && <div className="form-error">{ssoError}</div>}<label>API endpoint<input value={apiBase} onChange={e=>setApiBase(e.target.value)}/></label><label>Access token<textarea rows="4" value={tokenInput} onChange={e=>setTokenInput(e.target.value)} placeholder="Paste an identity-provider token"/></label><small className="field-help">The token is held in memory only. Disconnect or refresh to clear it.</small><div className="modal-actions"><span className="field-help">{connected?"API session active":"No active API session"}</span><button className="btn btn-primary" onClick={connect}>Connect</button></div></div>; }
 function Modal({title,onClose,children}) { return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal"><div className="modal-heading"><h2>{title}</h2><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{children}</div></div>; }
 function sectionDescription(name) { return MODULE_INFO[name]?.description || ({ "AR · Receivables":"Manage customers, invoices, incoming receipts and balances.", "AP · Payables":"Manage suppliers and the purchasing-to-payment lifecycle.", "Timesheets":"Track work periods, hours and independent review.", "Expenses":"Capture expense claims and track approvals and reimbursement.", "Governance":"Review decisions, delegations and authority.", "Reports":"A consolidated view of current operating records.", "Settings":"Manage your workspace connection and device experience." })[name] || "Manage your ASAA workspace."; }
 
