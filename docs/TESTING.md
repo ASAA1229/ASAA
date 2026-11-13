@@ -47,7 +47,7 @@ Workflow: `.github/workflows/portal-ci.yml`
 
 - Uses Node.js 22.
 - Runs `npm install` and `npm run build`.
-- A successful run matching the assessed head was not established in this baseline.
+- Latest inspected successful run: [43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233), commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c`. The `test:web` step passed all 4 Node.js tests (4 passed, 0 failed, 0 skipped), followed by a successful Vite production build.
 - No root lockfile, frontend test or lint script was found in the inspected tree.
 
 ## 3. Local verification commands
