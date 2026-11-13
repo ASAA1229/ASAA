@@ -16,13 +16,8 @@ The platform must suit an early-stage organization where a small number of peopl
 - **P1 — Core operating releases:** important for coherent day-to-day operations.
 - **P2 — Expansion:** capabilities to introduce after foundations and workflows are validated.
 
-Implementation status:
-- **Not Started:** no implementation evidence.
-- **Built:** implementation exists; verification not yet established.
-- **Built Not Tested:** source/tests exist but current successful execution evidence is absent or incomplete.
-- **Passed:** identified automated/manual verification passed in a stated environment.
-- **Blocked:** progress depends on an external decision, provider, policy or prerequisite.
-- **Deferred:** intentionally postponed.
+Implementation status must use the canonical vocabulary in [Project Status](PROJECT_STATUS.md): PLANNED, NOT STARTED, IN DEVELOPMENT, IMPLEMENTED, NEEDS TESTING, TEST FAILED, TEST PASSED, CI VERIFIED, DEVICE VERIFIED, OWNER ACCEPTANCE PENDING and ACCEPTED. Record evidence, revision, environment, date and reviewer for every verified state.
+
 
 Do not use a single percentage to imply completion where measurable scope and evidence are absent. Every status should identify its evidence, revision, environment and verification date.
 
@@ -154,7 +149,7 @@ Acceptance: no AI inference is presented as confirmed fact; no recommendation ch
 
 Evidence classes: stakeholder-confirmed, documented, code-observed, test-verified, operationally verified, inferred, assumed and unknown.
 
-Suggested requirement states: Proposed, Under Review, Approved, In Progress, Implemented, Test Pending, Verified, Blocked, Deferred and Rejected.
+Requirement delivery status uses the canonical Project Status vocabulary; proposal/approval decisions are captured separately as governance decisions.
 
 Verification rules:
 - Code presence is not proof of completion.
@@ -594,3 +589,8 @@ Recruitment; performance and learning; employee relations; CRM/sales/marketing; 
 - A passing CI integration suite does not prove production provisioning, security configuration, backup recovery, load capacity or business acceptance.
 - Preview-only modules must be clearly labelled and must not imply that their underlying workflows are available.
 - Disable or exclude incomplete sensitive workflows from a production launch rather than presenting unverified functionality as operational.
+
+
+## Authoritative status and evidence
+
+[Project Status](PROJECT_STATUS.md) is the single source for current maturity scores, verified implementation state, cross-cutting gaps and release decision. This requirements document defines target capability scope and acceptance principles; it must not maintain a competing project-wide status score.
