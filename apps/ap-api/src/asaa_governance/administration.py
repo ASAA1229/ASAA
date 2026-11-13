@@ -156,7 +156,6 @@ class UnitUpdate(StrictModel):
     name: str | None = Field(default=None, min_length=2, max_length=180)
     description: str | None = Field(default=None, max_length=1000)
     owner_subject: str | None = Field(default=None, max_length=128)
-    status: str | None = Field(default=None, pattern="^(Proposed|Active|Inactive)$")
     effective_from: date | None = None
     effective_to: date | None = None
 
@@ -301,14 +300,6 @@ def patch_unit(unit_id: str, payload: UnitUpdate, db: Session = Depends(get_db),
     if row.version != payload.expected_version: raise HTTPException(status_code=409, detail={"code": "stale_organization_unit_version"})
     changes = payload.model_dump(exclude_unset=True, exclude={"expected_version"})
     if not changes: raise HTTPException(status_code=422, detail={"code": "no_organization_unit_changes"})
-    if changes.get("status") == "Active" and row.parent_id:
-        parent = get_unit(db, row.parent_id, principal.organization_id)
-        if parent.status != "Active": raise HTTPException(status_code=409, detail={"code": "parent_unit_not_active"})
-    if changes.get("status") == "Inactive":
-        child = db.scalar(select(OrganizationUnit.id).where(
-            OrganizationUnit.organization_id == principal.organization_id,
-            OrganizationUnit.parent_id == row.id, OrganizationUnit.status == "Active"))
-        if child: raise HTTPException(status_code=409, detail={"code": "active_child_units_exist"})
     for key, value in changes.items(): setattr(row, key, value)
     row.updated_by = principal.subject; db.flush()
     audit(db, principal, "organization_unit.updated", "organization_unit", row.id,
