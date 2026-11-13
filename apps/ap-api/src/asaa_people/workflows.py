@@ -370,6 +370,9 @@ def complete_exit_case(case_id: str, db: Db,
     db.flush()
     audit(db, principal, "employee_exit.completed", "hr_employee_exit_case", case.id,
           {"employee_id": employee.id, "status": employee.status}, x_correlation_id)
+    # Outbox: revoke provider access in the same transaction as the leaver decision.
+    from asaa_identity.service import enqueue_for_employee
+    enqueue_for_employee(db, principal.organization_id, employee.id, "leaver", "offboarding_completed", principal.subject)
     db.commit()
     db.refresh(case)
     return serialize(case)

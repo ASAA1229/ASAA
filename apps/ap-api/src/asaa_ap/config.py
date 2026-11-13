@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5000", "http://127.0.0.1:5000"]
     app_name: str = "ASAA Finance API"
     log_level: str = "INFO"
+    # Identity lifecycle adapter name. "none" = not configured. "memory" is a mock for dev/test only.
+    identity_provider: str = "none"
     # When set, GET /metrics requires "Authorization: Bearer <token>". In production /metrics is disabled unless set.
     metrics_token: str | None = None
 
@@ -37,6 +39,8 @@ class Settings(BaseSettings):
     def production_database_must_be_postgresql(self):
         if self.environment == "production" and not self.database_url.startswith(("postgresql://", "postgresql+psycopg://")):
             raise ValueError("Production requires a PostgreSQL database URL")
+        if self.environment == "production" and self.identity_provider == "memory":
+            raise ValueError("The in-memory identity provider must not be used in production")
         return self
 
 

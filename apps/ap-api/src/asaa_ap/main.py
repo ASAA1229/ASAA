@@ -20,6 +20,9 @@ from asaa_governance.authority import router as governance_router
 from asaa_governance.administration import router as administration_router
 from asaa_governance.authorization import router as authorization_router
 from asaa_workforce_finance.api import router as workforce_finance_router
+from asaa_identity.api import router as identity_sync_router
+from asaa_identity.memory import InMemoryIdentityProvider
+from asaa_identity.provider import register_provider
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -47,6 +50,9 @@ app.include_router(governance_router)
 app.include_router(administration_router)
 app.include_router(authorization_router)
 app.include_router(workforce_finance_router)
+app.include_router(identity_sync_router)
+if settings.identity_provider == "memory" and settings.environment != "production":
+    register_provider("memory", InMemoryIdentityProvider)
 
 
 @app.get("/health", tags=["Operations"])

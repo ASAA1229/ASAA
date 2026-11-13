@@ -142,6 +142,12 @@ def dump(row):
     return {key: value for key, value in row.__dict__.items() if not key.startswith("_")}
 
 
+def _queue_identity_sync(db, principal, subject, reason):
+    """Outbox entry so provider entitlements follow approved/revoked assignments (no-op if subject is not linked)."""
+    from asaa_identity.service import enqueue_for_subject_if_linked
+    enqueue_for_subject_if_linked(db, principal.organization_id, subject, "mover", reason, principal.subject)
+
+
 def get_role(db, role_id, org_id):
     row = db.scalar(select(AuthorizationRoleTemplate).where(
         AuthorizationRoleTemplate.id == role_id,
@@ -270,6 +276,7 @@ def review_assignment(assignment_id: str, payload: AssignmentReview, db: Session
     db.flush()
     audit(db, principal, "authorization_assignment.reviewed", "authorization_assignment", row.id,
           {"decision": payload.decision, "status": row.status, "reason": payload.reason}, x_correlation_id)
+    _queue_identity_sync(db, principal, row.subject, "assignment_reviewed")
     db.commit(); db.refresh(row)
     return dump(row)
 
@@ -287,5 +294,6 @@ def revoke_assignment(assignment_id: str, payload: AssignmentRevoke, db: Session
     db.flush()
     audit(db, principal, "authorization_assignment.revoked", "authorization_assignment", row.id,
           {"subject": row.subject, "reason": payload.reason}, x_correlation_id)
+    _queue_identity_sync(db, principal, row.subject, "assignment_revoked")
     db.commit(); db.refresh(row)
     return dump(row)
