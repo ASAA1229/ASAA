@@ -162,3 +162,8 @@ This checklist converts the documented operational gaps into release tasks. Curr
 ### Operational release decision
 
 Production deployment is **NO-GO** while any mandatory P0 task is unchecked, unless a formally approved exception is documented and does not compromise security, legal obligations, data integrity or recoverability. The current PostgreSQL CI run is useful evidence for migration/API compatibility only; it does not close the production database checklist.
+
+
+## Status and release authority
+
+Current operational gaps and evidence are maintained in [Project Status](PROJECT_STATUS.md). The formal release decision and mandatory GO/NO-GO checks are maintained in [Release Readiness](RELEASE_READINESS.md). This operations guide describes procedures and must not be treated as evidence that a procedure has been executed.
