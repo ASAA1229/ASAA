@@ -448,7 +448,7 @@ Remaining workforce gaps include timesheet draft editing, configurable periods a
 Organization administration now includes:
 - Organization-scoped profile creation and optimistic-version updates, with explicit lifecycle values (Pre-Incorporation, Active, Dormant).
 - Configurable organization units for legal entities, business units, divisions, departments, teams, locations and positions.
-- Proposed-by-default organization units, parent-type validation, parent activation gates, active-child protection and effective-date fields.
+- Proposed-by-default organization units, parent-type validation, parent activation gates, active-child protection, effective-date fields and independent approve/reject before activation.
 - Responsive UI for organization profile and unit registry.
 - UI integration for existing master-data domains and source record references, preserving source ownership and duplicate review semantics.
 - Access-review campaigns based on explicitly referenced, dated identity snapshots; permission/role/scope snapshots; independent Retain, Modify or Revoke review decisions; reasons, reviewer attribution, optimistic version checks and audit events.
