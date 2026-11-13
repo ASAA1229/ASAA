@@ -27,48 +27,65 @@ The current executable slice includes a React/Vite web client at the repository 
 - Initial TMS timesheet capture, submission and independent review workflows.
 - Initial expense claim capture, submission, independent review and separate reimbursement recording.
 
-These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. The GAP-024 baseline previously passed source compilation, 37 API tests and SQLite migration upgrade/downgrade/upgrade checks. GAP-002 now adds decision/delegation routes and tests; its CI validation is pending. TMS and expense API foundations are newly added and require CI validation. PostgreSQL runtime integration, real identity-provider integration, production operations and organization-specific policy/UAT remain open.
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. PostgreSQL runtime integration, real identity-provider integration, production operations and organization-specific policy/UAT remain open.
 
-## Run the web UI locally
+## Local development — start both services
 
-Requirements: Node.js 22 or newer and npm.
+Requirements: Node.js 22 or newer, npm, and Python 3.11 or newer.
 
-From the repository root:
+From the repository root, install the frontend dependencies and prepare the API's isolated Python environment:
 
 ```powershell
 npm install
+npm run setup:api
+```
+
+The API setup command creates `apps/ap-api/.venv` and installs the API plus test dependencies. Then start both services together:
+
+```powershell
 npm run dev
 ```
 
-Open `http://localhost:5000`. Vite uses port 5000 for both development and preview and fails rather than silently switching ports if it is occupied. Build and preview with `npm run build` and `npm run preview`. The portal provides navigation and dedicated workspace views across the ASAA governance, shared platform, people, project/technology, operations, sales, finance, legal/security, knowledge and analytics domains. Select **Explore all module UIs** on the connection screen to browse the interface without live records; connect an authorized identity-provider token to access API data. UI preview mode does not create sample business records or grant permissions.
+This single command starts:
 
-## Run the current API locally
+- Web UI: `http://localhost:5000`
+- FastAPI: `http://127.0.0.1:8000`
+- Interactive API docs: `http://127.0.0.1:8000/docs`
 
-Requirements: Python 3.11 or newer.
+Press **Ctrl+C** once to stop both services.
 
-```bash
+### Run services separately when needed
+
+Run either command from the repository root:
+
+```powershell
+npm run dev:web
+npm run dev:api
+```
+
+The API command uses the project's `.venv` when it exists. If the API environment has not been prepared, run `npm run setup:api` first.
+
+### Database and authentication setup
+
+The default local database is SQLite at `apps/ap-api/asaa_ap.db`. Before first API use, run the migration from the API directory:
+
+```powershell
 cd apps/ap-api
-python -m venv .venv
-# Windows PowerShell:
-.venv\\Scripts\\Activate.ps1
-# Linux/macOS:
-source .venv/bin/activate
-python -m pip install -e ".[test]"
-python -m alembic upgrade head
-uvicorn asaa_ap.main:app --reload
+.venv\\Scripts\\python.exe -m alembic upgrade head
 ```
 
-The default local database is SQLite at `apps/ap-api/asaa_ap.db`. The API fails closed for authenticated routes until the RS256 identity settings are configured. Set `ASAA_AP_DATABASE_URL`, `ASAA_AP_JWT_PUBLIC_KEY`, `ASAA_AP_JWT_ISSUER` and `ASAA_AP_JWT_AUDIENCE` in the environment or a local, untracked `.env` file. Never commit private keys, tokens or production secrets. See [Development](docs/DEVELOPMENT.md), [Security](docs/SECURITY.md) and [Operations](docs/OPERATIONS.md).
+For Linux/macOS, use `.venv/bin/python -m alembic upgrade head` instead.
 
-Run checks from `apps/ap-api`:
+The API fails closed for authenticated routes until the RS256 identity settings are configured. Set `ASAA_AP_DATABASE_URL`, `ASAA_AP_JWT_PUBLIC_KEY`, `ASAA_AP_JWT_ISSUER` and `ASAA_AP_JWT_AUDIENCE` in the environment or a local, untracked `.env` file. Never commit private keys, tokens or production secrets. The default CORS configuration permits the local frontend origins on port 5000.
 
-```bash
-python -m compileall -q src tests
-python -m pytest -q
-python -m alembic upgrade head
+Run API checks from `apps/ap-api` using the virtual environment's Python:
+
+```powershell
+.venv\\Scripts\\python.exe -m compileall -q src tests
+.venv\\Scripts\\python.exe -m pytest -q
 ```
 
-API documentation is exposed by FastAPI when the service is running (typically `/docs`).
+For Linux/macOS, replace the executable path with `.venv/bin/python`.
 
 ## Documentation
 
@@ -82,6 +99,7 @@ API documentation is exposed by FastAPI when the service is running (typically `
 
 - `src/` and `public/` — responsive installable React/Vite web client for desktop, tablet and mobile.
 - `apps/ap-api` — FastAPI business API for finance, people, governance and workforce workflows.
+- `scripts/` — cross-platform local development and API environment helpers.
 
 The web client is a UI foundation. Production remote access requires a deployed HTTPS frontend/API, configured identity provider and trusted CORS origins.
 
