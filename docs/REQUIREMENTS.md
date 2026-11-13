@@ -376,3 +376,21 @@ Permissions:
 - Contract/order/milestone linkage, recurring invoices, configurable invoice numbering, aging and accounting export.
 
 **Initial slice status:** TMS timesheet capture/submission/review and expense claim capture/submission/review/reimbursement recording are added as API foundations on branch `new`; CI and runtime validation are pending. AP supplier and AR invoice/receipt foundations remain as previously described. The expanded AP/AR workflows above are backlog scope, not implemented claims. No payment initiation, payroll integration, tax treatment, reimbursement policy or statutory rule is assumed.
+
+
+## 16. Procurement request workflow — UI integration
+
+**Status:** Built — web build verification pending for the latest branch revision; API workflow was already verified at the backend implementation revision.
+
+The responsive web client now consumes the existing Accounts Payable purchase-request API and exposes:
+- Organization-scoped request listing, with the API determining whether the user sees their own requests or all requests.
+- Draft creation with one or more item lines, quantity, unit of measure, estimated unit cost, currency, needed-by date, cost centre and project reference.
+- Server-calculated estimated totals; the UI total is only a preview and the API remains authoritative.
+- Requester submission with a required reason and expected-version check.
+- Independent reviewer approve, reject or return decisions with a required reason and expected-version check.
+- Permission-aware action visibility; reviewer actions require both review permission and read-all scope, and the API remains authoritative for every action.
+- Request status, line details, review evidence and responsive layout.
+
+The AP workspace now presents the existing supplier directory alongside purchase requests. The standalone Procurement workspace presents the requisition workflow. This does not implement purchase orders, supplier acknowledgements, goods/service receipts, supplier invoice capture/matching, payment batches or bank reconciliation. Those remain separate AP increments. Supplier verification/editing and supplier document attachments also remain open.
+
+Verification evidence must be recorded against the exact commit and CI run. A successful web bundle build does not constitute end-to-end API integration or production acceptance; identity-provider, PostgreSQL, UAT and operational release gates remain open.
