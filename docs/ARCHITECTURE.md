@@ -145,3 +145,12 @@ The governance module provides organization-scoped decision and delegation recor
 ## Responsive executive portal
 
 The initial web interface is a React/Vite Progressive Web App at the repository root in `src/` and `public/`, designed to adapt to desktop, tablet and mobile. It is a presentation client of the existing API and does not own business rules or authorization. The initial executive workspace displays Founder/CEO/Director as a combined designation per the current operating arrangement; actual access remains controlled by verified identity token permissions and organization scope. The PWA caches static shell assets only, never API or sensitive records. Production access depends on HTTPS hosting, configured identity-provider SSO/MFA, API CORS allow-list and operational deployment controls.
+
+
+## Organization and identity administration
+
+The administration API owns organization profile and configurable organization-unit records (legal entity, business unit, division, department, team, location and position). Organization scope comes from the verified principal. Units begin in Proposed state; activation requires an active parent where a parent exists, and active children prevent parent deactivation. These records do not assert legal incorporation or employee membership.
+
+Access-review campaigns store an explicitly sourced and dated snapshot of identity subjects, roles, permissions and scopes. Review decisions are separately audited and require an independent reviewer. The review register does not itself mutate upstream identity-provider entitlements.
+
+The portal implements generic OIDC Authorization Code + PKCE using provider discovery and a public client. Provider-specific endpoints are discovered from the configured issuer. Access tokens remain in memory; only the transient PKCE transaction is stored in session storage. The API verifies RS256 JWTs using a configured public key or cached JWKS client and can require configured acr/amr claims. Provider provisioning, refresh, logout, revocation and role synchronization remain adapter responsibilities and are not enabled without an approved provider.
