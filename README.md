@@ -24,10 +24,12 @@ The current executable slice includes a responsive React/Vite web client at the 
 - Restricted compensation records and controlled payroll input/review/approval/closure workflows.
 - Master-data domain ownership, stewardship, source provenance, duplicate-candidate flagging and non-destructive supersession.
 - Governance decision register and time-bounded authority delegation workflow with independent review, revocation and audit.
+- Organization profile and configurable hierarchy administration, plus dated access-review campaigns and independently recorded recertification decisions.
+- Generic OIDC Authorization Code + PKCE sign-in plumbing, RS256 JWKS verification and configurable MFA assurance-claim enforcement hooks; provider activation remains pending selection and configuration.
 - Initial TMS timesheet capture, submission and independent review workflows.
 - Initial expense claim capture, submission, independent review and separate reimbursement recording.
 
-These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. PostgreSQL runtime integration, real identity-provider integration, production operations and organization-specific policy/UAT remain open.
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. PostgreSQL runtime integration, provider-specific SSO/MFA activation, automated identity provisioning/deprovisioning, production operations and organization-specific policy/UAT remain open.
 
 ## Local development — start both services
 
