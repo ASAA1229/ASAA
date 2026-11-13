@@ -32,7 +32,8 @@ ASAA/
 
 - Python 3.11 or newer (CI currently uses Python 3.12).
 - Git.
-- SQLite for local/test use; PostgreSQL and an approved identity provider for shared/production environments.
+- SQLite for lightweight local development; PostgreSQL 16 is the integration-test and intended shared/production database engine.
+- PostgreSQL 16 service/container for local database integration testing.
 - Network access to install the declared Python packages.
 
 ## 3. Local setup
@@ -135,13 +136,19 @@ The CI workflow `.github/workflows/people-api-ci.yml`:
 - Installs `.[test]`, compiles source/tests, runs pytest and checks Alembic upgrade/downgrade/upgrade on SQLite.
 - Uses read-only GitHub contents permission.
 
-SQLite CI does not replace PostgreSQL integration tests.
+SQLite CI does not replace PostgreSQL integration tests. The separate postgres-integration workflow starts PostgreSQL 16, applies the full migration chain, runs the complete API suite plus PostgreSQL-specific people/payroll persistence checks, and verifies downgrade/re-upgrade on the disposable CI database.
 
 ## 7. Configuration reference
 
 | Variable | Purpose | Default / requirement |
 |---|---|---|
-| `ASAA_AP_DATABASE_URL` | SQLAlchemy database URL | Local SQLite default |
+| `ASAA_AP_DATABASE_URL` | SQLAlchemy database URL | Local SQLite default; PostgreSQL postgresql+psycopg URL for shared/production |
+| `ASAA_AP_ENVIRONMENT` | Runtime environment | development; production requires PostgreSQL |
+| `ASAA_AP_DB_POOL_SIZE` | PostgreSQL persistent connection pool size | 5 |
+| `ASAA_AP_DB_MAX_OVERFLOW` | Maximum overflow connections | 10 |
+| `ASAA_AP_DB_POOL_TIMEOUT_SECONDS` | Wait for a pooled connection | 30 seconds |
+| `ASAA_AP_DB_POOL_RECYCLE_SECONDS` | Recycle pooled connections | 1800 seconds |
+| `ASAA_AP_DB_CONNECT_TIMEOUT_SECONDS` | PostgreSQL connection timeout | 5 seconds |
 | `ASAA_AP_JWT_PUBLIC_KEY` | RS256 verification public key | Required for authenticated routes |
 | `ASAA_AP_JWT_ISSUER` | Expected token issuer | Required |
 | `ASAA_AP_JWT_AUDIENCE` | Expected token audience | Required |
@@ -160,7 +167,7 @@ The upstream identity provider must issue tokens containing `sub`, `org_id`, `is
 - Payroll: `/api/v1/payroll` compensation, periods, runs, entries and decisions.
 - Master data: `/api/v1/master-data` domain ownership, record references, duplicate candidates and supersession.\n- Governance: `/api/v1/governance` decisions and authority delegations.
 
-The running OpenAPI document is the definitive route/schema reference for the current source revision.
+The running OpenAPI document is the definitive route/schema reference for the current source revision. /health is a process liveness check; /ready executes SELECT 1 and returns HTTP 503 when the configured database cannot be reached.
 
 ## 9. Development rules
 
