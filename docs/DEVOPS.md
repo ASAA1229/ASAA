@@ -9,7 +9,7 @@
 |---|---|---|---|
 | `.github/workflows/people-api-ci.yml` | API quality | Python 3.12, install, compile, pytest, SQLite migration cycle | CI VERIFIED: [43411431405](https://github.com/ASAA1229/ASAA/actions/runs/43411431405), commit ba87df7 |
 | `.github/workflows/postgres-integration.yml` | PostgreSQL validation | Disposable PostgreSQL 16, migrations, full API suite, downgrade/re-upgrade | CI VERIFIED: [43411431368](https://github.com/ASAA1229/ASAA/actions/runs/43411431368), commit ba87df7 |
-| `.github/workflows/portal-ci.yml` | Web build | Node.js 22, npm install, Vite production build | Configured; matching successful run not established in this baseline |
+| `.github/workflows/portal-ci.yml` | Web regression and build | Node.js 22, npm install, `npm run test:web`, Vite production build | CI VERIFIED: [43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233), commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c` |
 
 All three workflows use read-only repository contents permissions. CI execution is not deployment.
 
