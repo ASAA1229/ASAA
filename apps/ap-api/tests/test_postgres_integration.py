@@ -5,9 +5,9 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 
-from asaa_ap.database import SessionLocal, get_db
+from asaa_ap.database import SessionLocal, engine, get_db
 from asaa_ap.main import app
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, get_principal
@@ -49,6 +49,9 @@ def postgres_client():
 
 
 def test_postgresql_readiness_and_people_payroll_round_trip(postgres_client):
+    revision_columns = inspect(engine).get_columns("alembic_version")
+    assert next(column for column in revision_columns if column["name"] == "version_num")["type"].length >= 128
+
     ready = postgres_client.get("/ready")
     assert ready.status_code == 200
     assert ready.json() == {"status": "ready", "database": "available"}
