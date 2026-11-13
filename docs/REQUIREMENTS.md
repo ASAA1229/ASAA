@@ -409,3 +409,18 @@ The Accounts Payable workspace now exposes the existing supplier API for:
 - Separate permission checks for supplier write, lifecycle status changes and verification; the API remains authoritative.
 
 Remaining supplier gaps: structured address and document attachment management, explicit duplicate-candidate review UI, richer verification evidence capture and supplier lifecycle test coverage through the browser. Supplier invoice processing, matching and payment remain separate AP epics.
+
+
+## 18. Accounts receivable workflow — UI integration
+
+**Status:** Built — responsive AR workspace added; web build verification pending for the latest AR UI revision.
+
+The web client now connects to the existing AR API and exposes:
+- Customer-aware invoice draft creation with one or more line items, currency, issue/due dates, notes and server-calculated totals.
+- Permission-gated invoice issuance with required reason and optimistic version checks.
+- Receipt recording with optional allocations to eligible invoices of the same customer and currency.
+- Invoice detail, line-level totals, paid/outstanding amounts, status and version visibility.
+- Receipt register with applied and unapplied balances.
+- Explicit wording that receipt recording does not initiate or verify a bank transfer.
+
+Remaining AR gaps include draft invoice editing, customer updates/status lifecycle, standalone allocation of previously unapplied receipts, refunds/credit notes/disputes, statements and collections, recurring invoice support, numbering policy, bank reconciliation, accounting export and end-to-end browser workflow tests. Tax treatment and jurisdictional rules remain unconfigured and are not inferred by this UI.
