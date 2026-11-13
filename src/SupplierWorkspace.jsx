@@ -119,7 +119,7 @@ export default function SupplierWorkspace({ suppliers = [], api, claims = {}, on
               <div><small>Last updated by</small><b>{selected.updated_by || "—"}</b></div>
             </div>
             {canStatus && <form className="supplier-status-form" onSubmit={changeStatus}>
-              <div><h4><ShieldCheck size={15}/>Verification & lifecycle</h4><p>Allowed transitions are enforced by the server's configured supplier policy.</p></div>
+              <div><h4><ShieldCheck size={15}/>Verification & lifecycle</h4><p>Allowed transitions are enforced by the server&apos;s configured supplier policy.</p></div>
               <label>Next status<select value={nextStatus} onChange={e => setNextStatus(e.target.value)}>{statuses.filter(status => status !== selected.status && (status !== "Active" || canVerify)).map(status => <option key={status}>{status}</option>)}</select></label>
               <label>Reason<input required minLength="3" value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason for this status change"/></label>
               <button className="btn btn-primary" disabled={busy || reason.trim().length < 3}>Apply status change</button>

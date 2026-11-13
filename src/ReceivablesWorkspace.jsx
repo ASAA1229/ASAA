@@ -90,7 +90,7 @@ export default function ReceivablesWorkspace({ customers = [], invoices = [], re
       </div></div>
       {error && <div className="notice">{error}</div>}{notice && <div className="receivable-success"><Check size={15}/>{notice}</div>}
       {mode === "invoice" && <form className="receivable-form" onSubmit={createInvoice}>
-        <div className="receivable-form-head"><div><h3>Create invoice draft</h3><p>Amounts and totals are calculated and validated by the API.</p></div><button type="button" className="icon-btn" onClick={closeMode}><X size={16}/></button></div>
+        <div className="receivable-form-head"><div><h3>Create invoice draft</h3><p>Amounts and totals are calculated and validated by the API.</p></div><button type="button" className="icon-btn" aria-label="Close form" onClick={closeMode}><X size={16}/></button></div>
         <div className="receivable-fields">
           <label>Customer<select required value={invoiceForm.customer_id} onChange={e => changeInvoice("customer_id", e.target.value)}><option value="">Select an active customer</option>{activeCustomers.map(row => <option key={row.id} value={row.id}>{row.legal_name}</option>)}</select></label>
           <label>Invoice number (optional)<input value={invoiceForm.invoice_number} onChange={e => changeInvoice("invoice_number", e.target.value)}/></label>
@@ -112,7 +112,7 @@ export default function ReceivablesWorkspace({ customers = [], invoices = [], re
         {!activeCustomers.length && <small className="field-help">Create an active customer before creating an invoice.</small>}
       </form>}
       {mode === "receipt" && <form className="receivable-form" onSubmit={createReceipt}>
-        <div className="receivable-form-head"><div><h3>Record receipt</h3><p>Receipt recording does not initiate a payment or bank transfer.</p></div><button type="button" className="icon-btn" onClick={closeMode}><X size={16}/></button></div>
+        <div className="receivable-form-head"><div><h3>Record receipt</h3><p>Receipt recording does not initiate a payment or bank transfer.</p></div><button type="button" className="icon-btn" aria-label="Close form" onClick={closeMode}><X size={16}/></button></div>
         <div className="receivable-fields">
           <label>Customer<select required value={receiptForm.customer_id} onChange={e => setReceiptForm(current => ({ ...current, customer_id: e.target.value, allocations: [] }))}><option value="">Select customer</option>{activeCustomers.map(row => <option key={row.id} value={row.id}>{row.legal_name}</option>)}</select></label>
           <label>Currency<input required minLength="3" maxLength="3" value={receiptForm.currency} onChange={e => setReceiptForm(current => ({ ...current, currency: e.target.value.toUpperCase(), allocations: [] }))}/></label>

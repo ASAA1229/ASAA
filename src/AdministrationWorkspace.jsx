@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, Check, ChevronRight, Database, Plus, RefreshCw, ShieldCheck, Users, X } from "lucide-react";
+import { Building2, Check, ChevronRight, Database, Plus, RefreshCw, ShieldCheck, Users } from "lucide-react";
 
 const permission = (claims, value) => Array.isArray(claims.permissions) && claims.permissions.includes(value);
 const empty = { organization: null, units: [], domains: [], records: [], campaigns: [], roles: [], assignments: [] };
@@ -29,7 +29,6 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
   const [assignmentReason, setAssignmentReason] = useState({});
   const [assignmentDecision, setAssignmentDecision] = useState({});
   const [assignmentRevokeReason, setAssignmentRevokeReason] = useState({});
-  const [tab, setTab] = useState("Records");
 
   const load = async () => {
     if (!connected) return;
@@ -57,6 +56,8 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
     } catch (err) { setError(err.message || "Administration records could not be loaded."); }
     finally { setBusy(false); }
   };
+  // load is recreated each render; refetch only when the workspace or session changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [name, connected]);
 
   const submit = async (path, method, payload, message) => {

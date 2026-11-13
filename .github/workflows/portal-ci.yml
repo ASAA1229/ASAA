@@ -6,18 +6,26 @@ on:
     paths:
       - "src/**"
       - "public/**"
+      - "tests/**"
       - "index.html"
       - "package.json"
+      - "package-lock.json"
       - "vite.config.js"
+      - "vitest.config.js"
+      - "eslint.config.js"
       - ".github/workflows/portal-ci.yml"
   pull_request:
     branches: [main, dev]
     paths:
       - "src/**"
       - "public/**"
+      - "tests/**"
       - "index.html"
       - "package.json"
+      - "package-lock.json"
       - "vite.config.js"
+      - "vitest.config.js"
+      - "eslint.config.js"
       - ".github/workflows/portal-ci.yml"
 
 permissions:
@@ -31,6 +39,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
-      - run: npm run test:web
-      - run: npm run build
+          cache: npm
+      - name: Install exactly from the lockfile
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Identity transport policy tests
+        run: npm run test:web
+      - name: UI component and accessibility (axe) tests
+        run: npm run test:ui
+      - name: Production build
+        run: npm run build
+
+  web-dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: npm audit (fail on high or critical)
+        run: npm audit --audit-level=high

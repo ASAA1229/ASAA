@@ -44,6 +44,7 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
     setData(next);
     if (failures.length) setError(failures.join(" · "));
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
   }, [connected, permissionKey]);
 
   useEffect(() => { load(); }, [load]);
@@ -52,6 +53,7 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
       apiRef.current("/api/v1/payroll/compensation?employee_id=" + encodeURIComponent(selectedEmployeeId))
         .then(setCompensation).catch(e => setError(e.message));
     } else setCompensation([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
   }, [selectedEmployeeId, connected, permissionKey]);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
       ]).then(([rows, totals]) => { setEntries(rows); setSummary(totals); })
         .catch(e => setError(e.message));
     } else { setEntries([]); setSummary(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
   }, [selectedRunId, connected, permissionKey]);
 
   const run = async (path, method, payload, message) => {

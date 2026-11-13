@@ -80,7 +80,7 @@ export default function WorkforceFinanceWorkspace({ kind, records = [], api, cla
       <div className="workforce-summary"><div><small>Total records</small><b>{records.length}</b></div><div><small>Draft / rejected</small><b>{records.filter(row => ["Draft", "Rejected"].includes(row.status)).length}</b></div><div><small>Submitted</small><b>{submitted}</b></div><div><small>{isTime ? "Approved" : "Approved / reimbursed"}</small><b>{isTime ? approved : records.filter(row => ["Approved", "Reimbursement Recorded"].includes(row.status)).length}</b></div></div>
       {error && <div className="notice">{error}</div>}{notice && <div className="workforce-success"><Check size={15}/>{notice}</div>}
       {creating && <form className="workforce-form" onSubmit={create}>
-        <div className="workforce-form-head"><div><h3>{isTime ? "Create timesheet" : "Create expense claim"}</h3><p>New records are saved as Draft. Submission is a separate workflow step.</p></div><button type="button" className="icon-btn" onClick={closeForm}><X size={16}/></button></div>
+        <div className="workforce-form-head"><div><h3>{isTime ? "Create timesheet" : "Create expense claim"}</h3><p>New records are saved as Draft. Submission is a separate workflow step.</p></div><button type="button" className="icon-btn" aria-label="Close form" onClick={closeForm}><X size={16}/></button></div>
         {isTime ? <>
           <div className="workforce-fields">
             <label>Period start<input required type="date" value={form.period_start} onChange={e => change("period_start", e.target.value)}/></label>

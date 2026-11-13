@@ -16,6 +16,7 @@ import {
   Landmark, ClipboardList, CircleDollarSign, UserRound
 } from "lucide-react";
 
+const EMPTY_DATA = { suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] };
 const API_DEFAULT = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 const MODULE_GROUPS = [
   { group: "Workspace", items: [
@@ -162,9 +163,8 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [data, setData] = useState({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] });
+  const [data, setData] = useState(EMPTY_DATA);
   const [modal, setModal] = useState("");
-  const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
   const [ssoError, setSsoError] = useState("");
   const claims = useMemo(() => decodeClaims(token), [token]);
@@ -178,9 +178,11 @@ function App() {
       const body = await response.json().catch(() => ({}));
       if (response.status === 401) {
         setToken(""); setTokenInput(""); setConnected(false);
-        setData({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] });
+        setData(EMPTY_DATA);
       }
-      throw new Error(typeof body.detail === "string" ? body.detail : body.detail ? JSON.stringify(body.detail) : `Request failed (${response.status})`);
+      const failure = new Error(typeof body.detail === "string" ? body.detail : body.detail ? JSON.stringify(body.detail) : `Request failed (${response.status})`);
+      failure.status = response.status;
+      throw failure;
     }
     return response.status === 204 ? null : response.json();
   };
@@ -199,13 +201,17 @@ function App() {
     ];
     const granted = new Set(Array.isArray(claims.permissions) ? claims.permissions : []);
     const jobs = permittedJobs.filter(([, , permission]) => granted.has(permission)).map(([key, path]) => [key, path]);
+    let unauthorized = false;
     const results = await Promise.all(jobs.map(async ([key, path]) => {
       try { return [key, await api(path)]; }
-      catch (e) { return [key, [], e.message]; }
+      catch (e) { if (e.status === 401) unauthorized = true; return [key, [], e.message]; }
     }));
+    // A 401 already cleared the session in api(); do not report a connected state for an expired token.
+    if (unauthorized) { setLoading(false); return; }
     const next = Object.fromEntries(results.map(([key, value]) => [key, Array.isArray(value) ? value : []]));
     const failures = results.filter(([, , message]) => message).map(([key, , message]) => `${key}: ${message}`);
-    setData(next); setConnected(true);
+    // Only permitted areas are fetched; keep every collection defined so partially-permitted sessions render.
+    setData({ ...EMPTY_DATA, ...next }); setConnected(true);
     if (jobs.length > 0 && failures.length === jobs.length) setError("The API could not be reached or this account has no read permissions. Check the API URL and access permissions.");
     else if (failures.length) setError(`Some areas are unavailable for this account: ${failures.join(" · ")}`);
     setLoading(false);
@@ -215,6 +221,8 @@ function App() {
     if (!tokenInput.trim()) { setError("Enter an access token issued by the configured identity provider."); return; }
     setToken(tokenInput.trim()); setError(""); setLoading(true);
   };
+  // refresh closes over the current token/claims; it must only re-run when the token changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (token) refresh(); }, [token]);
   useEffect(() => { completeSsoSignIn().then(accessToken => { if (accessToken) { setToken(accessToken); setTokenInput(""); setSsoError(""); } }).catch(err => setSsoError(err.message || "SSO sign-in failed.")); }, []);
   const signInSso = async () => { try { setSsoError(""); await startSsoSignIn(); } catch (err) { setSsoError(err.message || "SSO sign-in could not start."); } };
@@ -234,25 +242,22 @@ function App() {
     setModal(""); setToast("Record created successfully."); await refresh();
   };
 
-  const visibleItems = NAV.flatMap(group => group.items).filter(([name]) => name === section);
-  const activeIcon = visibleItems[0]?.[1] || LayoutDashboard;
-  const ActiveIcon = activeIcon;
 
   return <div className="app-shell">
     <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}>
-      <div className="brand"><div className="brand-mark">A</div><div><strong>ASAA</strong><span>OPERATING PLATFORM</span></div><button className="icon-btn sidebar-close" onClick={() => setMobileNav(false)}><X size={18}/></button></div>
+      <div className="brand"><div className="brand-mark">A</div><div><strong>ASAA</strong><span>OPERATING PLATFORM</span></div><button className="icon-btn sidebar-close" aria-label="Close navigation" onClick={() => setMobileNav(false)}><X size={18}/></button></div>
       <div className="workspace-switch"><div className="workspace-avatar">A</div><div><b>ASAA Workspace</b><small>Founder workspace</small></div><ChevronDown size={15}/></div>
       <div className="sidebar-search"><Search size={15}/><input value={navSearch} onChange={e=>setNavSearch(e.target.value)} placeholder="Find a module…"/>{navSearch && <button onClick={()=>setNavSearch("")} aria-label="Clear module search"><X size={13}/></button>}</div>
       <nav>
-        {NAV.map(group => <div className="nav-group" key={group.group}><small className="nav-caption">{group.group}</small>{group.items.filter(([name])=>name.toLowerCase().includes(navSearch.toLowerCase())).map(([name, Icon]) => <button key={name} className={`nav-item ${section === name ? "active" : ""}`} onClick={() => { setSection(name); setMobileNav(false); setSearch(""); }}><Icon size={17}/><span>{name}</span>{name === "Expenses" && stats.pendingExpenses > 0 && token && <i>{stats.pendingExpenses}</i>}</button>)}</div>)}
+        {NAV.map(group => <div className="nav-group" key={group.group}><small className="nav-caption">{group.group}</small>{group.items.filter(([name])=>name.toLowerCase().includes(navSearch.toLowerCase())).map(([name, Icon]) => <button key={name} className={`nav-item ${section === name ? "active" : ""}`} onClick={() => { setSection(name); setMobileNav(false); }}><Icon size={17}/><span>{name}</span>{name === "Expenses" && stats.pendingExpenses > 0 && token && <i>{stats.pendingExpenses}</i>}</button>)}</div>)}
       </nav>
       <div className="sidebar-bottom"><div className="secure-note"><ShieldCheck size={16}/><span>Secure workspace<br/><small>Access controlled by permissions</small></span></div><button className="nav-item" onClick={() => setModal("connection")}><Settings2 size={17}/>Connection settings</button></div>
-      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || (token ? "ASAA Administrator" : "Preview visitor")}</b><small>{token ? "Founder · CEO · Director · Current responsibilities" : "Unauthenticated UI preview"}</small></div><button className="icon-btn" title="Sign out" onClick={() => { setToken(""); setTokenInput(""); setConnected(false); setData({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] }); }}><LogOut size={16}/></button></div>
+      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || (token ? "ASAA Administrator" : "Preview visitor")}</b><small>{token ? "Founder · CEO · Director · Current responsibilities" : "Unauthenticated UI preview"}</small></div><button className="icon-btn" title="Sign out" onClick={() => { setToken(""); setTokenInput(""); setConnected(false); setData(EMPTY_DATA); }}><LogOut size={16}/></button></div>
     </aside>
 
     <main className="main-area">
       <header className="topbar">
-        <button className="icon-btn mobile-menu" onClick={() => setMobileNav(true)}><Menu size={20}/></button>
+        <button className="icon-btn mobile-menu" aria-label="Open navigation" onClick={() => setMobileNav(true)}><Menu size={20}/></button>
         <div className="crumb"><span>ASAA</span><b>/</b><strong>{section}</strong></div>
         <div className="top-actions"><div className="system-status"><span className={connected ? "status-dot online" : "status-dot"}/>{connected ? "API connected" : "Not connected"}</div><button className="icon-btn" title="Help"><CircleHelp size={18}/></button><button className="icon-btn notification-btn" title="Notifications"><Bell size={18}/><i/></button><div className="top-avatar">{token ? "AD" : "PV"}</div></div>
       </header>
@@ -274,7 +279,7 @@ function App() {
           {section === "Governance" && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Reports" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name="Reports & dashboards" connected={false} setSection={setSection}/>)}
-          {section === "Settings" && <SettingsPanel apiBase={apiBase} setApiBase={setApiBase} claims={claims} openConnection={() => setModal("connection")}/>}
+          {section === "Settings" && <SettingsPanel apiBase={apiBase} claims={claims} openConnection={() => setModal("connection")}/>}
           {!["Overview","AR · Receivables","AP · Payables","Procurement","Timesheets","Expenses","People directory","Employment lifecycle","Onboarding","Offboarding","Leave management","Employee assets","Compensation & payroll","Governance","Reports","Settings","Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>
         </>}
@@ -330,7 +335,7 @@ function ModuleWorkspace({ name, connected, setSection, claims }) {
       <div className="module-kpi-grid"><div className="module-kpi"><small>Records</small><strong>—</strong><span>Live data not loaded</span></div><div className="module-kpi"><small>Pending work</small><strong>—</strong><span>Queue not connected</span></div><div className="module-kpi"><small>In progress</small><strong>—</strong><span>Status not available</span></div><div className="module-kpi"><small>Evidence</small><strong>—</strong><span>Verification not available</span></div></div>
       <div className="module-content-grid"><section className="panel module-detail-panel"><div className="panel-heading"><div><h2>Capabilities</h2><p>What this workspace is designed to manage</p></div><span className="subtle-count">{info.capabilities.length} areas</span></div><div className="module-feature-list">{info.capabilities.map((feature,i)=><div key={feature}><span>{String(i+1).padStart(2,"0")}</span><b>{feature}</b><small>Workspace capability</small></div>)}</div></section><section className="panel module-detail-panel"><div className="panel-heading"><div><h2>Key workflows</h2><p>Typical operating journeys</p></div></div><div className="workflow-steps">{info.workflows.map((step,i)=><div key={step}><span>{i+1}</span><b>{step}</b></div>)}</div></section></div>
     </>}
-    {tab === "Work queue" && <section className="panel module-detail-panel"><div className="panel-heading"><div><h2>Work queue</h2><p>Tasks, approvals, exceptions and escalations for this module</p></div><span className="module-state">Awaiting integration</span></div><div className="queue-empty"><ClipboardList size={25}/><b>No live queue connected</b><span>Queue items will appear here when the module's API and workflow permissions are integrated. No placeholder tasks are being counted as real work.</span></div></section>}
+    {tab === "Work queue" && <section className="panel module-detail-panel"><div className="panel-heading"><div><h2>Work queue</h2><p>Tasks, approvals, exceptions and escalations for this module</p></div><span className="module-state">Awaiting integration</span></div><div className="queue-empty"><ClipboardList size={25}/><b>No live queue connected</b><span>Queue items will appear here when the module&apos;s API and workflow permissions are integrated. No placeholder tasks are being counted as real work.</span></div></section>}
     {tab === "Records" && <section className="panel module-detail-panel"><div className="panel-heading"><div><h2>Records</h2><p>Search and browse authoritative records</p></div><span className="subtle-count">Live records unavailable</span></div><div className="module-search"><Search size={16}/><input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Filter capability areas in this preview…"/></div><div className="module-record-list">{filteredCapabilities.map(item=><div key={item}><FileText size={16}/><span>{item}</span><span className="record-placeholder">Not connected</span></div>)}</div></section>}
     {tab === "Reports" && <section className="panel module-detail-panel"><div className="panel-heading"><div><h2>Module reporting</h2><p>Metrics and exports will be permission-scoped to source records</p></div></div><div className="report-placeholder-grid"><div><ChartNoAxesCombined/><b>Operational summary</b><span>Waiting for verified data</span></div><div><Activity/><b>Trends & exceptions</b><span>Waiting for verified data</span></div><div><FileCheck2/><b>Evidence report</b><span>Waiting for verified data</span></div></div></section>}
     {tab === "Configuration" && <section className="panel module-detail-panel"><div className="panel-heading"><div><h2>Module configuration</h2><p>Policies and setup are controlled by authorized administrators</p></div></div><div className="config-rows"><div><span>Module</span><b>{name}</b></div><div><span>Domain</span><b>{info.group}</b></div><div><span>Integration state</span><b>{backendLabel}</b></div><div><span>Access principal</span><b>{claims?.sub || "Not connected"}</b></div><div><span>Permission source</span><b>Verified API claims only</b></div></div></section>}
@@ -340,27 +345,13 @@ function ModuleWorkspace({ name, connected, setSection, claims }) {
 
 function Metric({label,value,note,icon:Icon,tone=""}) { return <div className="metric-card"><div className="metric-top"><span>{label}</span><i className={tone}><Icon size={17}/></i></div><strong>{value}</strong><small>{note}</small></div>; }
 
-function FinanceList({title,subtitle,kind,data,search,setSearch,setModal}) {
-  const isAR=kind==="ar"; const rows=isAR?data.invoices:data.suppliers;
-  const filtered=rows.filter(row=>JSON.stringify(row).toLowerCase().includes(search.toLowerCase()));
-  return <section className="panel list-panel"><div className="list-heading"><div><h2>{title}</h2><p>{subtitle}</p></div><button className="btn btn-primary" onClick={()=>setModal(isAR?"customer":"supplier")}><Plus size={15}/>{isAR?"Add customer":"Add supplier"}</button></div><div className="list-tools"><div className="search-box"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={isAR?"Search invoices…":"Search suppliers…"}/></div><span>{filtered.length} records</span></div><div className="table-wrap"><table><thead><tr>{(isAR?["Invoice","Customer ID","Issue date","Due date","Total","Outstanding","Status"]:["Supplier","Code","Category","Email","Status","Created"]).map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{filtered.map(row=><tr key={row.id}>{isAR?<><td><b>{row.invoice_number || row.id.slice(0,8)}</b><small>{row.currency}</small></td><td className="muted-cell">{row.customer_id.slice(0,10)}</td><td>{dateLabel(row.issue_date)}</td><td>{dateLabel(row.due_date)}</td><td>{money(row.total,row.currency)}</td><td><b>{money(row.outstanding,row.currency)}</b></td><td><Status value={row.status}/></td></>:<><td><b>{row.legal_name}</b><small>{row.trading_name || row.id.slice(0,8)}</small></td><td>{row.supplier_code || "—"}</td><td>{row.category || "—"}</td><td>{row.email || "—"}</td><td><Status value={row.status}/></td><td>{dateLabel(row.created_at)}</td></>}</tr>)}</tbody></table>{!filtered.length&&<Empty text="No records found for this view."/>}</div></section>;
-}
 
-function WorkList({title,data,kind,search,setSearch,setModal}) {
-  const filtered=data.filter(row=>JSON.stringify(row).toLowerCase().includes(search.toLowerCase()));
-  return <section className="panel list-panel"><div className="list-heading"><div><h2>{title}</h2><p>{kind==="timesheet"?"Review work periods and submitted hours.":"Track employee claims, decisions and reimbursement records."}</p></div>{kind==="expense"&&<button className="btn btn-primary" onClick={()=>setModal("expense")}><Plus size={15}/>New claim</button>}</div><div className="list-tools"><div className="search-box"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search records…"/></div><span>{filtered.length} records</span></div><div className="table-wrap"><table><thead><tr>{(kind==="timesheet"?["Employee","Period","Hours","Status","Reviewed by"]:["Description","Employee","Date","Category","Amount","Status"]).map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{filtered.map(row=><tr key={row.id}>{kind==="timesheet"?<><td><b>{row.employee_reference||row.employee_subject}</b></td><td>{dateLabel(row.period_start)} – {dateLabel(row.period_end)}</td><td>{row.total_hours} h</td><td><Status value={row.status}/></td><td>{row.reviewed_by||"—"}</td></>:<><td><b>{row.description}</b><small>{row.merchant||row.receipt_reference||"—"}</small></td><td>{row.employee_subject}</td><td>{dateLabel(row.expense_date)}</td><td>{row.category_code}</td><td>{money(row.amount,row.currency)}</td><td><Status value={row.status}/></td></>}</tr>)}</tbody></table>{!filtered.length&&<Empty text="No records found for this view."/>}</div></section>;
-}
 
-function Status({value}) { const key=(value||"unknown").toLowerCase().replaceAll(" ","-"); return <span className={`status status-${key}`}>{value||"Unknown"}</span>; }
 function Empty({text}) { return <div className="empty-state"><div><FileText size={20}/></div>{text}</div>; }
 
-function Governance({claims}) {
-  const perms=Array.isArray(claims.permissions)?claims.permissions:[];
-  return <div className="settings-grid"><section className="panel info-panel"><div className="panel-heading"><div><h2>Executive identity</h2><p>Current session claims, as provided by the identity provider</p></div><ShieldCheck size={18}/></div><div className="identity-line"><div className="large-avatar">AD</div><div><b>{claims.name||claims.sub||"Authenticated user"}</b><small>Founder · CEO · Director · Current responsibilities (workspace designation)</small></div></div><div className="data-line"><span>Organization scope</span><b>{claims.org_id||"Not present"}</b></div><div className="data-line"><span>Token issuer</span><b>{claims.iss||"Not present"}</b></div><div className="data-line"><span>Token expiry</span><b>{claims.exp?new Date(claims.exp*1000).toLocaleString():"Not present"}</b></div></section><section className="panel info-panel"><div className="panel-heading"><div><h2>Effective permissions</h2><p>Authorization is enforced by the API, not by UI labels</p></div><ShieldCheck size={18}/></div>{perms.length?<div className="permission-list">{perms.map(p=><span key={p}><Check size={13}/>{p}</span>)}</div>:<Empty text="No permission claims were exposed in this session."/>}</section></div>;
-}
 
 function Reports({data,stats}) { return <div className="metric-grid"><Metric label="AR outstanding" value={money(stats.outstanding)} note={`${data.invoices.length} invoices`} icon={Landmark}/><Metric label="Receipts recorded" value={data.receipts.length} note="AR receipt records" icon={Wallet}/><Metric label="Timesheets" value={data.timesheets.length} note="Work periods recorded" icon={Clock3}/><Metric label="Expense claims" value={data.expenses.length} note="Claims recorded" icon={Receipt}/></div>; }
-function SettingsPanel({apiBase,setApiBase,claims,openConnection}) { return <div className="settings-grid"><section className="panel info-panel"><div className="panel-heading"><div><h2>Workspace connection</h2><p>API endpoint and session controls</p></div><Settings2 size={18}/></div><div className="data-line"><span>API endpoint</span><b>{apiBase}</b></div><div className="data-line"><span>Organization</span><b>{claims.org_id||"—"}</b></div><button className="btn btn-quiet" onClick={openConnection}>Manage connection</button></section><section className="panel info-panel"><div className="panel-heading"><div><h2>Install on your devices</h2><p>One responsive app across your screens</p></div><Smartphone size={18}/></div><div className="device-row"><Monitor/> Desktop / laptop <span>Browser or installable PWA</span></div><div className="device-row"><Smartphone/> Mobile <span>Add to Home Screen</span></div><div className="device-row"><Laptop/> Tablet <span>Responsive layout</span></div><small className="field-help">The app shell can be cached for offline launch. Financial records and API data are never cached by the service worker.</small></section></div>; }
+function SettingsPanel({apiBase,claims,openConnection}) { return <div className="settings-grid"><section className="panel info-panel"><div className="panel-heading"><div><h2>Workspace connection</h2><p>API endpoint and session controls</p></div><Settings2 size={18}/></div><div className="data-line"><span>API endpoint</span><b>{apiBase}</b></div><div className="data-line"><span>Organization</span><b>{claims.org_id||"—"}</b></div><button className="btn btn-quiet" onClick={openConnection}>Manage connection</button></section><section className="panel info-panel"><div className="panel-heading"><div><h2>Install on your devices</h2><p>One responsive app across your screens</p></div><Smartphone size={18}/></div><div className="device-row"><Monitor/> Desktop / laptop <span>Browser or installable PWA</span></div><div className="device-row"><Smartphone/> Mobile <span>Add to Home Screen</span></div><div className="device-row"><Laptop/> Tablet <span>Responsive layout</span></div><small className="field-help">The app shell can be cached for offline launch. Financial records and API data are never cached by the service worker.</small></section></div>; }
 
 function RecordForm({kind,onCancel,onSave}) {
   const [form,setForm]=useState({}); const [busy,setBusy]=useState(false); const [error,setError]=useState("");
@@ -370,7 +361,14 @@ function RecordForm({kind,onCancel,onSave}) {
 }
 
 function ConnectionForm({apiBase,setApiBase,tokenInput,setTokenInput,connect,connected,ssoConfigured,onSsoSignIn,ssoError}) { return <div className="record-form">{ssoConfigured && <button className="btn btn-primary" onClick={onSsoSignIn}>Sign in with SSO</button>}{ssoError && <div className="form-error">{ssoError}</div>}<label>API endpoint<input value={apiBase} onChange={e=>setApiBase(e.target.value)}/></label><label>Access token<textarea rows="4" value={tokenInput} onChange={e=>setTokenInput(e.target.value)} placeholder="Paste an identity-provider token"/></label><small className="field-help">The token is held in memory only. Disconnect or refresh to clear it.</small><div className="modal-actions"><span className="field-help">{connected?"API session active":"No active API session"}</span><button className="btn btn-primary" onClick={connect}>Connect</button></div></div>; }
-function Modal({title,onClose,children}) { return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal"><div className="modal-heading"><h2>{title}</h2><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{children}</div></div>; }
+function Modal({title,onClose,children}) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-heading"><h2>{title}</h2><button className="icon-btn" aria-label="Close dialog" onClick={onClose}><X size={18}/></button></div>{children}</div></div>;
+}
 function sectionDescription(name) { return MODULE_INFO[name]?.description || ({ "AR · Receivables":"Manage customers, invoices, incoming receipts and balances.", "AP · Payables":"Manage suppliers and the purchasing-to-payment lifecycle.", "Timesheets":"Track work periods, hours and independent review.", "Expenses":"Capture expense claims and track approvals and reimbursement.", "Governance":"Review decisions, delegations and authority.", "Reports":"A consolidated view of current operating records.", "Settings":"Manage your workspace connection and device experience." })[name] || "Manage your ASAA workspace."; }
 
 export default App;

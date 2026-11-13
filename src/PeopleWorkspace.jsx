@@ -56,6 +56,7 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
     setData(next);
     if (failures.length) setError(failures.join(" · "));
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
   }, [connected, name, permissionKey]);
 
   useEffect(() => { load(); }, [load]);
@@ -87,12 +88,14 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
     if (name === "Employment lifecycle" && selectedEmployeeId && connected && can("hr:employee:read")) {
       apiRef.current("/api/v1/hr/employees/" + selectedEmployeeId + "/employment-records").then(setHistory).catch(e => setError(e.message));
     } else setHistory([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
   }, [name, selectedEmployeeId, connected, permissionKey]);
 
   useEffect(() => {
     if (name === "Employee assets" && selectedEmployeeId && connected && can("hr:asset:read")) {
       apiRef.current("/api/v1/hr/employees/" + selectedEmployeeId + "/assets").then(setAssets).catch(e => setError(e.message));
     } else setAssets([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
   }, [name, selectedEmployeeId, connected, permissionKey]);
 
   const field = (key, label, type = "text", required = true) => (
