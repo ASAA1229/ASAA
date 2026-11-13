@@ -313,6 +313,24 @@ def list_compensation(employee_id: str, db: Db,
 def create_payroll_period(payload: PayrollPeriodCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:period:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
+    duplicate_code = db.scalar(select(PayrollPeriod.id).where(
+        PayrollPeriod.organization_id == principal.organization_id,
+        PayrollPeriod.period_code == payload.period_code,
+    ).limit(1))
+    if duplicate_code:
+        raise HTTPException(status_code=409, detail={"code": "payroll_period_code_exists"})
+
+    overlapping_period = db.scalar(select(PayrollPeriod).where(
+        PayrollPeriod.organization_id == principal.organization_id,
+        PayrollPeriod.start_date <= payload.end_date,
+        PayrollPeriod.end_date >= payload.start_date,
+    ).limit(1))
+    if overlapping_period:
+        raise HTTPException(status_code=409, detail={
+            "code": "payroll_period_overlap",
+            "conflicting_period_code": overlapping_period.period_code,
+        })
+
     row = PayrollPeriod(organization_id=principal.organization_id,
                         created_by=principal.subject, **payload.model_dump())
     db.add(row)
