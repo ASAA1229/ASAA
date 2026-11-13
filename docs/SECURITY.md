@@ -132,3 +132,15 @@ Before production:
 - Rejections and revocations require reasons; state transitions use expected versions and are audited.
 - A registered delegation does not alter JWT permissions or grant application access. Authorization remains controlled by the existing verified-principal permission checks until a separately approved identity/policy integration is implemented.
 - Subject identifiers and scope/action codes are references, not verified employment roles or proof of authority outside this register.
+
+
+## 14. OIDC, signing-key rotation and MFA assurance
+
+- The portal uses Authorization Code + PKCE (S256), state validation and a public SPA client; no client secret is shipped to the browser.
+- Access tokens remain in memory. Session storage contains only transient PKCE transaction state/verifier and is cleared during callback processing.
+- The API accepts RS256 only. Configure either an HTTPS JWKS endpoint (ASAA_AP_JWT_JWKS_URL) or a static public key fallback. JWKS retrieval is cached to support signing-key rotation.
+- Issuer, audience, signature and expiry remain mandatory. ASAA_AP_REQUIRED_ACR and ASAA_AP_REQUIRED_AMR can enforce provider-specific authentication assurance/method claims.
+- MFA must be required by the identity provider's policy; an application UI label or user role does not prove MFA.
+- The access token must carry the organization and permission claims expected by the API. Provider claim mapping must be reviewed and tested.
+- Do not treat a Retain/Modify/Revoke access-review decision as an actual provider entitlement change. Automated provisioning, deprovisioning, session revocation, refresh and logout require a separately implemented provider adapter and verified provider APIs.
+- Real SSO/MFA is not operationally accepted until a provider, tenant, public client, API audience, JWKS endpoint, redirect URIs, MFA policy and lifecycle integration are selected and tested.
