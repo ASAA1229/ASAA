@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --host 0.0.0.0",
+    "dev:api": "node scripts/dev-api.mjs",
+    "setup:api": "node scripts/setup-api.mjs",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
