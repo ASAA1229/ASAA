@@ -111,8 +111,16 @@ class ProfileCreate(StrictModel):
     registered_address: dict | None = None
 
 
-class ProfileUpdate(ProfileCreate):
+class ProfileUpdate(StrictModel):
     expected_version: int = Field(ge=1)
+    display_name: str | None = Field(default=None, min_length=2, max_length=200)
+    legal_name: str | None = Field(default=None, max_length=240)
+    lifecycle_status: str | None = Field(default=None, pattern="^(Pre-Incorporation|Active|Dormant)$")
+    country_code: str | None = Field(default=None, pattern="^[A-Z]{2}$")
+    timezone: str | None = Field(default=None, max_length=80)
+    website: str | None = Field(default=None, max_length=300)
+    registration_reference: str | None = Field(default=None, max_length=160)
+    registered_address: dict | None = None
 
 
 class UnitCreate(StrictModel):
@@ -184,7 +192,8 @@ def get_unit(db, unit_id, org_id):
 
 @router.get("/profile")
 def get_profile(db: Session = Depends(get_db), principal: Principal = Depends(require_permission("organization:profile:read"))):
-    return dump(db.scalar(select(OrganizationProfile).where(OrganizationProfile.organization_id == principal.organization_id))) if db.scalar(select(OrganizationProfile).where(OrganizationProfile.organization_id == principal.organization_id)) else None
+    row = db.scalar(select(OrganizationProfile).where(OrganizationProfile.organization_id == principal.organization_id))
+    return dump(row) if row else None
 
 
 @router.put("/profile")
@@ -212,6 +221,8 @@ def patch_profile(payload: ProfileUpdate, db: Session = Depends(get_db),
     if row.version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"code": "stale_organization_profile_version"})
     changes = payload.model_dump(exclude_unset=True, exclude={"expected_version"})
+    if not changes:
+        raise HTTPException(status_code=422, detail={"code": "no_organization_profile_changes"})
     for key, value in changes.items(): setattr(row, key, value)
     row.updated_by = principal.subject; db.flush()
     audit(db, principal, "organization_profile.updated", "organization_profile", row.id,
