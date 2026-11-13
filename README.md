@@ -30,7 +30,7 @@ The current executable slice includes a responsive React/Vite web client at the 
 - Initial TMS timesheet capture, submission and independent review workflows.
 - Initial expense claim capture, submission, independent review and separate reimbursement recording.
 
-These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. PostgreSQL 16 migration and API integration checks pass in CI, but production PostgreSQL provisioning/TLS, backup/restore, capacity validation and operational readiness remain open. Provider-specific SSO/MFA activation, automated identity provisioning/deprovisioning and organization-specific policy/UAT also remain open.
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. PostgreSQL 16 migration and API integration checks pass in CI. The repository includes a production PostgreSQL preflight command (`apps/ap-api/scripts/validate_postgresql.py`), but production database provisioning/TLS, backup/restore, capacity validation and operational readiness remain open. Provider-specific SSO/MFA activation, automated identity provisioning/deprovisioning and organization-specific policy/UAT also remain open.
 
 ## Local development — start both services
 
