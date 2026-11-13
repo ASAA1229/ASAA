@@ -12,6 +12,7 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
   const [notice, setNotice] = useState("");
   const [form, setForm] = useState({});
   const [showForm, setShowForm] = useState(false);
+  const [showRecordForm, setShowRecordForm] = useState(false);
   const [recordDomain, setRecordDomain] = useState("");
   const [decisionReason, setDecisionReason] = useState({});
   const [decision, setDecision] = useState({});
@@ -39,7 +40,7 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
     setBusy(true); setError(""); setNotice("");
     try {
       await api(path, { method, body: JSON.stringify(payload) });
-      setShowForm(false); setForm({}); setNotice(message); await load(); await onChanged?.();
+      setShowForm(false); setShowRecordForm(false); setForm({}); setNotice(message); await load(); await onChanged?.();
     } catch (err) { setError(err.message || "The change could not be saved."); }
     finally { setBusy(false); }
   };
@@ -79,8 +80,9 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
         <div className="admin-section-heading"><div><Database/><h3>Master-data domains</h3></div>{permission(claims,"masterdata:domain:write") && <button className="btn btn-primary" onClick={() => {setForm({});setShowForm(true);}}><Plus size={14}/>Register domain</button>}</div>
         <div className="admin-tree-list">{data.domains.map(domain => <button className="admin-domain-row" key={domain.id} onClick={async () => {setSelected(domain.id);setRecordDomain(domain.id);try{const rows=await api(`/api/v1/master-data/domains/${domain.id}/records`);setData(current=>({...current,records:rows}));}catch(e){setError(e.message);}}}><span><b>{domain.name}</b><small>{domain.domain_code} · {domain.authoritative_source}</small></span><span>{domain.owner_subject} / {domain.steward_subject}</span><ChevronRight/></button>)}</div>
         {showForm && <form className="admin-form" onSubmit={e => {e.preventDefault();submit("/api/v1/master-data/domains","POST",form,"Master-data domain registered.");}}><h3>Register domain</h3>{field("domain_code","Domain code")}{field("name","Domain name")}{field("authoritative_source","Authoritative source")}{field("owner_subject","Owner subject")}{field("steward_subject","Steward subject")}{field("description","Description","text",false)}<div className="modal-actions"><button type="button" className="btn btn-quiet" onClick={()=>setShowForm(false)}>Cancel</button><button className="btn btn-primary" disabled={busy}>Save domain</button></div></form>}
-        {selected && <div className="admin-records"><h3>Domain record references</h3><div className="admin-tree-list">{data.records.map(row=><div className="admin-tree-row" key={row.id}><span className="admin-unit-copy"><b>{row.record_type} · {row.record_id}</b><small>{row.source_system} / {row.source_record_id}</small></span><span className={`status status-${row.status.toLowerCase().replaceAll(" ","-")}`}>{row.status}</span></div>)}</div>{permission(claims,"masterdata:record:write") && <button className="btn btn-quiet" onClick={()=>{setForm({});setShowForm(true);}}>Register source reference</button>}</div>}
+        {selected && <div className="admin-records"><h3>Domain record references</h3><div className="admin-tree-list">{data.records.map(row=><div className="admin-tree-row" key={row.id}><span className="admin-unit-copy"><b>{row.record_type} · {row.record_id}</b><small>{row.source_system} / {row.source_record_id}</small></span><span className={`status status-${row.status.toLowerCase().replaceAll(" ","-")}`}>{row.status}</span></div>)}</div>{permission(claims,"masterdata:record:write") && <button className="btn btn-quiet" onClick={()=>{setForm({record_type:"",record_id:"",source_system:"",source_record_id:""});setShowRecordForm(true);}}>Register source reference</button>}</div>}
       </>}
+        {showRecordForm && <form className="admin-form" onSubmit={e=>{e.preventDefault();submit("/api/v1/master-data/domains/"+recordDomain+"/records","POST",form,"Source reference registered. Duplicate candidates require steward review.");}}><h3>Register source reference</h3>{field("record_type","Record type")}{field("record_id","Internal record ID")}{field("source_system","Source system")}{field("source_record_id","Source record ID")}<div className="modal-actions"><button type="button" className="btn btn-quiet" onClick={()=>setShowRecordForm(false)}>Cancel</button><button className="btn btn-primary" disabled={busy}>Register reference</button></div></form>}
       {connected && identity && <>
         <div className="admin-section-heading"><div><ShieldCheck/><h3>Access review campaigns</h3></div>{permission(claims,"identity:access-review:create") && <button className="btn btn-primary" onClick={()=>{setForm({items:[{subject:"",permission_snapshot:"",scope_reference:"organization"}]});setShowForm(true);}}><Plus size={14}/>New review</button>}</div>
         <p className="field-help">Review campaigns use a dated snapshot supplied by an authorized identity export. Decisions are recorded here; they do not directly revoke provider permissions.</p>
