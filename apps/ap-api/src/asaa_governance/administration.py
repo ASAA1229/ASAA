@@ -62,6 +62,9 @@ class OrganizationUnit(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
     updated_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reviewed_by: Mapped[str | None] = mapped_column(String(128))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_reason: Mapped[str | None] = mapped_column(String(1000))
 
 
 class AccessReviewCampaign(Base):
@@ -159,10 +162,15 @@ class UnitUpdate(StrictModel):
 
     @model_validator(mode="after")
     def reject_null_required_updates(self):
-        for field in ("name", "status"):
-            if field in self.model_fields_set and getattr(self, field) is None:
-                raise ValueError(f"{field} cannot be null")
+        if "name" in self.model_fields_set and self.name is None:
+            raise ValueError("name cannot be null")
         return self
+
+
+class UnitReview(StrictModel):
+    expected_version: int = Field(ge=1)
+    decision: str = Field(pattern="^(Approve|Reject)$")
+    reason: str = Field(min_length=3, max_length=1000)
 
 
 class ReviewItemInput(StrictModel):
