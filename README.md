@@ -70,7 +70,7 @@ The API command uses the project's `.venv` when it exists. If the API environmen
 
 ### Database and authentication setup
 
-The default local database is SQLite at `apps/ap-api/asaa_ap.db`. Before first API use, run the migration from the API directory:
+The default local database is SQLite at `apps/ap-api/asaa_ap.db`. Production mode (ASAA_AP_ENVIRONMENT=production) requires PostgreSQL. PostgreSQL 16 migration and API integration validation runs in `.github/workflows/postgres-integration.yml`. Before first API use, run the migration from the API directory:
 
 ```powershell
 cd apps/ap-api
