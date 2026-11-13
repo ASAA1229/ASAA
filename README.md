@@ -15,7 +15,7 @@ ASAA is not limited to HR, ERP, CRM, project management or software development.
 
 ## Current repository implementation
 
-The current executable slice includes a responsive React/Vite web client at the repository root (`src/`, `public/`) and an API-first Python service in `apps/ap-api`. The web client now exposes connected supplier lifecycle, purchase-request, customer/invoice/receipt, timesheet and expense workflows. Other module workspaces remain staged previews until their APIs and workflows are integrated. The API contains:
+The current executable slice includes a responsive React/Vite web client at the repository root (`src/`, `public/`) and an API-first Python service in `apps/ap-api`. The web client exposes connected supplier lifecycle, purchase-request, customer/invoice/receipt, timesheet, expense, HR and payroll workflows. HR includes employee directory/profile, employment lifecycle, onboarding/offboarding and leave request/review views. Payroll includes restricted compensation, periods/runs, supplied entries, reconciliation and maker-checker review/closure. Other module workspaces remain staged previews until their APIs and workflows are integrated. The API contains:
 
 - Accounts Payable supplier foundation and initial purchase-request workflow (draft, submit, independent review).
 - Accounts Receivable customer, invoice and receipt foundation.
@@ -30,7 +30,7 @@ The current executable slice includes a responsive React/Vite web client at the 
 - Initial TMS timesheet capture, submission and independent review workflows.
 - Initial expense claim capture, submission, independent review and separate reimbursement recording.
 
-These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. PostgreSQL runtime integration, provider-specific SSO/MFA activation, automated identity provisioning/deprovisioning, production operations and organization-specific policy/UAT remain open.
+These are foundational capabilities, not a complete enterprise release or production-ready payroll/finance system. PostgreSQL 16 migration and API integration checks pass in CI, but production PostgreSQL provisioning/TLS, backup/restore, capacity validation and operational readiness remain open. Provider-specific SSO/MFA activation, automated identity provisioning/deprovisioning and organization-specific policy/UAT also remain open.
 
 ## Local development — start both services
 
