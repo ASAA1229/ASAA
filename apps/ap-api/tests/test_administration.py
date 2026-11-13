@@ -115,3 +115,45 @@ def test_administration_permissions_are_separate(client):
     assert client.post("/api/v1/administration/units", json={
         "unit_type": "Department", "unit_code": "dept", "name": "Department"
     }).status_code == 403
+
+def test_organization_unit_updates_are_scoped_versioned_and_audited(client):
+    as_subject(client)
+    created = client.post("/api/v1/administration/units", json={
+        "unit_type": "Department",
+        "unit_code": "operations",
+        "name": "Operations",
+        "owner_subject": "manager-1",
+        "effective_from": "2026-11-01",
+    })
+    assert created.status_code == 201
+    unit = created.json()
+
+    updated = client.patch(f"/api/v1/administration/units/{unit['id']}", json={
+        "expected_version": 1,
+        "name": "Operations & Delivery",
+        "owner_subject": "manager-2",
+        "effective_to": "2027-12-31",
+    })
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Operations & Delivery"
+    assert updated.json()["owner_subject"] == "manager-2"
+    assert updated.json()["effective_to"] == "2027-12-31"
+    assert updated.json()["version"] == 2
+
+    stale = client.patch(f"/api/v1/administration/units/{unit['id']}", json={
+        "expected_version": 1, "name": "Stale update"
+    })
+    assert stale.status_code == 409
+
+    events = client.get("/api/v1/ap/audit-events").json()
+    assert any(event["action"] == "organization_unit.updated" for event in events)
+
+    as_subject(client, "other-org", org="org-b")
+    assert client.patch(f"/api/v1/administration/units/{unit['id']}", json={
+        "expected_version": 2, "name": "Cross-organization update"
+    }).status_code == 404
+
+    as_subject(client, "reader", {"organization:structure:read"})
+    assert client.patch(f"/api/v1/administration/units/{unit['id']}", json={
+        "expected_version": 2, "name": "Unauthorized update"
+    }).status_code == 403
