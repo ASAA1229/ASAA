@@ -200,7 +200,7 @@ The portal currently surfaces supplier/customer/invoice/receipt, timesheet and e
 
 The organization administration endpoints are under /api/v1/administration:
 - GET/PUT/PATCH /profile
-- GET/POST /units and PATCH /units/{id}
+- GET/POST /units, PATCH /units/{id}, and POST /units/{id}/review
 - GET/POST /access-reviews
 - POST /access-reviews/items/{id}/decision
 
