@@ -153,3 +153,33 @@ Before production:
 - Assignment approval is scoped and effective-dated; revocation is reasoned and audited.
 - These records are not an authorization engine. They do not add or remove JWT claims, create provider accounts, disable sessions or revoke provider grants.
 - Production authorization requires an approved provider adapter to map active approved assignments into token claims, enforce scope, expire/revoke grants and reconcile provider state. Until then, API authorization continues to trust only validated JWT permission claims and verified organization scope.
+
+
+## 16. First-release security verification backlog (2026-11-13)
+
+Current code provides security foundations, but production assurance is not complete. The following evidence is required before real employee, customer, payroll or financial data is introduced.
+
+### Identity and session assurance
+- [ ] Select and configure the production identity provider, tenant, public client, issuer, audience, JWKS and exact redirect/logout URIs.
+- [ ] Test PKCE/state handling and issuer, audience, signature, expiry, key rotation and invalid/missing-claim rejection.
+- [ ] Enforce MFA at the provider; test compliant and non-compliant assurance/method claims.
+- [ ] Test logout, session expiry, refresh/revocation, account disablement, recovery and signing-key rollover.
+- [ ] Implement provider lifecycle synchronization and prove joiner/mover/leaver access changes, reconciliation and failure recovery.
+
+### Authorization and sensitive data
+- [ ] Inventory every API route and UI action with required permission, organization scope, record scope and field sensitivity.
+- [ ] Test unauthenticated, insufficient-permission, cross-organization, cross-record and horizontal/vertical privilege-escalation cases.
+- [ ] Verify HR directory access cannot reveal restricted compensation, payroll, employee documents or other confidential fields.
+- [ ] Verify maker/checker, no-self-approval, delegation expiry/revocation and access-review decisions at the enforcement boundary.
+- [ ] Test exports, search, reporting, attachments and error paths against the same authorization rules as record APIs.
+
+### Platform, audit and privacy
+- [ ] Verify production database TLS, encryption, runtime/migration role separation and least privilege against the provisioned target.
+- [ ] Verify audit events capture actor, organization, action, target, outcome, timestamp and correlation; alert on write failure.
+- [ ] Restrict audit mutation/deletion and configure tamper-evident or immutable retention where required.
+- [ ] Complete data classification, minimization, retention/deletion, residency and privacy/jurisdiction review.
+- [ ] Complete dependency and static analysis, dynamic/API security tests and independent penetration testing appropriate to deployment exposure.
+- [ ] Validate rate limits, request bounds, CORS/trusted hosts, security headers, secret handling and production error/log redaction.
+- [ ] Record vulnerabilities, remediation, retest evidence and owner-approved residual risks.
+
+No production security approval is implied by the presence of these checklist items. Attach test reports, configuration evidence, revision and review approval before marking each item complete.
