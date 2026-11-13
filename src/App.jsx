@@ -20,6 +20,7 @@ const MODULE_GROUPS = [
     { name: "Risk & internal controls", description: "Identify risks, control owners, incidents, findings and corrective actions.", capabilities: ["Risk register and assessments", "Control catalogue and testing", "Corrective action and exception tracking"], workflows: ["Register a risk", "Assess and assign controls", "Track remediation to closure"] }
   ]},
   { group: "Shared Platform", items: [
+    { name: "Settings", description: "Configure workspace preferences, connection endpoints and device experience.", capabilities: ["Workspace and device preferences", "API connection settings", "Module configuration and accessibility"], workflows: ["Review workspace settings", "Configure a trusted connection", "Verify device experience"] },
     { name: "Identity & access", description: "Manage identity lifecycle, roles, permission scopes and privileged access governance.", capabilities: ["Users, external collaborators and access state", "Role templates and least-privilege permissions", "Organization, department, project and record scopes"], workflows: ["Request access", "Review and approve access", "Revoke or recertify access"] },
     { name: "Workflow & approvals", description: "Configure state transitions, maker-checker rules, approval matrices and escalations.", capabilities: ["Workflow definitions and versioning", "Submit, review, approve, reject and return", "Delegation, escalation and separation of duties"], workflows: ["Configure a workflow", "Assign approvers", "Monitor ageing and exceptions"] },
     { name: "Master data", description: "Govern reference domains, authoritative sources, stewardship and duplicate review.", capabilities: ["Domain owner and steward register", "Source provenance and record references", "Duplicate candidates and non-destructive supersession"], workflows: ["Register a domain", "Review duplicate candidates", "Supersede a source reference"], backend: "masterdata" },
@@ -104,7 +105,35 @@ const MODULE_GROUPS = [
     { name: "Automation & agents", description: "Govern scoped triggers and actions with dry-run, approval, audit and recovery.", capabilities: ["Automation catalogue and triggers", "Permission-scoped actions and dry-run", "Logs, stop controls and compensation"], workflows: ["Design an automation", "Test in dry-run", "Approve and monitor execution"] }
   ]}
 ];
-const NAV = MODULE_GROUPS.map(group => ({ group: group.group, items: group.items.map(item => [item.name, LayoutDashboard]) }));
+const MODULE_ICONS = {
+  "Overview": LayoutDashboard, "Organization & entities": Building2, "Departments & teams": Users,
+  "Governance": ShieldCheck, "Policies & procedures": FileCheck2, "Risk & internal controls": ShieldCheck,
+  "Identity & access": UserRound, "Workflow & approvals": ClipboardList, "Master data": Landmark,
+  "Documents & records": FileText, "Notifications & reminders": Bell, "Integrations & connectors": Activity,
+  "Audit trail": FileCheck2, "People directory": Users, "Recruitment": BriefcaseBusiness,
+  "Onboarding": UserRound, "Employment lifecycle": Users, "Attendance & shifts": CalendarDays,
+  "Leave management": CalendarDays, "Timesheets": Clock3, "Compensation & payroll": Wallet,
+  "Performance & learning": Gauge, "Employee relations": ShieldCheck, "Offboarding": LogOut,
+  "Employee assets": Laptop, "Portfolio & projects": BriefcaseBusiness, "Requirements & roadmaps": ClipboardList,
+  "Products & lifecycle": Building2, "Repositories & engineering": Command, "QA & testing": Check,
+  "CI/CD & pipelines": Activity, "Environments & architecture": Monitor, "Releases & artifacts": FileCheck2,
+  "Technical knowledge": FileText, "Service catalogue": BriefcaseBusiness, "Client delivery": Users,
+  "Work orders & scheduling": CalendarDays, "Support & SLAs": CircleHelp, "Procurement": CreditCard,
+  "Inventory & stock": Building2, "Facilities, travel & logistics": Landmark, "Operational incidents": Activity,
+  "CRM & customer accounts": Users, "Leads & sales pipeline": ChartNoAxesCombined,
+  "Proposals & quotations": FileText, "Contracts & renewals": FileCheck2, "Orders & subscriptions": CreditCard,
+  "Customer onboarding & feedback": UserRound, "Marketing & campaigns": Gauge,
+  "AR · Receivables": ArrowDownLeft, "AP · Payables": ArrowUpRight, "Budgets & forecasting": ChartNoAxesCombined,
+  "Expenses & reimbursements": Receipt, "Cash flow & treasury": Wallet, "Accounting & reconciliation": Landmark,
+  "Financial reporting": ChartNoAxesCombined, "Payroll accounting": CircleDollarSign,
+  "Legal contracts": FileText, "Compliance & obligations": ShieldCheck, "Privacy & data retention": ShieldCheck,
+  "Security operations": ShieldCheck, "Access reviews": UserRound, "Backup & recovery": RefreshCw,
+  "Knowledge base": FileText, "Announcements & communication": Bell, "Team spaces & collaboration": Users,
+  "Calendar & meetings": CalendarDays, "Forms & service requests": ClipboardList,
+  "Reports & dashboards": ChartNoAxesCombined, "Forecasting & scenarios": ChartNoAxesCombined,
+  "AI intelligence": Gauge, "Automation & agents": Activity, "Settings": Settings2
+};
+const NAV = MODULE_GROUPS.map(group => ({ group: group.group, items: group.items.map(item => [item.name, MODULE_ICONS[item.name] || LayoutDashboard]) }));
 const MODULE_INFO = Object.fromEntries(MODULE_GROUPS.flatMap(group => group.items.map(item => [item.name, { ...item, group: group.group }])));
 
 const money = (value, currency = "INR") => new Intl.NumberFormat("en-IN", { style: "currency", currency, maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -315,6 +344,6 @@ function RecordForm({kind,onCancel,onSave}) {
 
 function ConnectionForm({apiBase,setApiBase,tokenInput,setTokenInput,connect,connected}) { return <div className="record-form"><label>API endpoint<input value={apiBase} onChange={e=>setApiBase(e.target.value)}/></label><label>Access token<textarea rows="4" value={tokenInput} onChange={e=>setTokenInput(e.target.value)} placeholder="Paste an identity-provider token"/></label><small className="field-help">The token is held in memory only. Disconnect or refresh to clear it.</small><div className="modal-actions"><span className="field-help">{connected?"API session active":"No active API session"}</span><button className="btn btn-primary" onClick={connect}>Connect</button></div></div>; }
 function Modal({title,onClose,children}) { return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal"><div className="modal-heading"><h2>{title}</h2><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{children}</div></div>; }
-function sectionDescription(name) { return ({ "AR · Receivables":"Manage customers, invoices, incoming receipts and balances.", "AP · Payables":"Manage suppliers and the purchasing-to-payment lifecycle.", "Timesheets":"Track work periods, hours and independent review.", "Expenses":"Capture expense claims and track approvals and reimbursement.", "Governance":"Review your identity, authority and effective access.", "Reports":"A consolidated view of current operating records.", "Settings":"Manage your workspace connection and device experience." })[name]||"Manage your ASAA workspace."; }
+function sectionDescription(name) { return MODULE_INFO[name]?.description || ({ "AR · Receivables":"Manage customers, invoices, incoming receipts and balances.", "AP · Payables":"Manage suppliers and the purchasing-to-payment lifecycle.", "Timesheets":"Track work periods, hours and independent review.", "Expenses":"Capture expense claims and track approvals and reimbursement.", "Governance":"Review decisions, delegations and authority.", "Reports":"A consolidated view of current operating records.", "Settings":"Manage your workspace connection and device experience." })[name] || "Manage your ASAA workspace."; }
 
 export default App;
