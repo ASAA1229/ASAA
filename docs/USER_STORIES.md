@@ -7,17 +7,14 @@
 
 ## Status vocabulary
 
-- **Built / Passed:** implementation and identified verification evidence exist.
-- **Built — verification pending:** code exists but the current acceptance evidence is incomplete.
-- **In Progress:** implementation has started in the current cycle.
-- **Not Started:** no implementation evidence.
-- **Blocked:** a required owner decision, external provider, policy or environment is unavailable.
-- **Deferred:** intentionally scheduled for a later release.
+Use the canonical statuses from [Project Status](PROJECT_STATUS.md): PLANNED, NOT STARTED, IN DEVELOPMENT, IMPLEMENTED, NEEDS TESTING, TEST FAILED, TEST PASSED, CI VERIFIED, DEVICE VERIFIED, OWNER ACCEPTANCE PENDING and ACCEPTED.
+
+Story-level labels are normalized below where practical. The project-wide gap register and maturity score in Project Status are authoritative. A source file or older successful workflow does not prove that the current branch/revision is production accepted.
 
 ## P0 — Production foundation and governance
 
 ### ASAA-P0-01 — Operate PostgreSQL safely
-**Status:** Built — CI passed; production validation blocked by environment provisioning.
+**Status:** CI VERIFIED — CI passed; production validation blocked by environment provisioning.
 
 As a platform operator, I want a production PostgreSQL deployment with verified transport security, least-privilege roles, migration controls and capacity limits so that organizational records are stored safely.
 
@@ -30,7 +27,7 @@ Acceptance criteria:
 - Migration rehearsal, backup and recovery evidence is attached to the release.
 
 ### ASAA-P0-02 — Recover the platform
-**Status:** Not Started / Blocked — RPO, RTO, retention and hosting decisions required.
+**Status:** NOT STARTED — — RPO, RTO, retention and hosting decisions required.
 
 As an operations owner, I want encrypted backups, point-in-time recovery and rehearsed restore procedures so that service and data can be recovered after failure.
 
@@ -42,7 +39,7 @@ Acceptance criteria:
 - Recovery steps, owners, measured recovery time and residual risks are recorded.
 
 ### ASAA-P0-03 — Authenticate with real SSO and MFA
-**Status:** Built — OIDC/RS256/JWKS foundations; provider integration Blocked.
+**Status:** IMPLEMENTED — OIDC/RS256/JWKS foundations; provider integration pending.
 
 As an employee, I want to sign in through the approved identity provider with enforced MFA so that I use one managed identity securely.
 
@@ -54,7 +51,7 @@ Acceptance criteria:
 - No client secret or long-lived sensitive token is shipped or persisted in browser storage.
 
 ### ASAA-P0-04 — Provision and revoke identities
-**Status:** Not Started / Blocked — provider selection and authoritative identity mapping required.
+**Status:** NOT STARTED — — provider selection and authoritative identity mapping required.
 
 As an authorized administrator, I want employee lifecycle and approved access assignments synchronized with the identity provider so that access is granted and removed at the correct time.
 
@@ -67,7 +64,7 @@ Acceptance criteria:
 - Emergency access is time-limited, justified and independently reviewed.
 
 ### ASAA-P0-05 — Enforce governance and authority
-**Status:** Built — register/workflows exist; enforcement integration pending.
+**Status:** IMPLEMENTED — register/workflows exist; enforcement integration pending.
 
 As an organization owner, I want organizational units, decision authority, delegations and role assignments validated against authoritative people and scope records so that approval rights cannot be inferred from titles or stale references.
 
@@ -80,7 +77,7 @@ Acceptance criteria:
 - Register records do not grant API/provider access until the enforcement adapter is active.
 
 ### ASAA-P0-06 — Prove security and audit controls
-**Status:** Built — baseline controls exist; production assurance pending.
+**Status:** NEEDS TESTING — baseline controls exist; production assurance pending.
 
 As a security owner, I want authorization, privacy, audit and incident controls tested so that sensitive employee and financial data is protected.
 
@@ -93,7 +90,7 @@ Acceptance criteria:
 - Production logs and errors do not expose tokens, secrets or restricted personal/financial data.
 
 ### ASAA-P0-07 — Operate and observe releases
-**Status:** Not Started / Blocked — hosting and monitoring provider decisions required.
+**Status:** NOT STARTED — — hosting and monitoring provider decisions required.
 
 As an operator, I want observable services and controlled releases so that failures are detected and changes can be recovered safely.
 
@@ -107,7 +104,7 @@ Acceptance criteria:
 ## P1 — Finance, payroll and workforce
 
 ### ASAA-P1-01 — Prevent overlapping payroll periods
-**Status:** Verified — API and PostgreSQL integration CI passed on the latest payroll period test commit.
+**Status:** CI VERIFIED — API and PostgreSQL integration CI passed on the latest payroll period test commit.
 
 As a payroll administrator, I want payroll periods to have unique organization-scoped codes and non-overlapping date ranges so that employees cannot be included in duplicate or conflicting periods.
 
@@ -120,7 +117,7 @@ Acceptance criteria:
 - Automated tests cover duplicate, overlap, adjacency and organization isolation.
 
 ### ASAA-P1-02 — Maintain a valid compensation timeline
-**Status:** Verified — effective-date overlap enforcement, safe supersession, independent decision API and PostgreSQL integration passed on commit `f3e6d46`.
+**Status:** CI VERIFIED — effective-date overlap enforcement, safe supersession, independent decision API and PostgreSQL integration passed on commit `f3e6d46`.
 
 As a restricted payroll operator, I want effective-dated compensation records to be consistent and independently approved so that historical and future compensation cannot conflict.
 
@@ -136,7 +133,7 @@ Acceptance criteria:
 - Maker-checker and audit tests pass.
 
 ### ASAA-P1-03 — Reconcile payroll inputs and outputs
-**Status:** In Progress — duplicate employee entries are now rejected per run; remaining source lineage and exception controls pending.
+**Status:** IN DEVELOPMENT — duplicate employee entries are now rejected per run; remaining source lineage and exception controls pending.
 
 As a payroll reviewer, I want payroll inputs, gross, deductions and net amounts reconciled before approval so that errors are caught without inventing statutory calculations.
 
@@ -150,7 +147,7 @@ Acceptance criteria:
 - Payment execution is a separate authorized integration.
 
 ### ASAA-P1-04 — Manage leave under approved policy
-**Status:** Built — request/review; policy engine Not Started / Blocked.
+**Status:** IMPLEMENTED — request/review; policy engine Not Started / Blocked.
 
 As an employee, I want to request leave under published eligibility and balance rules so that I can understand available entitlement before submitting.
 
@@ -162,7 +159,7 @@ Acceptance criteria:
 - No balance or entitlement is fabricated before policy approval.
 
 ### ASAA-P1-05 — Complete employee lifecycle tasks
-**Status:** Built — checklist foundations; automation pending.
+**Status:** IMPLEMENTED — checklist foundations; automation pending.
 
 As an HR/IT manager, I want onboarding and offboarding tasks assigned, due-dated and escalated so that access, equipment, handover and employee records are handled consistently.
 
@@ -174,7 +171,7 @@ Acceptance criteria:
 - Reminders, escalation and failed-action handling are visible.
 
 ### ASAA-P1-06 — Protect employee documents
-**Status:** Built — metadata only; storage integration pending.
+**Status:** IMPLEMENTED — metadata only; storage integration pending.
 
 As an authorized HR user, I want employee documents stored privately with classification and retention controls so that sensitive records are not exposed through public links or general employee access.
 
@@ -186,7 +183,7 @@ Acceptance criteria:
 - Document access is separately permissioned and tested across organizations.
 
 ### ASAA-P1-07 — Validate timesheets and expense claims
-**Status:** Built — submission/review/reimbursement-reference workflows; policy and evidence controls pending.
+**Status:** IMPLEMENTED — submission/review/reimbursement-reference workflows; policy and evidence controls pending.
 
 As an employee and reviewer, I want timesheets and expense claims validated against approved project, time and expense rules so that finance receives accurate approved inputs.
 
@@ -198,7 +195,7 @@ Acceptance criteria:
 - Finance export is reconciled and traceable.
 
 ### ASAA-P1-08 — Complete procurement and accounts payable
-**Status:** Not Started beyond supplier and purchase-request foundations.
+**Status:** NOT STARTED — supplier and purchase-request foundations.
 
 As a procurement and finance user, I want approved requests to progress through quotations, purchase orders, receipt, invoice matching and payment review so that commitments and liabilities are controlled.
 
@@ -210,7 +207,7 @@ Acceptance criteria:
 - Payment initiation is separately permissioned and reconciled with provider/bank confirmation.
 
 ### ASAA-P1-09 — Complete receivables and reconciliation
-**Status:** Built — customer/invoice/receipt foundation; remaining workflow pending.
+**Status:** IMPLEMENTED — customer/invoice/receipt foundation; remaining workflow pending.
 
 As a finance user, I want receivables, adjustments and bank reconciliation linked to source records so that outstanding balances are accurate.
 
@@ -259,7 +256,7 @@ This section consolidates the outstanding work required to turn the current exec
 ### P0 — Production release gates
 
 #### ASAA-P0-08 — Provision and validate the production database
-**Status:** Blocked — target environment and credentials are not provisioned. PostgreSQL 16 migration/API integration CI is passing; this is not production validation.
+**Status:** NEEDS TESTING — target environment and credentials are not provisioned. PostgreSQL 16 migration/API integration CI is passing; this is not production validation.
 
 Acceptance criteria:
 - Approve hosting region, residency, network boundary, PostgreSQL service/version and environment ownership.
@@ -270,7 +267,7 @@ Acceptance criteria:
 - Run production-like concurrency/load and migration compatibility checks; resolve all failures before release.
 
 #### ASAA-P0-09 — Select and activate the identity provider
-**Status:** Blocked — provider, tenant and client configuration not selected.
+**Status:** OWNER ACCEPTANCE PENDING — provider, tenant and client configuration not selected.
 
 Acceptance criteria:
 - Record approved provider, tenant, issuer, API audience, public SPA client, redirect/logout URIs and JWKS endpoint.
@@ -280,7 +277,7 @@ Acceptance criteria:
 - Verify no client secret or long-lived sensitive token is exposed to or persisted by the browser.
 
 #### ASAA-P0-10 — Synchronize identity lifecycle and effective access
-**Status:** Blocked — provider adapter and authoritative identity mapping not implemented/configured.
+**Status:** NOT STARTED — provider adapter and authoritative identity mapping not implemented/configured.
 
 Acceptance criteria:
 - Define stable person-to-provider subject mapping and joiner/mover/leaver event ownership.
@@ -291,7 +288,7 @@ Acceptance criteria:
 - Prove that governance/access-review records alone do not grant permissions before synchronization succeeds.
 
 #### ASAA-P0-11 — Complete production authorization and security assurance
-**Status:** Built — baseline controls exist; comprehensive release evidence pending.
+**Status:** IMPLEMENTED — baseline controls exist; comprehensive release evidence pending.
 
 Acceptance criteria:
 - Build a permission matrix for every API route and sensitive UI action, including read, write, export, approve, administer and lifecycle transitions.
@@ -302,7 +299,7 @@ Acceptance criteria:
 - Record findings, severity, owner, remediation, retest and explicit residual-risk acceptance.
 
 #### ASAA-P0-12 — Establish production operations and recovery
-**Status:** Not Started / Blocked — hosting, monitoring and recovery objectives require owner decisions.
+**Status:** NOT STARTED — — hosting, monitoring and recovery objectives require owner decisions.
 
 Acceptance criteria:
 - Approve RPO, RTO, backup retention, data residency, support hours and incident escalation ownership.
@@ -313,7 +310,7 @@ Acceptance criteria:
 - Exercise deployment, smoke tests, rollback/forward recovery and disaster recovery; record measured outcomes.
 
 #### ASAA-P0-13 — Approve first-release business acceptance
-**Status:** Not Started — named business owners and approved operating policies required.
+**Status:** OWNER ACCEPTANCE PENDING — named business owners and approved operating policies required.
 
 Acceptance criteria:
 - Confirm launch scope, organization/legal entity context, data owners, authorized users and support owners.
@@ -325,27 +322,27 @@ Acceptance criteria:
 ### P1 — Complete coherent first-release workflows
 
 #### ASAA-P1-11 — Complete AP procure-to-pay
-**Status:** Not Started beyond supplier and purchase-request foundations.
+**Status:** NOT STARTED — supplier and purchase-request foundations.
 
 Acceptance criteria: quotation capture/comparison; approved purchase orders; receipt and discrepancy handling; configurable two-/three-way invoice matching; duplicate invoice prevention; approval limits; payment instruction separation; provider/bank settlement reconciliation; auditable exceptions and finance export.
 
 #### ASAA-P1-12 — Complete AR and cash reconciliation
-**Status:** Built — initial customer/invoice/receipt foundation; end-to-end acceptance pending.
+**Status:** IMPLEMENTED — initial customer/invoice/receipt foundation; end-to-end acceptance pending.
 
 Acceptance criteria: invoice lifecycle and adjustments; credit/debit notes, refunds and disputes; receipt allocation and unapplied cash; ageing; bank settlement reconciliation; tax/e-invoice rules only after jurisdictional approval; traceable accounting export.
 
 #### ASAA-P1-13 — Complete workforce policy and operational controls
-**Status:** Built — core HR/leave/onboarding/offboarding views and API foundations; policy and integration validation pending.
+**Status:** IMPLEMENTED — core HR/leave/onboarding/offboarding views and API foundations; policy and integration validation pending.
 
 Acceptance criteria: approved effective-dated employment and leave policies; balance/holiday/accrual rules; task ownership, reminders and escalation; asset issue/return evidence; offboarding handover and access-revocation confirmation; employee history and audit review.
 
 #### ASAA-P1-14 — Complete payroll control workflow without assuming statutory rules
-**Status:** In Progress — compensation and payroll control foundations exist; input lineage, exception and business validation remain.
+**Status:** IN DEVELOPMENT — compensation and payroll control foundations exist; input lineage, exception and business validation remain.
 
 Acceptance criteria: source-linked payroll inputs; duplicate and currency validation; decimal-safe gross/deduction/net reconciliation; versioned approved calculation rules; independent review/closure; restricted payslip/output access; payment execution kept as a separate integration; no statutory calculation until jurisdiction-specific rules are approved and independently tested.
 
 #### ASAA-P1-15 — Integrate private documents and notifications
-**Status:** Not Started / Blocked — storage and delivery providers not selected.
+**Status:** NOT STARTED — — storage and delivery providers not selected.
 
 Acceptance criteria: private object storage, short-lived authorized access, malware/upload validation, classification/version/retention/legal hold, access audit; notification templates/preferences, delivery status, retries, dead-letter visibility and sensitive-content minimization.
 
@@ -355,10 +352,15 @@ Acceptance criteria: private object storage, short-lived authorized access, malw
 Acceptance criteria: versioned workflow definitions, common transition semantics, idempotent commands, concurrency controls, delegation/escalation, integration registry, scoped credentials, sync history, retry/reconciliation and actionable health dashboards.
 
 #### ASAA-P1-17 — Complete end-to-end quality and accessibility validation
-**Status:** Not Started / Verification pending — comprehensive release evidence not recorded.
+**Status:** NEEDS TESTING — — comprehensive release evidence not recorded.
 
 Acceptance criteria: automated unit, API, database migration, UI, end-to-end, regression, security, performance and accessibility coverage for launch workflows; supported browser/device checks; keyboard and screen-reader review; documented test environment, revision, results and defect disposition.
 
 ### Release exit rule
 
 The first production release is blocked until every P0 story above is Passed or has an explicitly approved, documented exception that does not weaken security, legal compliance, data integrity or recovery. P1 stories must be either accepted in the launch scope with Passed evidence or explicitly excluded/disabled with clear user-facing boundaries. P2 expansion stories remain outside the first-release gate unless the owner brings them into scope.
+
+
+## Status source
+
+For current cross-project maturity, P0/P1/P2 gaps, release decision and evidence, refer to [Project Status](PROJECT_STATUS.md). This story backlog retains detailed capability acceptance criteria; it is not a second project-wide status register.
