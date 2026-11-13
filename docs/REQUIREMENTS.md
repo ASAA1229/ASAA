@@ -450,11 +450,13 @@ Organization administration now includes:
 - Configurable organization units for legal entities, business units, divisions, departments, teams, locations and positions.
 - Proposed-by-default organization units, parent-type validation, parent activation gates, active-child protection, effective-date fields and independent approve/reject before activation.
 - Responsive UI for organization profile and unit registry.
-- UI integration for existing master-data domains and source record references, preserving source ownership and duplicate review semantics.
+- Responsive master-data UI for domain registration, owner/steward/authoritative-source maintenance with optimistic-version updates, domain record browsing and source-reference registration.
+- Permission-aware identity register loading: role templates, access assignments and access-review campaigns are fetched only when the current session has the corresponding read permission; missing access is not presented as an empty register.
+- Access assignment revocation requires an inline reason; form state is retained when a request fails.
 - Access-review campaigns based on explicitly referenced, dated identity snapshots; permission/role/scope snapshots; independent Retain, Modify or Revoke review decisions; reasons, reviewer attribution, optimistic version checks and audit events.
 - Access-review campaign completion once all items are decided.
 
-**Verification:** API compile, automated tests and Alembic upgrade/downgrade/upgrade passed in [CI run 43403278481](https://github.com/ASAA1229/ASAA/actions/runs/43403278481). Responsive admin UI build passed in [CI run 43403022249](https://github.com/ASAA1229/ASAA/actions/runs/43403022249). The API test suite includes organization scope, permission separation, hierarchy lifecycle, stale version, access-review self-review and audit checks.
+**Verification:** API compile, automated tests and Alembic upgrade/downgrade/upgrade passed in [CI run 43403278481](https://github.com/ASAA1229/ASAA/actions/runs/43403278481). The latest responsive admin UI build, including role/assignment governance and master-data domain editing, passed in [CI run 43404967491](https://github.com/ASAA1229/ASAA/actions/runs/43404967491). The API test suite includes organization scope, permission separation, hierarchy lifecycle, stale version, access-review self-review and audit checks.
 
 **Important boundaries:** organization-unit owner and parent subjects are identity references, not proof of employment or permission grants. Access-review decisions are governance evidence and do not directly change provider entitlements. The UI does not invent organization structure or user membership.
 
@@ -469,7 +471,7 @@ Provider-dependent work remains blocked until an owner selects and configures th
 
 ## 22. Shared authorization templates and access assignment workflow
 
-**Status:** Built — role templates and scoped assignment workflows implemented with maker-checker, audit, organization isolation and optimistic versions. API tests and migration checks passed in [CI run 43404575225](https://github.com/ASAA1229/ASAA/actions/runs/43404575225); web workspace build passed in [CI run 43404627343](https://github.com/ASAA1229/ASAA/actions/runs/43404627343).
+**Status:** Built — role templates and scoped assignment workflows implemented with maker-checker, audit, organization isolation and optimistic versions. API tests and migration checks passed in [CI run 43404575225](https://github.com/ASAA1229/ASAA/actions/runs/43404575225); the latest web workspace build passed in [CI run 43404967491](https://github.com/ASAA1229/ASAA/actions/runs/43404967491).
 
 - Organization-scoped role templates with explicit permission identifiers and organization/department/project/record scope types.
 - Wildcard permissions are rejected. Proposed role templates require independent approve/reject with reason and audit evidence.
