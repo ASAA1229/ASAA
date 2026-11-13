@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronUp, ClipboardList, Plus, RefreshCw, Send, ShieldCheck, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, ClipboardList, Plus, Send, ShieldCheck, X } from "lucide-react";
 
 const emptyLine = () => ({ description: "", quantity: "1", unit_of_measure: "each", estimated_unit_cost: "" });
 const dateAfterWeek = () => {
@@ -15,7 +15,7 @@ export default function ProcurementWorkspace({ requests = [], suppliers = [], ap
   const permissions = Array.isArray(claims.permissions) ? claims.permissions : [];
   const canCreate = permissions.includes("procurement:request:write");
   const canSubmit = permissions.includes("procurement:request:submit");
-  const canReview = permissions.includes("procurement:request:review");
+  const canReview = permissions.includes("procurement:request:review") && permissions.includes("procurement:request:read:all");
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
