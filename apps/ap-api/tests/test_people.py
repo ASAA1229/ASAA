@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from asaa_ap.security import Principal, get_principal
 
@@ -432,3 +432,36 @@ def test_payroll_run_review_summary_and_close_controls(client):
     closed_period = client.post("/api/v1/payroll/periods/" + period.json()["id"] + "/close")
     assert closed_period.status_code == 200
     assert closed_period.json()["status"] == "Closed"
+
+def test_future_dated_employment_change_preserves_current_status_until_effective_date(client):
+    employee = create_employee(client)
+    initial = client.post(f"/api/v1/hr/employees/{employee['id']}/employment-records", json={
+        "position_title": "Analyst",
+        "employment_type": "Employee",
+        "status": "Active",
+        "effective_from": date.today().isoformat(),
+        "reason": "Initial appointment",
+    })
+    assert initial.status_code == 201
+
+    future_date = date.today() + timedelta(days=1)
+    scheduled = client.post(
+        f"/api/v1/hr/employees/{employee['id']}/employment-records",
+        json={
+            "position_title": "Senior Analyst",
+            "employment_type": "Employee",
+            "status": "Active",
+            "effective_from": future_date.isoformat(),
+            "reason": "Approved promotion effective next day",
+        },
+    )
+    assert scheduled.status_code == 201
+    assert scheduled.json()["position_title"] == "Senior Analyst"
+
+    current = client.get(f"/api/v1/hr/employees/{employee['id']}").json()
+    assert current["status"] == "Active"
+    history = client.get(
+        f"/api/v1/hr/employees/{employee['id']}/employment-records"
+    ).json()
+    assert history[0]["effective_from"] == future_date.isoformat()
+    assert history[1]["effective_to"] == (future_date - timedelta(days=1)).isoformat()
