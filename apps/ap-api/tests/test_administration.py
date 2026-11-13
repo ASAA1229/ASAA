@@ -18,6 +18,7 @@ def as_subject(client, subject="admin", permissions=None, org="org-a"):
 
 
 def test_organization_profile_is_scoped_and_versioned(client):
+    as_subject(client)
     created = client.put("/api/v1/administration/profile", json={
         "display_name": "ASAA", "lifecycle_status": "Pre-Incorporation"
     })
@@ -42,6 +43,7 @@ def test_organization_profile_is_scoped_and_versioned(client):
 
 
 def test_organization_structure_parent_validation_and_lifecycle(client):
+    as_subject(client)
     root = client.post("/api/v1/administration/units", json={
         "unit_type": "Legal Entity", "unit_code": "entity-main", "name": "Proposed entity"
     })
@@ -71,6 +73,7 @@ def test_organization_structure_parent_validation_and_lifecycle(client):
 
 
 def test_access_review_campaign_decisions_are_audited_and_not_self_reviewed(client):
+    as_subject(client)
     created = client.post("/api/v1/administration/access-reviews", json={
         "title": "Quarterly access review",
         "source_reference": "identity-export:2026-Q4",
