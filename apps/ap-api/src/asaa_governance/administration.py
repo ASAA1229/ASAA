@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, JSON, String, select
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, JSON, String, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from asaa_ap.database import Base, get_db
@@ -41,6 +41,7 @@ class OrganizationProfile(Base):
 class OrganizationUnit(Base):
     __tablename__ = "organization_units"
     __table_args__ = (
+        UniqueConstraint("organization_id", "unit_code", name="uq_org_unit_org_code"),
         Index("ix_org_unit_org_parent", "organization_id", "parent_id"),
         Index("ix_org_unit_org_type_status", "organization_id", "unit_type", "status"),
     )
