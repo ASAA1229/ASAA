@@ -120,7 +120,7 @@ Acceptance criteria:
 - Automated tests cover duplicate, overlap, adjacency and organization isolation.
 
 ### ASAA-P1-02 — Maintain a valid compensation timeline
-**Status:** In Progress — effective-date overlap enforcement and independent decision API implemented; verification running.
+**Status:** Verified — effective-date overlap enforcement, safe supersession, independent decision API and PostgreSQL integration passed on commit `f3e6d46`.
 
 As a restricted payroll operator, I want effective-dated compensation records to be consistent and independently approved so that historical and future compensation cannot conflict.
 
