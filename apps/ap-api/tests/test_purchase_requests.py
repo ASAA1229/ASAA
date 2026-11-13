@@ -1,11 +1,11 @@
-from datetime import date
+from datetime import date, timedelta
 
 
 def payload(title="Office equipment"):
     return {
         "title": title,
         "purpose": "Replace essential work equipment",
-        "needed_by": "2026-12-15",
+        "needed_by": (date.today() + timedelta(days=30)).isoformat(),
         "currency": "INR",
         "cost_center": "ADMIN",
         "lines": [
@@ -31,7 +31,7 @@ def test_purchase_request_submit_and_independent_approval(client):
     created = client.post("/api/v1/ap/purchase-requests", json=payload()).json()
     submitted = client.post(
         f"/api/v1/ap/purchase-requests/{created['id']}/submit",
-        json={"expected_version": created["version"], "decision": "return", "reason": "Ready for review"},
+        json={"expected_version": created["version"], "reason": "Ready for review"},
     )
     assert submitted.status_code == 200
     assert submitted.json()["status"] == "Submitted"
@@ -55,7 +55,7 @@ def test_requester_cannot_approve_own_purchase_request(client):
     created = client.post("/api/v1/ap/purchase-requests", json=payload()).json()
     submitted = client.post(
         f"/api/v1/ap/purchase-requests/{created['id']}/submit",
-        json={"expected_version": created["version"], "decision": "approve", "reason": "Submit for review"},
+        json={"expected_version": created["version"], "reason": "Submit for review"},
     ).json()
     response = client.post(
         f"/api/v1/ap/purchase-requests/{created['id']}/review",
