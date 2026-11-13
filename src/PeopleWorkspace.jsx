@@ -37,7 +37,10 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
     }
     if (name === "Offboarding") {
       if (can("hr:exit:read")) jobs.push(["exits", "/api/v1/hr/exit-cases"]);
-      if (can("onboarding:read")) jobs.push(["templates", "/api/v1/onboarding/templates"]);
+      if (can("onboarding:read")) {
+        jobs.push(["templates", "/api/v1/onboarding/templates"]);
+        jobs.push(["assignments", "/api/v1/onboarding/assignments"]);
+      }
     }
     if (name === "Leave management" && can("hr:leave:read")) jobs.push(["leave", "/api/v1/hr/leave-requests"]);
     const results = await Promise.all(jobs.map(async ([key, path]) => {
@@ -207,7 +210,9 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
           <label className="people-field">Offboarding checklist<select value={form.offboarding_template_id || ""} onChange={e => setForm(current => ({ ...current, offboarding_template_id: e.target.value }))}><option value="">No template selected</option>{data.templates.filter(x=>x.workflow_type==="Offboarding"&&x.active).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
           {field("exit_notes", "Notes", "text", false)}<button className="btn btn-primary" disabled={busy}>Open exit case</button>
         </form>}
-        <div className="people-record-list">{data.exits.map(item=><article className="people-record-card" key={item.id}><div><b>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</b><span className={statusClass(item.status)}>{item.status}</span></div><small>Last day: {dateText(item.planned_last_day)} · {item.reason_category}</small>{can("hr:exit:complete")&&item.status==="Open"&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/hr/exit-cases/"+item.id+"/complete","POST",undefined,"Exit case completed after server-side closure checks.")}>Complete exit case</button>}</article>)}</div>
+        <div className="people-record-list">{data.exits.map(item=><article className="people-record-card" key={item.id}><div><b>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</b><span className={statusClass(item.status)}>{item.status}</span></div><small>Last day: {dateText(item.planned_last_day)} · {item.reason_category}</small>
+          {item.checklist_assignment_id && <div className="people-offboarding-tasks"><b>Required offboarding checklist</b>{(data.assignments.find(x=>x.id===item.checklist_assignment_id)?.tasks||[]).map(task=><div className="people-task" key={task.id}><div><b>{task.title}</b><small>{task.owner_role} · {task.required?"Required":"Optional"}</small></div><span className={statusClass(task.status)}>{task.status}</span>{can("onboarding:task:update")&&!["Completed","Waived"].includes(task.status)&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/onboarding/tasks/"+task.id,"PATCH",{status:"Completed",evidence_reference:task.evidence_reference||"hr-offboarding://completed"},"Offboarding checklist task completed.")}>Mark complete</button>}</div>)}</div>}
+          {can("hr:exit:complete")&&item.status==="Open"&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/hr/exit-cases/"+item.id+"/complete","POST",undefined,"Exit case completed after server-side closure checks.")}>Complete exit case</button>}</article>)}</div>
       </section>
     </>}
 
