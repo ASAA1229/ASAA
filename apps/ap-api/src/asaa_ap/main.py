@@ -10,6 +10,7 @@ from asaa_ap.config import get_settings
 from asaa_governance.api import router as master_data_router
 from asaa_governance.authority import router as governance_router
 from asaa_governance.administration import router as administration_router
+from asaa_governance.authorization import router as authorization_router
 from asaa_workforce_finance.api import router as workforce_finance_router
 
 settings = get_settings()
@@ -32,6 +33,7 @@ app.include_router(people_workflows_router)
 app.include_router(master_data_router)
 app.include_router(governance_router)
 app.include_router(administration_router)
+app.include_router(authorization_router)
 app.include_router(workforce_finance_router)
 
 
