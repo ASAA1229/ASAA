@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, String, select
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, String, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from asaa_ap.database import Base, get_db
@@ -18,7 +18,7 @@ def utcnow():
 
 class AuthorizationRoleTemplate(Base):
     __tablename__ = "authorization_role_templates"
-    __table_args__ = (Index("ix_auth_role_org_status", "organization_id", "status"),)
+    __table_args__ = (UniqueConstraint("organization_id", "role_code", name="uq_auth_role_org_code"), Index("ix_auth_role_org_status", "organization_id", "status"))
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     role_code: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -111,6 +111,8 @@ class AssignmentCreate(StrictModel):
 
     @model_validator(mode="after")
     def validate_window(self):
+        if self.effective_from.tzinfo is None or (self.effective_to and self.effective_to.tzinfo is None):
+            raise ValueError("assignment effective dates must include a timezone")
         if self.effective_to and self.effective_to <= self.effective_from:
             raise ValueError("effective_to must be later than effective_from")
         return self
@@ -241,6 +243,8 @@ def create_assignment(payload: AssignmentCreate, db: Session = Depends(get_db),
     role = get_role(db, payload.role_template_id, principal.organization_id)
     if role.status != "Active":
         raise HTTPException(status_code=409, detail={"code": "authorization_role_not_active"})
+    if not payload.scope_reference.startswith(role.scope_type.lower() + ":"):
+        raise HTTPException(status_code=422, detail={"code": "authorization_scope_type_mismatch"})
     row = AuthorizationAssignment(organization_id=principal.organization_id,
         **payload.model_dump(), status="Pending Approval", created_by=principal.subject)
     db.add(row); db.flush()
