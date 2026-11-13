@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Wallet, ShieldCheck, RefreshCw, Plus, CheckCircle2, AlertCircle, FileCheck2, LockKeyhole, Users } from "lucide-react";
+import { Wallet, ShieldCheck, RefreshCw, Plus, CheckCircle2, AlertCircle, FileCheck2, LockKeyhole, CalendarDays } from "lucide-react";
 
 const money = (value, currency = "INR") => new Intl.NumberFormat("en-IN", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value || 0));
 const dateText = value => value ? new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
@@ -48,7 +48,7 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    if (nameSafe(can("payroll:compensation:read")) && selectedEmployeeId && connected) {
+    if (can("payroll:compensation:read") && selectedEmployeeId && connected) {
       apiRef.current("/api/v1/payroll/compensation?employee_id=" + encodeURIComponent(selectedEmployeeId))
         .then(setCompensation).catch(e => setError(e.message));
     } else setCompensation([]);
@@ -120,7 +120,7 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
         pay_basis:form.pay_basis||"Fixed", gross_amount:form.gross_amount, frequency:form.frequency||"Monthly",
         effective_from:form.comp_effective_from, effective_to:form.comp_effective_to||null
       },"Compensation proposal submitted for independent approval.")}>
-        <label className="payroll-field">Employee<select required value={form.comp_employee||selectedEmployeeId} onChange={e=>setForm(current=>({...current,comp_employee:e.target.value}))}><option value="">Select employee…</option>{data.employees.map(x=><option key={x.id} value={x.id}>{x.first_name} {x.last_name} · {x.employee_code||x.id}</option>)}</select></label>
+        {can("hr:employee:read") ? <label className="payroll-field">Employee<select required value={form.comp_employee||selectedEmployeeId} onChange={e=>setForm(current=>({...current,comp_employee:e.target.value}))}><option value="">Select employee…</option>{data.employees.map(x=><option key={x.id} value={x.id}>{x.first_name} {x.last_name} · {x.employee_code||x.id}</option>)}</select></label> : field("comp_employee","Employee ID") }
         {field("currency","Currency (ISO 4217)")} {field("gross_amount","Gross amount","number")}
         {selectField("pay_basis","Pay basis",[{value:"Fixed",label:"Fixed"},{value:"Hourly",label:"Hourly"},{value:"Daily",label:"Daily"}])}
         {selectField("frequency","Frequency",[{value:"Monthly",label:"Monthly"},{value:"Weekly",label:"Weekly"},{value:"Biweekly",label:"Biweekly"},{value:"Annual",label:"Annual"}])}
@@ -130,7 +130,7 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
     </section>}
 
     {can("payroll:read") && <section className="payroll-panel">
-      <Heading icon={CalendarDaysIcon} title="Payroll periods" subtitle="Period dates and lifecycle are controlled by the API" count={data.periods.length}/>
+      <Heading icon={CalendarDays} title="Payroll periods" subtitle="Period dates and lifecycle are controlled by the API" count={data.periods.length}/>
       {can("payroll:period:write") && <form className="payroll-form" onSubmit={e=>submit(e,"/api/v1/payroll/periods",{period_code:form.period_code,start_date:form.period_start,end_date:form.period_end},"Payroll period created.")}>
         {field("period_code","Period code")}{field("period_start","Start date","date")}{field("period_end","End date","date")}
         <button className="btn btn-primary" disabled={busy}>Create period</button>
@@ -174,7 +174,5 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
   </div>;
 }
 
-function nameSafe(value) { return value; }
-function CalendarDaysIcon(props) { return <Users {...props}/>; }
 function Heading({ icon: Icon, title, subtitle, count }) { return <div className="payroll-heading"><span><Icon size={18}/></span><div><h2>{title}</h2><p>{subtitle}</p></div>{count!==undefined&&<small>{count}</small>}</div>; }
 function Empty({ title, text }) { return <div className="people-empty"><ShieldCheck size={22}/><b>{title}</b><span>{text}</span></div>; }
