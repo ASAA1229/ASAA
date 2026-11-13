@@ -492,6 +492,7 @@ Provider-dependent work remains blocked until an owner selects and configures th
 - PostgreSQL connection pooling is bounded and configurable through ASAA_AP_DB_POOL_SIZE, ASAA_AP_DB_MAX_OVERFLOW, ASAA_AP_DB_POOL_TIMEOUT_SECONDS, ASAA_AP_DB_POOL_RECYCLE_SECONDS and ASAA_AP_DB_CONNECT_TIMEOUT_SECONDS.
 - /health reports process liveness; /ready verifies database connectivity with SELECT 1 and returns 503 without exposing connection details when unavailable.
 - A PostgreSQL 16 CI service applies all 15 Alembic migrations, runs the complete API suite plus PostgreSQL-specific employee/compensation/payroll/JSON/decimal/audit persistence checks, and validates a downgrade/re-upgrade cycle. The PostgreSQL run passed at commit `1e8fa6dccab2f045976795b641d5d5ffacace6e0`.
+- `apps/ap-api/scripts/validate_postgresql.py` provides a production preflight for PostgreSQL 16+, active-connection TLS, application-role least privilege, Alembic head, revision-column capacity, schema presence and table DML grants. It has not yet been run against a real production database.
 
 **Production gate:** no production database is provisioned or contacted by this change. TLS/certificate policy, database role provisioning, secrets, backup/PITR, restore rehearsal, capacity/load/concurrency testing, monitoring and recovery objectives still require environment-specific configuration and operational evidence.
 
