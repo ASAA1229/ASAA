@@ -482,7 +482,7 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
     x_correlation_id: Annotated[str | None, Header()] = None):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
-    ))
+    ).with_for_update())
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
     if run.status not in {"Draft", "Changes Requested"}:
@@ -490,6 +490,16 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
     employee_or_404(db, payload.employee_id, principal.organization_id)
     if payload.currency != run.currency:
         raise HTTPException(status_code=409, detail={"code": "payroll_currency_mismatch"})
+    duplicate = db.scalar(select(PayrollEntry.id).where(
+        PayrollEntry.organization_id == principal.organization_id,
+        PayrollEntry.run_id == run.id,
+        PayrollEntry.employee_id == payload.employee_id,
+    ).limit(1))
+    if duplicate:
+        raise HTTPException(status_code=409, detail={
+            "code": "payroll_employee_entry_exists",
+            "existing_entry_id": duplicate,
+        })
     row = PayrollEntry(
         organization_id=principal.organization_id, run_id=run.id,
         created_by=principal.subject, **payload.model_dump(),
