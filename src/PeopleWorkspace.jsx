@@ -204,6 +204,10 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
     {name === "Offboarding" && <>
       <section className="people-panel">
         <PanelHeading icon={LogOut} title="Offboarding cases" subtitle="Exit checklist, asset return and employment closure gates" count={data.exits.length}/>
+        {can("onboarding:template:write") && <form className="people-form" onSubmit={e=>submit(e,"/api/v1/onboarding/templates","POST",{template_code:form.exit_template_code,name:form.exit_template_name,workflow_type:"Offboarding",tasks:[{title:form.exit_task_title,description:form.exit_task_description||null,owner_role:form.exit_owner_role,required:true,sequence:1}]},"Offboarding checklist template created.")}>
+          <h3>Create offboarding checklist template</h3>{field("exit_template_code","Template code")}{field("exit_template_name","Template name")}{field("exit_task_title","Required checklist task")}{field("exit_task_description","Task description","text",false)}{field("exit_owner_role","Task owner role")}
+          <button className="btn btn-primary" disabled={busy}>Create offboarding template</button>
+        </form>}
         {can("hr:exit:write") && <form className="people-form" onSubmit={e => submit(e, "/api/v1/hr/employees/" + form.exit_employee + "/exit-cases", "POST", {
           planned_last_day: form.planned_last_day, reason_category: form.reason_category,
           notes: form.exit_notes || null, offboarding_template_id: form.offboarding_template_id || null
