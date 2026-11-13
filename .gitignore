@@ -23,3 +23,4 @@ coverage/
 backups/
 *.pem
 *.key
+.e2e/
