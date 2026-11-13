@@ -274,7 +274,7 @@ These remain planned requirements until implementation and acceptance evidence e
 
 ### ASAA-GAP-024 — Govern master data and record ownership
 
-**Status:** Passed — GitHub Actions run [43220389874](https://github.com/ASAA1229/ASAA/actions/runs/43220389874), commit `1340bcd9c996d88a3108a8d7f88107738eaf29b3`.
+**Status:** CI VERIFIED — GitHub Actions run [43220389874](https://github.com/ASAA1229/ASAA/actions/runs/43220389874), commit `1340bcd9c996d88a3108a8d7f88107738eaf29b3`.
 
 The API foundation introduces an organization-scoped master-data registry:
 - Domain registration records a domain code, authoritative-source label, accountable owner subject and steward subject.
@@ -312,7 +312,7 @@ Automated tests added cover domain creation/list/audit, duplicate domain rejecti
 
 ### ASAA-GAP-002 — Decision, Delegation and Authority Register
 
-**Status:** Built — implementation and automated validation pending CI at this revision.
+**Status:** NEEDS TESTING — implementation and automated validation pending CI at this revision.
 
 The governance API adds two organization-scoped registers:
 
@@ -375,7 +375,7 @@ Permissions:
 
 ## 16. Procurement request workflow — UI integration
 
-**Status:** Built — web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded. API workflow was verified separately at its backend implementation revision.
+**Status:** CI VERIFIED — web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded. API workflow was verified separately at its backend implementation revision.
 
 The responsive web client now consumes the existing Accounts Payable purchase-request API and exposes:
 - Organization-scoped request listing, with the API determining whether the user sees their own requests or all requests.
@@ -393,7 +393,7 @@ Verification evidence must be recorded against the exact commit and CI run. A su
 
 ## 17. Supplier management and verification — UI integration
 
-**Status:** Built — responsive supplier workspace; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
+**Status:** CI VERIFIED — responsive supplier workspace; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
 
 The Accounts Payable workspace now exposes the existing supplier API for:
 - Organization-scoped supplier search and record selection.
@@ -408,7 +408,7 @@ Remaining supplier gaps: structured address and document attachment management, 
 
 ## 18. Accounts receivable workflow — UI integration
 
-**Status:** Built — responsive AR workspace; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
+**Status:** CI VERIFIED — responsive AR workspace; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
 
 The web client now connects to the existing AR API and exposes:
 - Customer-aware invoice draft creation with one or more line items, currency, issue/due dates, notes and server-calculated totals.
@@ -423,7 +423,7 @@ Remaining AR gaps include draft invoice editing, customer updates/status lifecyc
 
 ## 19. Workforce finance workflow — UI integration
 
-**Status:** Built — responsive timesheet and expense workflow UI; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
+**Status:** CI VERIFIED — responsive timesheet and expense workflow UI; web build passed on commit `813b3af4cda7b7d9a8bf68b23d2b4020253f95ce`; GitHub Actions run [43400054933](https://github.com/ASAA1229/ASAA/actions/runs/43400054933) succeeded.
 
 The web client now exposes the existing workforce-finance API for:
 - Timesheet draft creation with period dates and multiple dated work entries, project/task references, hours and billable flags.
@@ -438,7 +438,7 @@ Remaining workforce gaps include timesheet draft editing, configurable periods a
 
 ## 20. P0 organization administration and identity access governance
 
-**Status:** API and UI foundation built; API tests and migration checks passed. Provider-dependent SSO/MFA and automated identity lifecycle remain blocked on identity-provider selection and configuration.
+**Status:** IMPLEMENTED — API and UI foundation built; API tests and migration checks passed. Provider-dependent SSO/MFA and automated identity lifecycle remain blocked on identity-provider selection and configuration.
 
 Organization administration now includes:
 - Organization-scoped profile creation and optimistic-version updates, with explicit lifecycle values (Pre-Incorporation, Active, Dormant).
@@ -458,7 +458,7 @@ Organization administration now includes:
 
 ## 21. SSO, MFA and identity lifecycle foundation
 
-**Status:** Generic OIDC Authorization Code + PKCE sign-in flow and API verification hooks built; real provider connection and MFA enforcement are not yet operationally verified.
+**Status:** IMPLEMENTED — generic OIDC Authorization Code + PKCE sign-in flow and API verification hooks exist; real provider connection and MFA enforcement are not yet operationally verified.
 
 The web client supports provider discovery, authorization-code redirect, PKCE S256, state validation and in-memory bearer-token handling. Only the short-lived PKCE transaction verifier/state is held in session storage; access tokens are not persisted. API verification supports configured RS256 JWKS key discovery/rotation and optional required acr and amr claims.
 
@@ -467,7 +467,7 @@ Provider-dependent work remains blocked until an owner selects and configures th
 
 ## 22. Shared authorization templates and access assignment workflow
 
-**Status:** Built — role templates and scoped assignment workflows implemented with maker-checker, audit, organization isolation and optimistic versions. API tests and migration checks passed in [CI run 43404575225](https://github.com/ASAA1229/ASAA/actions/runs/43404575225); the latest web workspace build passed in [CI run 43404967491](https://github.com/ASAA1229/ASAA/actions/runs/43404967491).
+**Status:** CI VERIFIED — role templates and scoped assignment workflows implemented with maker-checker, audit, organization isolation and optimistic versions. API tests and migration checks passed in [CI run 43404575225](https://github.com/ASAA1229/ASAA/actions/runs/43404575225); the latest web workspace build passed in [CI run 43404967491](https://github.com/ASAA1229/ASAA/actions/runs/43404967491).
 
 - Organization-scoped role templates with explicit permission identifiers and organization/department/project/record scope types.
 - Wildcard permissions are rejected. Proposed role templates require independent approve/reject with reason and audit evidence.
@@ -480,7 +480,7 @@ Provider-dependent work remains blocked until an owner selects and configures th
 
 ## 23. PostgreSQL integration and database readiness
 
-**Status:** PostgreSQL 16 integration verification passed in [CI run 43406401957](https://github.com/ASAA1229/ASAA/actions/runs/43406401957); production database validation remains open.
+**Status:** CI VERIFIED — PostgreSQL 16 integration verification passed in [CI run 43406401957](https://github.com/ASAA1229/ASAA/actions/runs/43406401957); production database validation remains open.
 
 - psycopg 3 is the supported PostgreSQL driver. Generic postgresql:// URLs are normalized to postgresql+psycopg://.
 - Production environment configuration (ASAA_AP_ENVIRONMENT=production) rejects SQLite URLs. Development retains SQLite as its lightweight default.
