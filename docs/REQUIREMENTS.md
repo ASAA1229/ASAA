@@ -424,3 +424,18 @@ The web client now connects to the existing AR API and exposes:
 - Explicit wording that receipt recording does not initiate or verify a bank transfer.
 
 Remaining AR gaps include draft invoice editing, customer updates/status lifecycle, standalone allocation of previously unapplied receipts, refunds/credit notes/disputes, statements and collections, recurring invoice support, numbering policy, bank reconciliation, accounting export and end-to-end browser workflow tests. Tax treatment and jurisdictional rules remain unconfigured and are not inferred by this UI.
+
+
+## 19. Workforce finance workflow — UI integration
+
+**Status:** Built — responsive timesheet and expense workflow UI added; web build verification pending for the latest workforce UI revision.
+
+The web client now exposes the existing workforce-finance API for:
+- Timesheet draft creation with period dates and multiple dated work entries, project/task references, hours and billable flags.
+- Employee-owned timesheet submission with a required reason and current version.
+- Independent timesheet approval/rejection with a reason; reviewer actions require read-all scope and review permission.
+- Expense claim draft creation, submission, independent approval/rejection and reimbursement-reference recording.
+- Status, owner, review reason, reviewer and reimbursement evidence visibility.
+- Explicit separation between recording a reimbursement reference and initiating or verifying an external payment.
+
+Remaining workforce gaps include timesheet draft editing, configurable periods and reminders, attendance/project allocation integration, approved-time locking, multi-line expense claims, receipt binary storage/OCR, policy and duplicate checks, mileage/per-diem, advances, accounting export, payroll linkage and end-to-end browser tests. No reimbursement or payment transfer is initiated by this UI.
