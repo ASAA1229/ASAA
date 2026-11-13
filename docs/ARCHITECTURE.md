@@ -159,3 +159,8 @@ The portal implements generic OIDC Authorization Code + PKCE using provider disc
 ## Shared authorization governance
 
 Role templates define explicit permission identifiers and a scope type. Proposed templates and subject-to-role assignments use independent review and audit. Scope references and subject IDs are opaque external references; this registry does not verify identity-provider membership or directly issue permission claims. A future identity-provider adapter must map only approved, effective, in-scope assignments into the signed API token claims and support revocation/expiry synchronization. Until then, the existing JWT permission array remains the sole authorization authority.
+
+
+## Implementation status
+
+This document describes intended boundaries and the observed logical architecture. The authoritative inventory of implemented, unverified and planned capabilities is [Project Status](PROJECT_STATUS.md). Do not infer that every logical domain described above exists as an operational module.
