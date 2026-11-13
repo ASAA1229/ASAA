@@ -49,9 +49,12 @@ class PurchaseRequestCreate(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def validate_needed_date(self):
+    def validate_request_totals(self):
         if self.needed_by < date.today():
             raise ValueError("needed_by cannot be in the past")
+        estimated_total = sum((line.quantity * line.estimated_unit_cost for line in self.lines), Decimal("0"))
+        if estimated_total > Decimal("9999999999999999.99"):
+            raise ValueError("Estimated total exceeds the supported monetary precision")
         return self
 
 
