@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from typing import Annotated
 import uuid
 
@@ -290,20 +290,29 @@ def create_compensation(payload: CompensationCreate, db: Db,
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
 
-    overlap = db.scalar(select(CompensationRecord).where(
+    existing_records = db.scalars(select(CompensationRecord).where(
         CompensationRecord.organization_id == principal.organization_id,
         CompensationRecord.employee_id == payload.employee_id,
         CompensationRecord.status.in_({"Pending Approval", "Approved"}),
-        CompensationRecord.effective_from <= (payload.effective_to or date.max),
-        (CompensationRecord.effective_to.is_(None) |
-         (CompensationRecord.effective_to >= payload.effective_from)),
-    ).limit(1))
-    if overlap:
-        raise HTTPException(status_code=409, detail={
-            "code": "compensation_effective_period_overlap",
-            "conflicting_record_id": overlap.id,
-            "conflicting_status": overlap.status,
-        })
+    )).all()
+    for existing in existing_records:
+        overlaps = (
+            existing.effective_from <= (payload.effective_to or date.max)
+            and (existing.effective_to is None or existing.effective_to >= payload.effective_from)
+        )
+        # A later proposal may supersede an open-ended approved record, but the
+        # old record is end-dated only after an independent approval.
+        supersedes_open_record = (
+            existing.status == "Approved"
+            and existing.effective_to is None
+            and payload.effective_from > existing.effective_from
+        )
+        if overlaps and not supersedes_open_record:
+            raise HTTPException(status_code=409, detail={
+                "code": "compensation_effective_period_overlap",
+                "conflicting_record_id": existing.id,
+                "conflicting_status": existing.status,
+            })
 
     row = CompensationRecord(
         organization_id=principal.organization_id, **payload.model_dump(),
@@ -344,20 +353,29 @@ def decide_compensation(record_id: str, payload: CompensationDecision, db: Db,
         ).with_for_update())
         if not employee:
             raise HTTPException(status_code=404, detail="Employee not found")
-        overlap = db.scalar(select(CompensationRecord).where(
+        approved_records = db.scalars(select(CompensationRecord).where(
             CompensationRecord.organization_id == principal.organization_id,
             CompensationRecord.employee_id == row.employee_id,
             CompensationRecord.id != row.id,
             CompensationRecord.status == "Approved",
-            CompensationRecord.effective_from <= (row.effective_to or date.max),
-            (CompensationRecord.effective_to.is_(None) |
-             (CompensationRecord.effective_to >= row.effective_from)),
-        ).limit(1))
-        if overlap:
-            raise HTTPException(status_code=409, detail={
-                "code": "compensation_effective_period_overlap",
-                "conflicting_record_id": overlap.id,
-            })
+        )).all()
+        for existing in approved_records:
+            overlaps = (
+                existing.effective_from <= (row.effective_to or date.max)
+                and (existing.effective_to is None or existing.effective_to >= row.effective_from)
+            )
+            if not overlaps:
+                continue
+            if existing.effective_to is None and row.effective_from > existing.effective_from:
+                existing.effective_to = row.effective_from - timedelta(days=1)
+                audit(db, principal, "compensation.superseded", "pay_compensation_record",
+                      existing.id, {"superseded_by": row.id,
+                      "effective_to": existing.effective_to.isoformat()}, x_correlation_id)
+            else:
+                raise HTTPException(status_code=409, detail={
+                    "code": "compensation_effective_period_overlap",
+                    "conflicting_record_id": existing.id,
+                })
         row.status = "Approved"
     else:
         row.status = "Rejected"
