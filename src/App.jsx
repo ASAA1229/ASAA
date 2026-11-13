@@ -206,7 +206,7 @@ function App() {
     const next = Object.fromEntries(results.map(([key, value]) => [key, Array.isArray(value) ? value : []]));
     const failures = results.filter(([, , message]) => message).map(([key, , message]) => `${key}: ${message}`);
     setData(next); setConnected(true);
-    if (failures.length === jobs.length) setError("The API could not be reached or this account has no read permissions. Check the API URL and access permissions.");
+    if (jobs.length > 0 && failures.length === jobs.length) setError("The API could not be reached or this account has no read permissions. Check the API URL and access permissions.");
     else if (failures.length) setError(`Some areas are unavailable for this account: ${failures.join(" · ")}`);
     setLoading(false);
   };
