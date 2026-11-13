@@ -250,3 +250,115 @@ Acceptance criteria:
 - Refined the requirements gap register and added explicit P0/P1/P2 delivery boundaries.
 - Started ASAA-P1-01: organization-scoped payroll period uniqueness and non-overlapping date-window validation.
 - No production database, identity provider, payroll policy, statutory rules or deployment environment is assumed.
+
+
+## Release-closure backlog — remaining work as of 2026-11-13
+
+This section consolidates the outstanding work required to turn the current executable slice into a controlled first production release. Existing story statuses above remain authoritative for their individual capabilities. A story is not complete until its acceptance evidence is attached to the release record.
+
+### P0 — Production release gates
+
+#### ASAA-P0-08 — Provision and validate the production database
+**Status:** Blocked — target environment and credentials are not provisioned. PostgreSQL 16 migration/API integration CI is passing; this is not production validation.
+
+Acceptance criteria:
+- Approve hosting region, residency, network boundary, PostgreSQL service/version and environment ownership.
+- Provision separate development, staging and production databases with encryption at rest and certificate-verified TLS.
+- Create separate migration and runtime roles; prove runtime cannot own/alter schema, create roles/databases or bypass row-level security.
+- Configure connection limits, pool sizing, statement/idle timeouts, storage alerts and secret rotation.
+- Run Alembic migration rehearsal and `scripts/validate_postgresql.py` against the actual production target; retain redacted output and revision evidence.
+- Run production-like concurrency/load and migration compatibility checks; resolve all failures before release.
+
+#### ASAA-P0-09 — Select and activate the identity provider
+**Status:** Blocked — provider, tenant and client configuration not selected.
+
+Acceptance criteria:
+- Record approved provider, tenant, issuer, API audience, public SPA client, redirect/logout URIs and JWKS endpoint.
+- Configure Authorization Code + PKCE (S256), state/nonce handling as applicable, issuer/audience/signature/expiry validation and key rotation.
+- Enforce MFA in provider policy and verify the required assurance/method claims with positive and negative tests.
+- Validate login, logout, session expiry, refresh/revocation, account disablement and recovery paths in staging.
+- Verify no client secret or long-lived sensitive token is exposed to or persisted by the browser.
+
+#### ASAA-P0-10 — Synchronize identity lifecycle and effective access
+**Status:** Blocked — provider adapter and authoritative identity mapping not implemented/configured.
+
+Acceptance criteria:
+- Define stable person-to-provider subject mapping and joiner/mover/leaver event ownership.
+- Implement idempotent provisioning, update, disablement and revocation through supported provider APIs/SCIM where available.
+- Translate only independently approved, effective-dated role/scope assignments into effective entitlements.
+- Reconcile ASAA access records against provider state and surface drift, failed actions and retry/dead-letter outcomes.
+- Demonstrate timely access removal, session invalidation and emergency access expiry/review.
+- Prove that governance/access-review records alone do not grant permissions before synchronization succeeds.
+
+#### ASAA-P0-11 — Complete production authorization and security assurance
+**Status:** Built — baseline controls exist; comprehensive release evidence pending.
+
+Acceptance criteria:
+- Build a permission matrix for every API route and sensitive UI action, including read, write, export, approve, administer and lifecycle transitions.
+- Pass positive and negative tests for organization isolation, record/field scope, HR/payroll separation, privileged access and horizontal/vertical escalation.
+- Verify maker-checker, self-approval prevention, delegation scope/expiry/revocation and stale-version/idempotency behavior.
+- Complete threat model, data classification, privacy/jurisdiction review, dependency and static analysis, dynamic/API testing and independent penetration testing appropriate to exposure.
+- Protect audit history against unauthorized modification; alert on audit-write failure and sensitive access anomalies.
+- Record findings, severity, owner, remediation, retest and explicit residual-risk acceptance.
+
+#### ASAA-P0-12 — Establish production operations and recovery
+**Status:** Not Started / Blocked — hosting, monitoring and recovery objectives require owner decisions.
+
+Acceptance criteria:
+- Approve RPO, RTO, backup retention, data residency, support hours and incident escalation ownership.
+- Configure encrypted automated backups, point-in-time recovery where supported, backup-failure alerts and isolated restore tests.
+- Configure centralized structured logs, metrics, traces, health checks, alert routing and runbooks without sensitive-data leakage.
+- Establish production secret management, key rotation, vulnerability response, incident handling and audit retention.
+- Automate reviewed build, migration and deployment stages; separate migration credentials from runtime credentials.
+- Exercise deployment, smoke tests, rollback/forward recovery and disaster recovery; record measured outcomes.
+
+#### ASAA-P0-13 — Approve first-release business acceptance
+**Status:** Not Started — named business owners and approved operating policies required.
+
+Acceptance criteria:
+- Confirm launch scope, organization/legal entity context, data owners, authorized users and support owners.
+- Approve role matrix, approval limits, leave rules, payroll inputs, expense/procurement rules, document retention and applicable jurisdictional requirements.
+- Complete scripted UAT for organization/governance, employee lifecycle, leave, compensation/payroll controls, supplier/AP, customer/AR, timesheets and expenses.
+- Use synthetic or approved minimized test data; prove demo/test data cannot be mistaken for production records.
+- Resolve release-blocking defects; obtain documented business, security and operations sign-off.
+
+### P1 — Complete coherent first-release workflows
+
+#### ASAA-P1-11 — Complete AP procure-to-pay
+**Status:** Not Started beyond supplier and purchase-request foundations.
+
+Acceptance criteria: quotation capture/comparison; approved purchase orders; receipt and discrepancy handling; configurable two-/three-way invoice matching; duplicate invoice prevention; approval limits; payment instruction separation; provider/bank settlement reconciliation; auditable exceptions and finance export.
+
+#### ASAA-P1-12 — Complete AR and cash reconciliation
+**Status:** Built — initial customer/invoice/receipt foundation; end-to-end acceptance pending.
+
+Acceptance criteria: invoice lifecycle and adjustments; credit/debit notes, refunds and disputes; receipt allocation and unapplied cash; ageing; bank settlement reconciliation; tax/e-invoice rules only after jurisdictional approval; traceable accounting export.
+
+#### ASAA-P1-13 — Complete workforce policy and operational controls
+**Status:** Built — core HR/leave/onboarding/offboarding views and API foundations; policy and integration validation pending.
+
+Acceptance criteria: approved effective-dated employment and leave policies; balance/holiday/accrual rules; task ownership, reminders and escalation; asset issue/return evidence; offboarding handover and access-revocation confirmation; employee history and audit review.
+
+#### ASAA-P1-14 — Complete payroll control workflow without assuming statutory rules
+**Status:** In Progress — compensation and payroll control foundations exist; input lineage, exception and business validation remain.
+
+Acceptance criteria: source-linked payroll inputs; duplicate and currency validation; decimal-safe gross/deduction/net reconciliation; versioned approved calculation rules; independent review/closure; restricted payslip/output access; payment execution kept as a separate integration; no statutory calculation until jurisdiction-specific rules are approved and independently tested.
+
+#### ASAA-P1-15 — Integrate private documents and notifications
+**Status:** Not Started / Blocked — storage and delivery providers not selected.
+
+Acceptance criteria: private object storage, short-lived authorized access, malware/upload validation, classification/version/retention/legal hold, access audit; notification templates/preferences, delivery status, retries, dead-letter visibility and sensitive-content minimization.
+
+#### ASAA-P1-16 — Standardize workflow orchestration and integration operations
+**Status:** Not Started — selected domain workflows exist; reusable shared services and operational visibility remain.
+
+Acceptance criteria: versioned workflow definitions, common transition semantics, idempotent commands, concurrency controls, delegation/escalation, integration registry, scoped credentials, sync history, retry/reconciliation and actionable health dashboards.
+
+#### ASAA-P1-17 — Complete end-to-end quality and accessibility validation
+**Status:** Not Started / Verification pending — comprehensive release evidence not recorded.
+
+Acceptance criteria: automated unit, API, database migration, UI, end-to-end, regression, security, performance and accessibility coverage for launch workflows; supported browser/device checks; keyboard and screen-reader review; documented test environment, revision, results and defect disposition.
+
+### Release exit rule
+
+The first production release is blocked until every P0 story above is Passed or has an explicitly approved, documented exception that does not weaken security, legal compliance, data integrity or recovery. P1 stories must be either accepted in the launch scope with Passed evidence or explicitly excluded/disabled with clear user-facing boundaries. P2 expansion stories remain outside the first-release gate unless the owner brings them into scope.
