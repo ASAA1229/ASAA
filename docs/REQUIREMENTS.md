@@ -394,3 +394,18 @@ The responsive web client now consumes the existing Accounts Payable purchase-re
 The AP workspace now presents the existing supplier directory alongside purchase requests. The standalone Procurement workspace presents the requisition workflow. This does not implement purchase orders, supplier acknowledgements, goods/service receipts, supplier invoice capture/matching, payment batches or bank reconciliation. Those remain separate AP increments. Supplier verification/editing and supplier document attachments also remain open.
 
 Verification evidence must be recorded against the exact commit and CI run. A successful web bundle build does not constitute end-to-end API integration or production acceptance; identity-provider, PostgreSQL, UAT and operational release gates remain open.
+
+
+## 17. Supplier management and verification — UI integration
+
+**Status:** Built — responsive supplier workspace added; web build verification pending for the latest supplier UI revision.
+
+The Accounts Payable workspace now exposes the existing supplier API for:
+- Organization-scoped supplier search and record selection.
+- Supplier creation and editing with optimistic version values.
+- Supplier identity/contact fields and status/version visibility.
+- Configurable status changes with a mandatory reason; activation is hidden unless the session includes supplier verification permission.
+- Server-enforced duplicate checks, status transition rules, identity-change reverification, authorization and audit behavior.
+- Separate permission checks for supplier write, lifecycle status changes and verification; the API remains authoritative.
+
+Remaining supplier gaps: structured address and document attachment management, explicit duplicate-candidate review UI, richer verification evidence capture and supplier lifecycle test coverage through the browser. Supplier invoice processing, matching and payment remain separate AP epics.
