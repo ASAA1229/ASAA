@@ -465,3 +465,16 @@ Organization administration now includes:
 The web client supports provider discovery, authorization-code redirect, PKCE S256, state validation and in-memory bearer-token handling. Only the short-lived PKCE transaction verifier/state is held in session storage; access tokens are not persisted. API verification supports configured RS256 JWKS key discovery/rotation and optional required acr and amr claims.
 
 Provider-dependent work remains blocked until an owner selects and configures the identity provider, public SPA client, exact issuer, API audience, redirect URIs, permission/org claim mapping, MFA assurance policy and user lifecycle provisioning/deprovisioning mechanism. No provider, tenant, client ID, MFA method or user account is assumed. Refresh-token renewal, provider logout/revocation, SCIM/admin provisioning, disablement, group/role synchronization, emergency account recovery and automated access revocation are not complete.
+
+
+## 22. Shared authorization templates and access assignment workflow
+
+**Status:** Built — role templates and scoped assignment workflows implemented with maker-checker, audit, organization isolation and optimistic versions. API tests and migration checks passed in [CI run 43404575225](https://github.com/ASAA1229/ASAA/actions/runs/43404575225); web workspace build passed in [CI run 43404627343](https://github.com/ASAA1229/ASAA/actions/runs/43404627343).
+
+- Organization-scoped role templates with explicit permission identifiers and organization/department/project/record scope types.
+- Wildcard permissions are rejected. Proposed role templates require independent approve/reject with reason and audit evidence.
+- Scoped access assignment requests reference an approved role, subject, scope, effective window and business reason.
+- Assignment requests require independent approve/reject; approved assignments can be revoked with reason and optimistic version checks.
+- UI supports role proposal/review, assignment requests/review/revocation and access-review campaigns.
+
+**Critical boundary:** approved role templates and assignment records do not directly change JWT permission claims or provider accounts. The identity-provider group/role mapping, provisioning, deprovisioning and real-time revocation adapter remains unimplemented until a provider is selected and configured. Subject identifiers and scope references are not independently verified by this register.
