@@ -485,13 +485,13 @@ Provider-dependent work remains blocked until an owner selects and configures th
 
 ## 23. PostgreSQL integration and database readiness
 
-**Status:** PostgreSQL 16 CI integration coverage implemented; production database validation remains open.
+**Status:** PostgreSQL 16 integration verification passed in [CI run 43406401957](https://github.com/ASAA1229/ASAA/actions/runs/43406401957); production database validation remains open.
 
 - psycopg 3 is the supported PostgreSQL driver. Generic postgresql:// URLs are normalized to postgresql+psycopg://.
 - Production environment configuration (ASAA_AP_ENVIRONMENT=production) rejects SQLite URLs. Development retains SQLite as its lightweight default.
 - PostgreSQL connection pooling is bounded and configurable through ASAA_AP_DB_POOL_SIZE, ASAA_AP_DB_MAX_OVERFLOW, ASAA_AP_DB_POOL_TIMEOUT_SECONDS, ASAA_AP_DB_POOL_RECYCLE_SECONDS and ASAA_AP_DB_CONNECT_TIMEOUT_SECONDS.
 - /health reports process liveness; /ready verifies database connectivity with SELECT 1 and returns 503 without exposing connection details when unavailable.
-- A PostgreSQL 16 CI service applies all Alembic migrations, runs the complete API suite plus PostgreSQL-specific employee/compensation/payroll/JSON/decimal/audit persistence checks, and validates a downgrade/re-upgrade cycle.
+- A PostgreSQL 16 CI service applies all 15 Alembic migrations, runs the complete API suite plus PostgreSQL-specific employee/compensation/payroll/JSON/decimal/audit persistence checks, and validates a downgrade/re-upgrade cycle. The PostgreSQL run passed at commit `1e8fa6dccab2f045976795b641d5d5ffacace6e0`.
 
 **Production gate:** no production database is provisioned or contacted by this change. TLS/certificate policy, database role provisioning, secrets, backup/PITR, restore rehearsal, capacity/load/concurrency testing, monitoring and recovery objectives still require environment-specific configuration and operational evidence.
 
@@ -499,4 +499,12 @@ Provider-dependent work remains blocked until an owner selects and configures th
 
 **Existing API foundation:** employee directory and employment history, lifecycle, onboarding/offboarding task workflows, leave request and independent review, restricted effective-dated compensation, payroll periods/runs/entries and maker-checker controls exist in the API. Existing tests cover employee lifecycle, onboarding, leave and payroll arithmetic/permission boundaries.
 
-**Remaining portal work:** implement connected HR directory, employment lifecycle, onboarding/offboarding and leave views; implement a payroll workspace with permission-separated compensation access, period/run/entry management, review/approval/closure and explicit calculation-source disclosure. Do not invent leave balances, accrual policies, salary rules, tax/statutory calculations or payment execution. These require approved policy inputs and external validation.
+**Portal implementation:** connected HR and payroll workspaces are implemented on branch `new`; the latest production frontend build passed in [CI run 43406981613](https://github.com/ASAA1229/ASAA/actions/runs/43406981613).
+
+- HR directory supports permission-gated employee creation and profile editing; employment lifecycle supports effective-dated history and controlled status transitions.
+- Onboarding/offboarding supports versioned checklist templates, employee assignments, task completion, exit-case tracking and server-enforced closure gates.
+- Leave management supports request submission, overlap rejection and independent approve/reject decisions. Leave balances, accrual and holiday policy remain unconfigured and are not invented.
+- Payroll UI supports separately permissioned compensation lookup/proposal and independent compensation approval, payroll periods, runs, supplied entries, decimal reconciliation, submission, independent review and closure.
+- Dashboard register loading now respects granted read permissions rather than issuing requests to every module.
+
+**Policy and production boundaries:** do not invent leave balances/accrual, salary rules, tax/statutory calculations, payslips or payment execution. These require approved policy inputs, source integration and external validation. Payroll entry values remain explicitly supplied inputs, not calculated statutory payroll.
