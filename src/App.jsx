@@ -124,7 +124,7 @@ const MODULE_ICONS = {
   "Proposals & quotations": FileText, "Contracts & renewals": FileCheck2, "Orders & subscriptions": CreditCard,
   "Customer onboarding & feedback": UserRound, "Marketing & campaigns": Gauge,
   "AR · Receivables": ArrowDownLeft, "AP · Payables": ArrowUpRight, "Budgets & forecasting": ChartNoAxesCombined,
-  "Expenses & reimbursements": Receipt, "Cash flow & treasury": Wallet, "Accounting & reconciliation": Landmark,
+  "Expenses": Receipt, "Cash flow & treasury": Wallet, "Accounting & reconciliation": Landmark,
   "Financial reporting": ChartNoAxesCombined, "Payroll accounting": CircleDollarSign,
   "Legal contracts": FileText, "Compliance & obligations": ShieldCheck, "Privacy & data retention": ShieldCheck,
   "Security operations": ShieldCheck, "Access reviews": UserRound, "Backup & recovery": RefreshCw,
@@ -145,6 +145,7 @@ const decodeClaims = token => {
 function App() {
   const [section, setSection] = useState("Overview");
   const [mobileNav, setMobileNav] = useState(false);
+  const [navSearch, setNavSearch] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
   const [apiBase, setApiBase] = useState(API_DEFAULT);
   const [tokenInput, setTokenInput] = useState("");
@@ -219,18 +220,19 @@ function App() {
     <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}>
       <div className="brand"><div className="brand-mark">A</div><div><strong>ASAA</strong><span>OPERATING PLATFORM</span></div><button className="icon-btn sidebar-close" onClick={() => setMobileNav(false)}><X size={18}/></button></div>
       <div className="workspace-switch"><div className="workspace-avatar">A</div><div><b>ASAA Workspace</b><small>Founder workspace</small></div><ChevronDown size={15}/></div>
+      <div className="sidebar-search"><Search size={15}/><input value={navSearch} onChange={e=>setNavSearch(e.target.value)} placeholder="Find a module…"/>{navSearch && <button onClick={()=>setNavSearch("")} aria-label="Clear module search"><X size={13}/></button>}</div>
       <nav>
-        {NAV.map(group => <div className="nav-group" key={group.group}><small className="nav-caption">{group.group}</small>{group.items.map(([name, Icon]) => <button key={name} className={`nav-item ${section === name ? "active" : ""}`} onClick={() => { setSection(name); setMobileNav(false); setSearch(""); }}><Icon size={17}/><span>{name}</span>{name === "Expenses" && stats.pendingExpenses > 0 && token && <i>{stats.pendingExpenses}</i>}</button>)}</div>)}
+        {NAV.map(group => <div className="nav-group" key={group.group}><small className="nav-caption">{group.group}</small>{group.items.filter(([name])=>name.toLowerCase().includes(navSearch.toLowerCase())).map(([name, Icon]) => <button key={name} className={`nav-item ${section === name ? "active" : ""}`} onClick={() => { setSection(name); setMobileNav(false); setSearch(""); }}><Icon size={17}/><span>{name}</span>{name === "Expenses" && stats.pendingExpenses > 0 && token && <i>{stats.pendingExpenses}</i>}</button>)}</div>)}
       </nav>
       <div className="sidebar-bottom"><div className="secure-note"><ShieldCheck size={16}/><span>Secure workspace<br/><small>Access controlled by permissions</small></span></div><button className="nav-item" onClick={() => setModal("connection")}><Settings2 size={17}/>Connection settings</button></div>
-      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || "ASAA Administrator"}</b><small>Founder · CEO · Director · Current responsibilities</small></div><button className="icon-btn" title="Sign out" onClick={() => { setToken(""); setTokenInput(""); setConnected(false); setData({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [] }); }}><LogOut size={16}/></button></div>
+      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || (token ? "ASAA Administrator" : "Preview visitor")}</b><small>{token ? "Founder · CEO · Director · Current responsibilities" : "Unauthenticated UI preview"}</small></div><button className="icon-btn" title="Sign out" onClick={() => { setToken(""); setTokenInput(""); setConnected(false); setData({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [] }); }}><LogOut size={16}/></button></div>
     </aside>
 
     <main className="main-area">
       <header className="topbar">
         <button className="icon-btn mobile-menu" onClick={() => setMobileNav(true)}><Menu size={20}/></button>
         <div className="crumb"><span>ASAA</span><b>/</b><strong>{section}</strong></div>
-        <div className="top-actions"><div className="system-status"><span className={connected ? "status-dot online" : "status-dot"}/>{connected ? "API connected" : "Not connected"}</div><button className="icon-btn" title="Help"><CircleHelp size={18}/></button><button className="icon-btn notification-btn" title="Notifications"><Bell size={18}/><i/></button><div className="top-avatar">AD</div></div>
+        <div className="top-actions"><div className="system-status"><span className={connected ? "status-dot online" : "status-dot"}/>{connected ? "API connected" : "Not connected"}</div><button className="icon-btn" title="Help"><CircleHelp size={18}/></button><button className="icon-btn notification-btn" title="Notifications"><Bell size={18}/><i/></button><div className="top-avatar">{token ? "AD" : "PV"}</div></div>
       </header>
 
       <div className="content">
