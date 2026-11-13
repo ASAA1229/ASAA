@@ -8,6 +8,16 @@ The current runnable service is the FastAPI API in `apps/ap-api`. It supports lo
 
 Do not treat a successful local run or CI result as production readiness.
 
+### Production PostgreSQL validation command
+
+After provisioning the target database and setting the production environment variables, run from `apps/ap-api` with the restricted application runtime role:
+
+```bash
+ASAA_AP_ENVIRONMENT=production python scripts/validate_postgresql.py
+```
+
+The command checks PostgreSQL 16+, TLS on the active connection, least-privilege application role attributes, Alembic head alignment, revision-column capacity, required application tables and SELECT/INSERT/UPDATE privileges. It redacts the database URL and returns a non-zero exit code if a check fails. Run migrations with a separate migration-only identity before running this check. This command has not been run against a provisioned production database in this project.
+
 ## 2. Environment configuration
 
 Each environment must supply its own:
