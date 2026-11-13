@@ -179,8 +179,8 @@ The running OpenAPI document is the definitive route/schema reference for the cu
 - Never weaken authorization to make tests pass; use explicit test principals and permissions.
 - Keep secrets and local databases out of source control.
 - Preserve existing project requirements and code boundaries.
-- Update these consolidated documents when product scope or architecture changes; avoid creating new standalone Markdown status files.
-- Report Built, Built Not Tested, Passed, Blocked and Deferred distinctly.
+- Update the authoritative `docs/PROJECT_STATUS.md` when verified implementation or release state changes; link other documents to it rather than maintaining duplicate status records.
+- Use the canonical statuses in `docs/PROJECT_STATUS.md`; record commit, environment and evidence for every verification.
 
 
 ## 10. Web portal
@@ -246,3 +246,8 @@ API identity settings:
 The identity provider must issue the configured acr/amr claims if the corresponding requirement is enabled. Do not assume a generic MFA claim name; map to the provider's documented claim semantics. Browser-based code exchange requires provider CORS support for the SPA origin. Access tokens are memory-only; refresh tokens are not persisted or renewed. Provider logout, token revocation, SCIM provisioning/deprovisioning and group synchronization are not implemented. Until a provider is selected and tested, development token connection remains a development-only fallback.
 
 Do not use production identities or real access tokens in automated tests. Use explicit test principals and isolated signing keys.
+
+
+## Quality and status references
+
+Use [Testing](TESTING.md) for test layers and recorded CI evidence, [DevOps](DEVOPS.md) for delivery controls and [Project Status](PROJECT_STATUS.md) for the authoritative current state.
