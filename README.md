@@ -40,7 +40,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5000`. Vite uses port 5000 for both development and preview and fails rather than silently switching ports if it is occupied. Build and preview with `npm run build` and `npm run preview`. The UI currently presents an identity-token connection screen; live business data requires the API and a valid identity-provider token.
+Open `http://localhost:5000`. Vite uses port 5000 for both development and preview and fails rather than silently switching ports if it is occupied. Build and preview with `npm run build` and `npm run preview`. The portal provides navigation and dedicated workspace views across the ASAA governance, shared platform, people, project/technology, operations, sales, finance, legal/security, knowledge and analytics domains. Select **Explore all module UIs** on the connection screen to browse the interface without live records; connect an authorized identity-provider token to access API data. UI preview mode does not create sample business records or grant permissions.
 
 ## Run the current API locally
 
