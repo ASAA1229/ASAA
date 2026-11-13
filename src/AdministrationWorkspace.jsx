@@ -37,7 +37,17 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
       jobs.push(["units", api("/api/v1/administration/units")]);
     }
     if (name === "Master data") jobs.push(["domains", api("/api/v1/master-data/domains")]);
-    if (name === "Identity & access" || name === "Access reviews") { jobs.push(["campaigns", api("/api/v1/administration/access-reviews")]); jobs.push(["roles", api("/api/v1/authorization/roles")]); jobs.push(["assignments", api("/api/v1/authorization/assignments")]); }
+    if (name === "Identity & access" || name === "Access reviews") {
+      const canReadCampaigns = permission(claims, "identity:access-review:read");
+      const canReadRoles = permission(claims, "authorization:role:read");
+      const canReadAssignments = permission(claims, "authorization:assignment:read");
+      if (canReadCampaigns) jobs.push(["campaigns", api("/api/v1/administration/access-reviews")]);
+      else setData(current => ({ ...current, campaigns: [] }));
+      if (canReadRoles) jobs.push(["roles", api("/api/v1/authorization/roles")]);
+      else setData(current => ({ ...current, roles: [] }));
+      if (canReadAssignments) jobs.push(["assignments", api("/api/v1/authorization/assignments")]);
+      else setData(current => ({ ...current, assignments: [] }));
+    }
     try {
       const pairs = await Promise.all(jobs.map(async ([key, promise]) => [key, await promise]));
       setData(current => ({ ...current, ...Object.fromEntries(pairs) }));
