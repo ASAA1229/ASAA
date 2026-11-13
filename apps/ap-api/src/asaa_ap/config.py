@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,7 +15,7 @@ class Settings(BaseSettings):
     jwt_jwks_url: str | None = None
     required_acr: str | None = None
     required_amr: str | None = None
-    jwt_leeway_seconds: int = 30
+    jwt_leeway_seconds: int = Field(default=30, ge=0, le=300)
     supplier_status_transitions_json: str = '{"Draft":["Pending Verification","Archived"],"Pending Verification":["Active","On Hold","Archived"],"Active":["On Hold","Suspended","Archived"],"On Hold":["Active","Suspended","Archived"],"Suspended":["Active","On Hold","Archived"],"Archived":[]}'
     cors_origins: list[str] = ["http://localhost:5000", "http://127.0.0.1:5000"]
     app_name: str = "ASAA Finance API"
