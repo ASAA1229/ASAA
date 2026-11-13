@@ -4,6 +4,7 @@ import ReceivablesWorkspace from "./ReceivablesWorkspace.jsx";
 import WorkforceFinanceWorkspace from "./WorkforceFinanceWorkspace.jsx";
 import AdministrationWorkspace from "./AdministrationWorkspace.jsx";
 import PeopleWorkspace from "./PeopleWorkspace.jsx";
+import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useState } from "react";
@@ -263,6 +264,7 @@ function App() {
           {section === "Timesheets" && (token ? <WorkforceFinanceWorkspace kind="timesheet" records={data.timesheets} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Expenses" && (token ? <WorkforceFinanceWorkspace kind="expense" records={data.expenses} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
           {["People directory","Employment lifecycle","Onboarding","Offboarding","Leave management","Employee assets"].includes(section) && <PeopleWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
+          {section === "Compensation & payroll" && <PayrollWorkspace api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Governance" && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Reports" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name="Reports & dashboards" connected={false} setSection={setSection}/>)}
