@@ -24,7 +24,8 @@ The current executable slice includes a responsive React/Vite web client at the 
 - Restricted compensation records and controlled payroll input/review/approval/closure workflows.
 - Master-data domain ownership, stewardship, source provenance, duplicate-candidate flagging and non-destructive supersession.
 - Governance decision register and time-bounded authority delegation workflow with independent review, revocation and audit.
-- Organization profile and configurable hierarchy administration, plus dated access-review campaigns and independently recorded recertification decisions.
+- Organization profile and configurable hierarchy administration with maker-checker activation, plus dated access-review campaigns and independently recorded recertification decisions.
+- Governed role/permission templates and scoped access assignment requests with independent approval and revocation records; these remain policy records until identity-provider synchronization is configured.
 - Generic OIDC Authorization Code + PKCE sign-in plumbing, RS256 JWKS verification and configurable MFA assurance-claim enforcement hooks; provider activation remains pending selection and configuration.
 - Initial TMS timesheet capture, submission and independent review workflows.
 - Initial expense claim capture, submission, independent review and separate reimbursement recording.
