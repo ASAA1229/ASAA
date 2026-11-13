@@ -95,6 +95,11 @@ Current revision chain:
 - `0008_onboarding_assignment_version`
 - `0009_master_data_governance`
 - `0010_authority_register`
+- `0011_timesheets_expenses`
+- `0012_purchase_requests`
+- `0013_org_access_admin`
+- `0014_org_unit_review`
+- `0015_authorization_roles`
 
 For a disposable local/test database only, the CI migration check performs:
 
@@ -198,6 +203,12 @@ The organization administration endpoints are under /api/v1/administration:
 - GET/POST /units and PATCH /units/{id}
 - GET/POST /access-reviews
 - POST /access-reviews/items/{id}/decision
+
+Authorization governance endpoints are under /api/v1/authorization:
+- GET/POST /roles, PATCH /roles/{id}, POST /roles/{id}/review
+- GET/POST /assignments, POST /assignments/{id}/review and POST /assignments/{id}/revoke
+
+Role and assignment permissions are separately controlled by authorization:role:read/write/approve and authorization:assignment:read/create/approve/revoke. Approved templates and assignment records are governance intent only until the identity-provider adapter maps them into signed access-token claims.
 
 Master-data domain and record endpoints remain under /api/v1/master-data. Administration routes require explicit permissions: organization:profile:read/write, organization:structure:read/write, identity:access-review:read/create/review, plus the separate masterdata permissions. Never grant these solely from a job title.
 
