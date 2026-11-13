@@ -9,6 +9,7 @@ from asaa_people import models as people_models  # noqa: F401
 from asaa_governance import models as governance_models  # noqa: F401
 from asaa_governance import authority as authority_models  # noqa: F401
 from asaa_governance import administration as administration_models  # noqa: F401
+from asaa_governance import authorization as authorization_models  # noqa: F401
 from asaa_workforce_finance import models as workforce_finance_models  # noqa: F401
 
 config = context.config
