@@ -166,7 +166,7 @@ Verification rules:
 ## 6. Current implementation baseline (branch `new`)
 
 ### Finance API
-**Supplier/AP foundation — Built:** organization-scoped supplier registration/list/detail, duplicate checks, controlled status transitions, optimistic version checks, permission gates and audit events. Purchase requests, quotations, purchase orders, receipts, supplier invoices, matching, payment, bank and tax workflows are not included.
+**Supplier/AP foundation — Built:** organization-scoped supplier registration/list/detail, duplicate checks, controlled status transitions, optimistic version checks, permission gates and audit events. **Purchase requests — Passed:** request headers and line items, decimal-safe estimated totals, currency and needed-by validation, organization-scoped access, requester submission, independent approve/reject/return review, optimistic concurrency, permission gates and audit events. Verification: CI run [43362891894](https://github.com/ASAA1229/ASAA/actions/runs/43362891894) passed API compilation, the full automated API test suite, and Alembic upgrade/downgrade/upgrade on SQLite at commit `ec28cc7a251139a8ed701bd1d2b3cbf5409e8fe8`. Quotations, purchase orders, receipts, supplier invoices, matching, payment, bank and tax workflows remain open.
 
 **AR foundation — Built:** customer registration/lookup, draft invoice creation/editing, decimal line/subtotal/tax/total calculations, permission-gated invoice issue, receipt recording and partial/unapplied allocation. No tax rates, FX, e-invoicing, payment initiation, bank settlement verification, refunds, credit notes, disputes or bank reconciliation are assumed.
 
@@ -209,6 +209,8 @@ The following route groups describe the implemented API surface on the current b
 
 ### Supplier / Accounts Payable
 - Supplier operations: `/api/v1/suppliers` (create, list, detail, controlled update and status transition).
+- Purchase requests: `POST/GET /api/v1/ap/purchase-requests`, `GET /api/v1/ap/purchase-requests/{request_id}`, `POST /api/v1/ap/purchase-requests/{request_id}/submit`, `POST /api/v1/ap/purchase-requests/{request_id}/review`.
+- Permissions: `procurement:request:write`, `procurement:request:read`, optional organization-wide `procurement:request:read:all`, `procurement:request:submit`, `procurement:request:review`.
 - Permissions: `supplier:read`, `supplier:write`, `supplier:status`, `supplier:verify`; shared audit access: `audit:read`.
 - New suppliers begin in Draft; activation requires verification permission. Supplier records are organization-scoped and have no delete endpoint.
 
