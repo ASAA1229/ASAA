@@ -14,6 +14,7 @@ from asaa_people.lifecycle import router as hr_lifecycle_router
 from asaa_people.workflows import router as people_workflows_router
 from asaa_ap.config import get_settings
 from asaa_ap.database import engine
+from asaa_ap.hardening import HardeningMiddleware
 from asaa_ap.observability import RequestContextMiddleware, configure_logging, metrics
 from asaa_governance.api import router as master_data_router
 from asaa_governance.authority import router as governance_router
@@ -27,7 +28,11 @@ from asaa_identity.provider import register_provider
 settings = get_settings()
 configure_logging(settings.log_level)
 logger = logging.getLogger("asaa.api")
-app = FastAPI(title=settings.app_name, version="0.4.0")
+# Interactive API docs and the OpenAPI document are disabled in production (docs/SECURITY.md section 8).
+_production = settings.environment == "production"
+app = FastAPI(title=settings.app_name, version="0.4.0",
+              docs_url=None if _production else "/docs", redoc_url=None if _production else "/redoc",
+              openapi_url=None if _production else "/openapi.json")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -36,6 +41,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Correlation-ID", "X-Request-ID"],
     expose_headers=["X-Request-ID"],
 )
+app.add_middleware(HardeningMiddleware)
 app.add_middleware(RequestContextMiddleware)
 app.include_router(ap_router)
 app.include_router(purchase_requests_router)

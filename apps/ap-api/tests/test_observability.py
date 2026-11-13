@@ -139,3 +139,33 @@ def test_authorization_failures_are_visible_in_metrics(client, monkeypatch):
     app.dependency_overrides[get_principal] = lambda: Principal("nobody", "org-a", frozenset())
     assert client.get("/api/v1/ap/suppliers").status_code == 403
     assert 'status="403"' in client.get("/metrics").text
+
+
+def test_security_headers_and_no_store_on_api_responses(client):
+    api = client.get("/api/v1/ap/suppliers")
+    assert api.headers["x-content-type-options"] == "nosniff"
+    assert api.headers["x-frame-options"] == "DENY"
+    assert api.headers["cache-control"] == "no-store"
+    assert "default-src 'none'" in api.headers["content-security-policy"]
+    assert client.get("/health").headers["referrer-policy"] == "no-referrer"
+
+
+def test_oversized_request_bodies_are_rejected_with_413(client):
+    response = client.post("/api/v1/ap/suppliers", content=b"x" * (1_048_576 + 10), headers={"Content-Type": "application/json"})
+    assert response.status_code == 413
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_api_docs_are_disabled_in_production_mode(monkeypatch):
+    import importlib
+    import asaa_ap.config as config
+    monkeypatch.setenv("ASAA_AP_ENVIRONMENT", "production")
+    monkeypatch.setenv("ASAA_AP_DATABASE_URL", "postgresql+psycopg://u@h/db")
+    config.get_settings.cache_clear()
+    try:
+        prod_main = importlib.reload(main)
+        assert prod_main.app.docs_url is None and prod_main.app.openapi_url is None
+    finally:
+        monkeypatch.undo()
+        config.get_settings.cache_clear()
+        importlib.reload(main)
