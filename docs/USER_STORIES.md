@@ -107,7 +107,7 @@ Acceptance criteria:
 ## P1 — Finance, payroll and workforce
 
 ### ASAA-P1-01 — Prevent overlapping payroll periods
-**Status:** In Progress — first implementation slice in this cycle.
+**Status:** Verified — API and PostgreSQL integration CI passed on the latest payroll period test commit.
 
 As a payroll administrator, I want payroll periods to have unique organization-scoped codes and non-overlapping date ranges so that employees cannot be included in duplicate or conflicting periods.
 
@@ -120,13 +120,16 @@ Acceptance criteria:
 - Automated tests cover duplicate, overlap, adjacency and organization isolation.
 
 ### ASAA-P1-02 — Maintain a valid compensation timeline
-**Status:** Built — verification and correction workflow pending.
+**Status:** In Progress — effective-date overlap enforcement and independent decision API implemented; verification running.
 
 As a restricted payroll operator, I want effective-dated compensation records to be consistent and independently approved so that historical and future compensation cannot conflict.
 
 Acceptance criteria:
 - Effective intervals for an employee cannot conflict.
-- Approved records cannot be silently overwritten.
+- Approved records cannot be silently overwritten; changes are new proposals.
+- Pending and approved effective intervals cannot overlap for the same employee; adjacent periods are allowed.
+- Rejected proposals remain in history but do not block a replacement proposal.
+- Independent approval/rejection records reviewer, timestamp and note; maker self-approval and repeated decisions are rejected.
 - Corrections and supersession preserve original values and reasons.
 - Currency, pay basis, frequency and effective dates are validated.
 - Compensation read/write/approve permissions remain separate from general HR access.
