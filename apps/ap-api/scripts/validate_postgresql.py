@@ -73,6 +73,14 @@ def main() -> int:
                 role_is_restricted,
                 "Connected role must not be superuser, create roles/databases, replicate or bypass RLS",
             )
+            schema_create = bool(connection.scalar(text(
+                "SELECT has_schema_privilege(current_user, current_schema(), 'CREATE')"
+            )))
+            record(
+                "application_role_schema_ownership",
+                not schema_create,
+                "Runtime application role must not have schema CREATE privilege",
+            )
 
             current_revision = MigrationContext.configure(connection).get_current_revision()
             record(
@@ -93,6 +101,16 @@ def main() -> int:
 
             existing_tables = set(inspector.get_table_names())
             expected_tables = set(Base.metadata.tables)
+            owned_tables = connection.execute(text(
+                "SELECT tablename FROM pg_tables WHERE schemaname = current_schema() AND tableowner = current_user"
+            )).scalars().all()
+            owned_application_tables = sorted(set(owned_tables) & expected_tables)
+            record(
+                "application_role_table_ownership",
+                not owned_application_tables,
+                "Runtime role does not own application tables"
+                if not owned_application_tables else "Runtime role owns tables: " + ", ".join(owned_application_tables),
+            )
             missing_tables = sorted(expected_tables - existing_tables)
             record(
                 "application_schema",
