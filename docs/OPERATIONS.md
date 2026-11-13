@@ -4,7 +4,7 @@
 
 ## 1. Current operational footprint
 
-The current runnable service is the FastAPI API in `apps/ap-api`. It supports local SQLite by default and has a PostgreSQL driver/configuration path. The current CI runs automated tests and migration checks against SQLite. There is no verified production deployment, production PostgreSQL environment, configured identity provider, UI, production monitoring stack or validated backup/restore process evidenced by this branch.
+The current runnable service is the FastAPI API in `apps/ap-api`. It supports local SQLite and has a PostgreSQL 16 integration-test workflow using psycopg 3, the full Alembic chain and PostgreSQL-specific API persistence checks. Production PostgreSQL provisioning, TLS configuration, backup/restore validation, production load/concurrency testing and deployment remain unverified. There is no verified production deployment, configured identity provider, production monitoring stack or validated production backup/restore process evidenced by this branch.
 
 Do not treat a successful local run or CI result as production readiness.
 
@@ -24,7 +24,7 @@ Use separate credentials and databases for development, test, staging and produc
 Before first production deployment:
 1. Confirm legal entity, operating jurisdictions, data residency and applicable obligations.
 2. Approve the production architecture, hosting provider, network boundaries and environment ownership.
-3. Provision PostgreSQL with TLS, least-privilege database roles, encryption, connection limits and monitored storage.
+3. Provision PostgreSQL with TLS certificate verification, least-privilege database roles, encryption at rest, connection limits and monitored storage. Configure ASAA_AP_ENVIRONMENT=production and a postgresql+psycopg URL; production mode rejects SQLite.
 4. Configure the approved identity provider, RS256 key distribution/rotation, issuer/audience, MFA policy and permission claims.
 5. Complete migration rehearsal and backup on a production-like database.
 6. Complete security/privacy review, dependency review, access-control tests and concurrency/load tests.
@@ -106,6 +106,6 @@ No incident commander, SLA or notification authority is assumed until assigned.
 
 ## 9. Current operational gaps
 
-Not yet evidenced as implemented: production hosting/deployment automation, PostgreSQL production validation, centralized monitoring/alerting, log retention, backup and restore automation, disaster-recovery exercises, incident response ownership, production secrets management, document storage operations, notification delivery operations, integration health dashboards and support SLAs.
+Not yet evidenced as implemented: production hosting/deployment automation, production PostgreSQL provisioning/TLS and load validation, automated backup and restore, disaster-recovery exercises, centralized monitoring/alerting, log retention, incident response ownership, production secrets management, document storage operations, notification delivery operations, integration health dashboards and support SLAs. PostgreSQL 16 migration and API integration checks run in CI, but do not constitute production validation.
 
 These are production release gates, not optional documentation tasks.
