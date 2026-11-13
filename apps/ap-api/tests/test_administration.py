@@ -5,7 +5,7 @@ from asaa_ap.security import Principal, get_principal
 
 ADMIN = {
     "organization:profile:read", "organization:profile:write",
-    "organization:structure:read", "organization:structure:write",
+    "organization:structure:read", "organization:structure:write", "organization:structure:approve",
     "identity:access-review:read", "identity:access-review:create",
     "identity:access-review:review", "audit:read",
 }
