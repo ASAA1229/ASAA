@@ -4,7 +4,7 @@
 
 ## 1. Current operational footprint
 
-The current runnable service is the FastAPI API in `apps/ap-api`. It supports local SQLite and has a PostgreSQL 16 integration-test workflow using psycopg 3, all 15 Alembic migrations and PostgreSQL-specific API persistence checks. The latest passing PostgreSQL integration run is [43406401957](https://github.com/ASAA1229/ASAA/actions/runs/43406401957). Production PostgreSQL provisioning, TLS configuration, backup/restore validation, production load/concurrency testing and deployment remain unverified. There is no verified production deployment, configured identity provider, production monitoring stack or validated production backup/restore process evidenced by this branch.
+The current runnable service is the FastAPI API in `apps/ap-api`. It supports local SQLite and has a PostgreSQL 16 integration-test workflow using psycopg 3, all 15 Alembic migrations and PostgreSQL-specific API persistence checks. The latest passing PostgreSQL integration run is [43407390790](https://github.com/ASAA1229/ASAA/actions/runs/43407390790); API quality checks passed at [43407390884](https://github.com/ASAA1229/ASAA/actions/runs/43407390884). Production PostgreSQL provisioning, TLS configuration, backup/restore validation, production load/concurrency testing and deployment remain unverified. There is no verified production deployment, configured identity provider, production monitoring stack or validated production backup/restore process evidenced by this branch.
 
 Do not treat a successful local run or CI result as production readiness.
 
