@@ -93,3 +93,6 @@
 @media(max-width:640px){.admin-unit-review{width:100%;min-width:0}.admin-unit-review input{flex:1;width:auto}}
 
 .admin-unit-review select{min-width:90px;padding:8px;border:1px solid var(--border,#d4d4d4);border-radius:8px;background:var(--surface,#fff);color:inherit;font:inherit;font-size:12px}
+
+.admin-domain-entry{display:flex;align-items:center;gap:8px;min-width:0}.admin-domain-entry .admin-domain-row{flex:1;min-width:0;text-align:left}
+@media(max-width:640px){.admin-domain-entry{align-items:stretch}.admin-domain-entry .admin-domain-row{flex:1}.admin-domain-entry>.btn{align-self:center}}
