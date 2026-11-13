@@ -2,6 +2,7 @@ const AUTHORITY = (import.meta.env.VITE_OIDC_AUTHORITY || "").replace(/\/$/, "")
 const CLIENT_ID = import.meta.env.VITE_OIDC_CLIENT_ID || "";
 const REDIRECT_URI = import.meta.env.VITE_OIDC_REDIRECT_URI || window.location.origin;
 const SCOPE = import.meta.env.VITE_OIDC_SCOPES || "openid profile email";
+import { assertHttps } from "./urlPolicy.js";
 
 const TRANSACTION_KEY = "asaa.oidc.transaction.v1";
 
@@ -10,10 +11,6 @@ function decodeBase64Url(value) {
   return Uint8Array.from(atob(normalized + "=".repeat((4 - normalized.length % 4) % 4)), char => char.charCodeAt(0));
 }
 function decodeJsonPart(value) { return JSON.parse(new TextDecoder().decode(decodeBase64Url(value))); }
-function assertHttps(url, label) {
-  const parsed = new URL(url);
-  if (parsed.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(parsed.hostname)) throw new Error(label + " must use HTTPS.");
-}
 async function verifyIdToken(idToken, transaction) {
   if (!idToken || !transaction.jwksUri) throw new Error("The identity provider did not return a verifiable ID token.");
   const parts = idToken.split(".");
@@ -56,6 +53,7 @@ async function discovery() {
   if (!metadata.authorization_endpoint || !metadata.token_endpoint || !metadata.jwks_uri || metadata.issuer !== AUTHORITY) throw new Error("The identity provider metadata is incomplete or its issuer does not match the configured authority.");
   assertHttps(metadata.authorization_endpoint, "OIDC authorization endpoint");
   assertHttps(metadata.token_endpoint, "OIDC token endpoint");
+  assertHttps(metadata.jwks_uri, "OIDC JWKS endpoint");
   assertHttps(metadata.jwks_uri, "OIDC JWKS endpoint");
   return metadata;
 }
