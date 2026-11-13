@@ -175,6 +175,10 @@ function App() {
     });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        setToken(""); setTokenInput(""); setConnected(false);
+        setData({ suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] });
+      }
       throw new Error(typeof body.detail === "string" ? body.detail : body.detail ? JSON.stringify(body.detail) : `Request failed (${response.status})`);
     }
     return response.status === 204 ? null : response.json();
