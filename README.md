@@ -15,7 +15,7 @@ ASAA is not limited to HR, ERP, CRM, project management or software development.
 
 ## Current repository implementation
 
-The current executable slice includes a React/Vite web client at the repository root (`src/`, `public/`) and an API-first Python service in `apps/ap-api`. The API contains:
+The current executable slice includes a responsive React/Vite web client at the repository root (`src/`, `public/`) and an API-first Python service in `apps/ap-api`. The web client now exposes connected supplier lifecycle, purchase-request, customer/invoice/receipt, timesheet and expense workflows. Other module workspaces remain staged previews until their APIs and workflows are integrated. The API contains:
 
 - Accounts Payable supplier foundation and initial purchase-request workflow (draft, submit, independent review).
 - Accounts Receivable customer, invoice and receipt foundation.
@@ -101,7 +101,7 @@ For Linux/macOS, replace the executable path with `.venv/bin/python`.
 - `apps/ap-api` — FastAPI business API for finance, people, governance and workforce workflows.
 - `scripts/` — cross-platform local development and API environment helpers.
 
-The web client is a UI foundation. Production remote access requires a deployed HTTPS frontend/API, configured identity provider and trusted CORS origins.
+The web client is a connected operational slice for selected finance and workforce workflows, plus a navigable preview of the wider platform. It is not yet a complete ERP or production release. Production remote access requires a deployed HTTPS frontend/API, configured identity provider and trusted CORS origins.
 
 ## Repository and branch
 
