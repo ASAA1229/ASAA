@@ -439,3 +439,29 @@ The web client now exposes the existing workforce-finance API for:
 - Explicit separation between recording a reimbursement reference and initiating or verifying an external payment.
 
 Remaining workforce gaps include timesheet draft editing, configurable periods and reminders, attendance/project allocation integration, approved-time locking, multi-line expense claims, receipt binary storage/OCR, policy and duplicate checks, mileage/per-diem, advances, accounting export, payroll linkage and end-to-end browser tests. No reimbursement or payment transfer is initiated by this UI.
+
+
+## 20. P0 organization administration and identity access governance
+
+**Status:** API and UI foundation built; API tests and migration checks passed. Provider-dependent SSO/MFA and automated identity lifecycle remain blocked on identity-provider selection and configuration.
+
+Organization administration now includes:
+- Organization-scoped profile creation and optimistic-version updates, with explicit lifecycle values (Pre-Incorporation, Active, Dormant).
+- Configurable organization units for legal entities, business units, divisions, departments, teams, locations and positions.
+- Proposed-by-default organization units, parent-type validation, parent activation gates, active-child protection and effective-date fields.
+- Responsive UI for organization profile and unit registry.
+- UI integration for existing master-data domains and source record references, preserving source ownership and duplicate review semantics.
+- Access-review campaigns based on explicitly referenced, dated identity snapshots; permission/role/scope snapshots; independent Retain, Modify or Revoke review decisions; reasons, reviewer attribution, optimistic version checks and audit events.
+- Access-review campaign completion once all items are decided.
+
+**Verification:** API compile, automated tests and Alembic upgrade/downgrade/upgrade passed in [CI run 43403278481](https://github.com/ASAA1229/ASAA/actions/runs/43403278481). Responsive admin UI build passed in [CI run 43403022249](https://github.com/ASAA1229/ASAA/actions/runs/43403022249). The API test suite includes organization scope, permission separation, hierarchy lifecycle, stale version, access-review self-review and audit checks.
+
+**Important boundaries:** organization-unit owner and parent subjects are identity references, not proof of employment or permission grants. Access-review decisions are governance evidence and do not directly change provider entitlements. The UI does not invent organization structure or user membership.
+
+## 21. SSO, MFA and identity lifecycle foundation
+
+**Status:** Generic OIDC Authorization Code + PKCE sign-in flow and API verification hooks built; real provider connection and MFA enforcement are not yet operationally verified.
+
+The web client supports provider discovery, authorization-code redirect, PKCE S256, state validation and in-memory bearer-token handling. Only the short-lived PKCE transaction verifier/state is held in session storage; access tokens are not persisted. API verification supports configured RS256 JWKS key discovery/rotation and optional required acr and amr claims.
+
+Provider-dependent work remains blocked until an owner selects and configures the identity provider, public SPA client, exact issuer, API audience, redirect URIs, permission/org claim mapping, MFA assurance policy and user lifecycle provisioning/deprovisioning mechanism. No provider, tenant, client ID, MFA method or user account is assumed. Refresh-token renewal, provider logout/revocation, SCIM/admin provisioning, disablement, group/role synchronization, emergency account recovery and automated access revocation are not complete.
