@@ -61,7 +61,7 @@ These are foundational capabilities. A visible UI, API route or database model i
 | POC-05 | Identity lifecycle synchronization | NOT STARTED |
 | POC-06 | UI and end-to-end workflows | NEEDS TESTING |
 | POC-07 | Backup/restore and disaster recovery | NOT STARTED |
-| POC-08 | Business workflow UAT | OWNER ACCEPTANCE PENDING |
+| POC-08 | Business workflow UAT | OWNER ACCEPTANCE PENDING |\n| POC-09 | OIDC authorization/token/JWKS endpoint transport policy | CI VERIFIED — 4 Node.js tests and Vite build passed in run 43419337233 at commit 69e08b2 |
 
 ## 7. POC exit decision
 
