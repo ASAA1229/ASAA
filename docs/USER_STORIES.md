@@ -364,3 +364,10 @@ The first production release is blocked until every P0 story above is Passed or 
 ## Status source
 
 For current cross-project maturity, P0/P1/P2 gaps, release decision and evidence, refer to [Project Status](PROJECT_STATUS.md). This story backlog retains detailed capability acceptance criteria; it is not a second project-wide status register.
+
+
+## Verified security-hardening increment — 2026-11-13
+
+**Status:** CI VERIFIED — commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c`, web CI run [43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233).
+
+The browser OIDC client now applies the HTTPS policy to the JWKS endpoint as well as the authorization and token endpoints. Four Node.js regression tests cover HTTPS acceptance, local-development HTTP exceptions, remote HTTP rejection and non-HTTP scheme rejection. This closes the JWKS transport-validation code gap only; it does not close provider selection, tenant activation, MFA policy, identity lifecycle or full SSO acceptance.
