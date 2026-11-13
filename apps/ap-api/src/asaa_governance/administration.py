@@ -123,6 +123,13 @@ class ProfileUpdate(StrictModel):
     registration_reference: str | None = Field(default=None, max_length=160)
     registered_address: dict | None = None
 
+    @model_validator(mode="after")
+    def reject_null_required_updates(self):
+        for field in ("display_name", "lifecycle_status"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
+
 
 class UnitCreate(StrictModel):
     parent_id: str | None = None
