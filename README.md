@@ -17,7 +17,7 @@ ASAA is not limited to HR, ERP, CRM, project management or software development.
 
 The current executable slice includes a React/Vite web client at the repository root (`src/`, `public/`) and an API-first Python service in `apps/ap-api`. The API contains:
 
-- Accounts Payable supplier foundation.
+- Accounts Payable supplier foundation and initial purchase-request workflow (draft, submit, independent review).
 - Accounts Receivable customer, invoice and receipt foundation.
 - HR employee records, lifecycle, employment history, leave requests, document metadata and asset tracking.
 - Versioned onboarding/offboarding templates, assignments and task workflows.
