@@ -1,6 +1,7 @@
 import ProcurementWorkspace from "./ProcurementWorkspace.jsx";
 import SupplierWorkspace from "./SupplierWorkspace.jsx";
 import ReceivablesWorkspace from "./ReceivablesWorkspace.jsx";
+import WorkforceFinanceWorkspace from "./WorkforceFinanceWorkspace.jsx";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -249,8 +250,8 @@ function App() {
           {section === "AR · Receivables" && (token ? <ReceivablesWorkspace customers={data.customers} invoices={data.invoices} receipts={data.receipts} api={api} claims={claims} onChanged={refresh} onAddCustomer={() => setModal("customer")}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "AP · Payables" && (token ? <><SupplierWorkspace suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/><ProcurementWorkspace requests={data.purchaseRequests} suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/></> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Procurement" && (token ? <ProcurementWorkspace requests={data.purchaseRequests} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
-          {section === "Timesheets" && (token ? <WorkList title="Time & timesheet management" data={data.timesheets} kind="timesheet" search={search} setSearch={setSearch}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
-          {section === "Expenses" && (token ? <WorkList title="Expense management" data={data.expenses} kind="expense" search={search} setSearch={setSearch} setModal={setModal}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
+          {section === "Timesheets" && (token ? <WorkforceFinanceWorkspace kind="timesheet" records={data.timesheets} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
+          {section === "Expenses" && (token ? <WorkforceFinanceWorkspace kind="expense" records={data.expenses} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
           {section === "Governance" && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           {section === "Reports" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name="Reports & dashboards" connected={false} setSection={setSection}/>)}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} setApiBase={setApiBase} claims={claims} openConnection={() => setModal("connection")}/>}
