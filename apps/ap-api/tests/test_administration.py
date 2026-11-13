@@ -55,20 +55,22 @@ def test_organization_structure_parent_validation_and_lifecycle(client):
         "unit_code": "finance", "name": "Finance"
     })
     assert child.status_code == 201
-    assert client.patch(f"/api/v1/administration/units/{child.json()['id']}", json={
-        "expected_version": 1, "status": "Active"
+    # The creator cannot approve their own proposed structure.
+    assert client.post(f"/api/v1/administration/units/{root.json()['id']}/review", json={
+        "expected_version": 1, "decision": "Approve", "reason": "Self approval attempt"
+    }).status_code == 403
+
+    as_subject(client, "independent-reviewer")
+    assert client.post(f"/api/v1/administration/units/{child.json()['id']}/review", json={
+        "expected_version": 1, "decision": "Approve", "reason": "Parent is not active"
     }).status_code == 409
 
-    assert client.patch(f"/api/v1/administration/units/{root.json()['id']}", json={
-        "expected_version": 1, "status": "Active"
+    assert client.post(f"/api/v1/administration/units/{root.json()['id']}/review", json={
+        "expected_version": 1, "decision": "Approve", "reason": "Legal entity structure reviewed"
     }).status_code == 200
-    assert client.patch(f"/api/v1/administration/units/{child.json()['id']}", json={
-        "expected_version": 1, "status": "Active"
+    assert client.post(f"/api/v1/administration/units/{child.json()['id']}/review", json={
+        "expected_version": 1, "decision": "Approve", "reason": "Department structure reviewed"
     }).status_code == 200
-
-    assert client.patch(f"/api/v1/administration/units/{root.json()['id']}", json={
-        "expected_version": 2, "status": "Inactive"
-    }).status_code == 409
     assert len(client.get("/api/v1/administration/units").json()) == 2
 
 
