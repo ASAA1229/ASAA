@@ -102,6 +102,8 @@ def test_access_review_campaign_decisions_are_audited_and_not_self_reviewed(clie
     assert reviewed.status_code == 200
     assert reviewed.json()["decision"] == "Modify"
     assert reviewed.json()["reviewed_by"] == "independent-reviewer"
+    campaign = client.get("/api/v1/administration/access-reviews").json()[0]
+    assert campaign["status"] == "Completed"
 
     events = client.get("/api/v1/ap/audit-events").json()
     assert any(event["action"] == "identity_access_review.decided" for event in events)
