@@ -154,3 +154,8 @@ The administration API owns organization profile and configurable organization-u
 Access-review campaigns store an explicitly sourced and dated snapshot of identity subjects, roles, permissions and scopes. Review decisions are separately audited and require an independent reviewer. The review register does not itself mutate upstream identity-provider entitlements.
 
 The portal implements generic OIDC Authorization Code + PKCE using provider discovery and a public client. Provider-specific endpoints are discovered from the configured issuer. Access tokens remain in memory; only the transient PKCE transaction is stored in session storage. The API verifies RS256 JWTs using a configured public key or cached JWKS client and can require configured acr/amr claims. Provider provisioning, refresh, logout, revocation and role synchronization remain adapter responsibilities and are not enabled without an approved provider.
+
+
+## Shared authorization governance
+
+Role templates define explicit permission identifiers and a scope type. Proposed templates and subject-to-role assignments use independent review and audit. Scope references and subject IDs are opaque external references; this registry does not verify identity-provider membership or directly issue permission claims. A future identity-provider adapter must map only approved, effective, in-scope assignments into the signed API token claims and support revocation/expiry synchronization. Until then, the existing JWT permission array remains the sole authorization authority.
