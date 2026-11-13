@@ -317,6 +317,33 @@ def patch_unit(unit_id: str, payload: UnitUpdate, db: Session = Depends(get_db),
     return dump(row)
 
 
+@router.post("/units/{unit_id}/review")
+def review_unit(unit_id: str, payload: UnitReview, db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("organization:structure:approve")),
+    x_correlation_id: str | None = Header(default=None)):
+    row = get_unit(db, unit_id, principal.organization_id)
+    if row.status != "Proposed":
+        raise HTTPException(status_code=409, detail={"code": "organization_unit_not_proposed"})
+    if row.version != payload.expected_version:
+        raise HTTPException(status_code=409, detail={"code": "stale_organization_unit_version"})
+    if row.created_by == principal.subject:
+        raise HTTPException(status_code=403, detail={"code": "organization_unit_self_approval_forbidden"})
+    if payload.decision == "Approve" and row.parent_id:
+        parent = get_unit(db, row.parent_id, principal.organization_id)
+        if parent.status != "Active":
+            raise HTTPException(status_code=409, detail={"code": "parent_unit_not_active"})
+    row.status = "Active" if payload.decision == "Approve" else "Rejected"
+    row.reviewed_by = principal.subject
+    row.reviewed_at = utcnow()
+    row.review_reason = payload.reason
+    db.flush()
+    audit(db, principal, "organization_unit.reviewed", "organization_unit", row.id,
+          {"decision": payload.decision, "status": row.status, "reason": payload.reason}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return dump(row)
+
+
 @router.get("/access-reviews")
 def list_campaigns(db: Session = Depends(get_db), principal: Principal = Depends(require_permission("identity:access-review:read"))):
     rows = db.scalars(select(AccessReviewCampaign).where(
