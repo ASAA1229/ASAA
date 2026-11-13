@@ -16,7 +16,7 @@ After provisioning the target database and setting the production environment va
 ASAA_AP_ENVIRONMENT=production python scripts/validate_postgresql.py
 ```
 
-The command checks PostgreSQL 16+, TLS on the active connection, least-privilege application role attributes, Alembic head alignment, revision-column capacity, required application tables and SELECT/INSERT/UPDATE privileges. It redacts the database URL and returns a non-zero exit code if a check fails. Run migrations with a separate migration-only identity before running this check. This command has not been run against a provisioned production database in this project.
+The command checks PostgreSQL 16+, TLS on the active connection, least-privilege application role attributes, no runtime schema/table ownership or schema CREATE privilege, Alembic head alignment, revision-column capacity, required application tables and SELECT/INSERT/UPDATE privileges. It redacts the database URL and returns a non-zero exit code if a check fails. Run migrations with a separate migration-only identity before running this check. This command has not been run against a provisioned production database in this project.
 
 ## 2. Environment configuration
 
