@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Building2, Check, ChevronRight, Database, Plus, RefreshCw, ShieldCheck, Users, X } from "lucide-react";
 
 const permission = (claims, value) => Array.isArray(claims.permissions) && claims.permissions.includes(value);
-const empty = { organization: null, units: [], domains: [], records: [], campaigns: [] };
+const empty = { organization: null, units: [], domains: [], records: [], campaigns: [], roles: [], assignments: [] };
 
 export default function AdministrationWorkspace({ name, api, claims = {}, connected, onChanged }) {
   const [data, setData] = useState(empty);
@@ -19,6 +19,11 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
   const [canonicalTarget, setCanonicalTarget] = useState({});
   const [supersedeReason, setSupersedeReason] = useState({});
   const [unitReviewReason, setUnitReviewReason] = useState({});
+  const [roleFormOpen, setRoleFormOpen] = useState(false);
+  const [assignmentFormOpen, setAssignmentFormOpen] = useState(false);
+  const [roleReason, setRoleReason] = useState({});
+  const [assignmentReason, setAssignmentReason] = useState({});
+  const [assignmentDecision, setAssignmentDecision] = useState({});
   const [tab, setTab] = useState("Records");
 
   const load = async () => {
@@ -30,7 +35,7 @@ export default function AdministrationWorkspace({ name, api, claims = {}, connec
       jobs.push(["units", api("/api/v1/administration/units")]);
     }
     if (name === "Master data") jobs.push(["domains", api("/api/v1/master-data/domains")]);
-    if (name === "Identity & access" || name === "Access reviews") jobs.push(["campaigns", api("/api/v1/administration/access-reviews")]);
+    if (name === "Identity & access" || name === "Access reviews") { jobs.push(["campaigns", api("/api/v1/administration/access-reviews")]); jobs.push(["roles", api("/api/v1/authorization/roles")]); jobs.push(["assignments", api("/api/v1/authorization/assignments")]); }
     try {
       const pairs = await Promise.all(jobs.map(async ([key, promise]) => [key, await promise]));
       setData(current => ({ ...current, ...Object.fromEntries(pairs) }));
