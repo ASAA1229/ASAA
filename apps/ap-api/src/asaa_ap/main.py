@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from asaa_ap.api import router as ap_router
+from asaa_ap.purchase_requests import router as purchase_requests_router
 from asaa_ap.ar_api import router as ar_router
 from asaa_people.api import hr_router, onboarding_router, payroll_router
 from asaa_people.lifecycle import router as hr_lifecycle_router
@@ -20,6 +21,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
 )
 app.include_router(ap_router)
+app.include_router(purchase_requests_router)
 app.include_router(ar_router)
 app.include_router(hr_router)
 app.include_router(hr_lifecycle_router)
