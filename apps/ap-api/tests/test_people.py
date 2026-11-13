@@ -518,3 +518,74 @@ def test_payroll_period_rejects_duplicate_codes_and_overlapping_dates_with_org_s
         "end_date": "2026-12-20",
     })
     assert cross_org_overlap.status_code == 409
+
+
+def test_compensation_timeline_overlap_and_independent_approval(client):
+    employee = create_employee(client)
+    proposal = client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "65000.00", "frequency": "Monthly",
+        "effective_from": "2026-12-01", "effective_to": "2026-12-31"
+    })
+    assert proposal.status_code == 201
+    assert proposal.json()["status"] == "Pending Approval"
+
+    overlapping = client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "70000.00", "frequency": "Monthly", "effective_from": "2026-12-15"
+    })
+    assert overlapping.status_code == 409
+    assert overlapping.json()["detail"]["code"] == "compensation_effective_period_overlap"
+
+    adjacent = client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "70000.00", "frequency": "Monthly", "effective_from": "2027-01-01"
+    })
+    assert adjacent.status_code == 201
+
+    self_approval = client.post("/api/v1/payroll/compensation/" + proposal.json()["id"] + "/decision", json={
+        "decision": "Approved", "approval_note": "Self approval must fail"
+    })
+    assert self_approval.status_code == 403
+    assert self_approval.json()["detail"]["code"] == "maker_cannot_approve_own_compensation"
+
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-approver", "org-a", frozenset({"payroll:compensation:approve"})
+    )
+    approved = client.post("/api/v1/payroll/compensation/" + proposal.json()["id"] + "/decision", json={
+        "decision": "Approved", "approval_note": "Independently reviewed"
+    })
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "Approved"
+    assert approved.json()["approved_by"] == "payroll-approver"
+    assert approved.json()["approved_at"] is not None
+
+    repeated = client.post("/api/v1/payroll/compensation/" + proposal.json()["id"] + "/decision", json={
+        "decision": "Rejected", "approval_note": "Cannot change decision"
+    })
+    assert repeated.status_code == 409
+    assert repeated.json()["detail"]["code"] == "compensation_not_pending"
+
+
+def test_rejected_compensation_proposal_does_not_block_future_timeline(client):
+    employee = create_employee(client)
+    proposal = client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "65000.00", "frequency": "Monthly", "effective_from": "2026-12-01"
+    })
+    assert proposal.status_code == 201
+
+    client.app.dependency_overrides[get_principal] = lambda: Principal(
+        "payroll-approver", "org-a", frozenset({"payroll:compensation:approve"})
+    )
+    rejected = client.post("/api/v1/payroll/compensation/" + proposal.json()["id"] + "/decision", json={
+        "decision": "Rejected", "approval_note": "Incorrect proposal"
+    })
+    assert rejected.status_code == 200
+    assert rejected.json()["status"] == "Rejected"
+
+    replacement = client.post("/api/v1/payroll/compensation", json={
+        "employee_id": employee["id"], "currency": "INR", "pay_basis": "Fixed",
+        "gross_amount": "66000.00", "frequency": "Monthly", "effective_from": "2026-12-01"
+    })
+    assert replacement.status_code == 201
