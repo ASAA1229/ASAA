@@ -13,13 +13,13 @@
 
 | Gate | Required evidence | Current state |
 |---|---|---|
-| Production database | PostgreSQL target provisioned; TLS verified; restricted runtime role; separate migration identity; preflight and migration rehearsal pass | NEEDS TESTING |
-| Identity and SSO/MFA | Approved provider/tenant; tested OIDC sign-in, token validation, MFA, logout, expiry and key rotation | OWNER ACCEPTANCE PENDING |
-| Identity lifecycle | Joiner/mover/leaver provisioning, revocation, retries and reconciliation | NOT STARTED |
-| Authorization/security | Tenant/record/field isolation, privileged access, SoD, payroll confidentiality and audit assurance independently tested | NEEDS TESTING |
-| Backup and recovery | Approved RPO/RTO/retention; automated encrypted backups; restore and integrity exercise | NOT STARTED |
-| Business workflow acceptance | Approved policies, authority matrix and signed UAT for every enabled first-release workflow | OWNER ACCEPTANCE PENDING |
-| Critical defects | No unresolved critical security, privacy, data-loss or financial-integrity defect | NEEDS TESTING |
+| Production database | PostgreSQL target provisioned; TLS verified; restricted runtime role; separate migration identity; preflight and migration rehearsal pass | BLOCKED BY EXTERNAL DEPENDENCY (local PostgreSQL 18 migration/integration verified) |
+| Identity and SSO/MFA | Approved provider/tenant; tested OIDC sign-in, token validation, MFA, logout, expiry and key rotation | BLOCKED BY EXTERNAL DEPENDENCY (token-validation negative tests pass locally) |
+| Identity lifecycle | Joiner/mover/leaver provisioning, revocation, retries and reconciliation | PARTIALLY COMPLETE (adapter, mock provider and reconciliation verified locally; real provider adapter pending) |
+| Authorization/security | Tenant/record/field isolation, privileged access, SoD, payroll confidentiality and audit assurance independently tested | PARTIALLY COMPLETE (negative tests pass locally; independent review pending) |
+| Backup and recovery | Approved RPO/RTO/retention; automated encrypted backups; restore and integrity exercise | PARTIALLY COMPLETE (tooling and local round trip verified; objectives, schedule and off-site storage pending) |
+| Business workflow acceptance | Approved policies, authority matrix and signed UAT for every enabled first-release workflow | BLOCKED BY EXTERNAL DEPENDENCY |
+| Critical defects | No unresolved critical security, privacy, data-loss or financial-integrity defect | NEEDS TESTING (no known open critical defect; no independent testing) |
 
 ## 3. P1 launch-scope gates
 
@@ -51,3 +51,7 @@ Jenkins, Nexus and production deployment are not considered verified until actua
 **NO-GO for production as of 2026-11-13.** API quality and PostgreSQL 16 integration CI passed at commit `ba87df7fdb967adf80d00b7b4771a823708b7582`. Web CI, including four OIDC endpoint transport-policy regression tests and the Vite production build, passed at commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c` ([run 43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233)). Production database provisioning, SSO/MFA provider activation, identity lifecycle, full security assurance, backup/restore, business UAT and operational controls remain open.
 
 Re-evaluate this decision only from the current [Project Status](PROJECT_STATUS.md) gap register and recorded evidence. Do not infer GO from a passing build or CI suite.
+
+## 6. Update 2026-11-13
+
+**Decision remains NO-GO.** The engineering increment closed the locally achievable parts of the gap register (see [Project Status](PROJECT_STATUS.md) section 7): lockfile/lint/audit tooling, UI and accessibility tests, negative security tests, identity provisioning adapter with mock provider, observability and hardening, backup/restore and load/smoke tooling. Local results: API 125 passed (PostgreSQL enabled) / 123 passed, 2 skipped (without), UI 17, Node 4, lint clean, build and audits clean. The new and changed GitHub workflows have not yet run, so no new CI VERIFIED claim is made. Every remaining P0 gate depends on an external decision, environment or independent review listed in [Operations](OPERATIONS.md) section 11.

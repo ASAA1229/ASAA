@@ -594,3 +594,15 @@ Recruitment; performance and learning; employee relations; CRM/sales/marketing; 
 ## Authoritative status and evidence
 
 [Project Status](PROJECT_STATUS.md) is the single source for current maturity scores, verified implementation state, cross-cutting gaps and release decision. This requirements document defines target capability scope and acceptance principles; it must not maintain a competing project-wide status score.
+
+
+## Implementation evidence addendum — 2026-11-13
+
+No requirement was removed or weakened. The following requirement areas gained implementation evidence (local verification only; see [Project Status](PROJECT_STATUS.md)):
+
+- **Identity lifecycle:** provider-independent joiner/mover/leaver synchronization, revocation, retry with backoff, dead-letter handling, audit and reconciliation reporting are implemented against a mock provider (`asaa_identity`). Real-provider integration remains required.
+- **Security and privacy:** negative authorization, tenant-isolation, payroll-confidentiality, token-forgery and audit-failure behavior tests pass; request-size limits and security headers added; API docs disabled in production; logs redact secrets and personal data. Rate limiting, DB-level audit immutability and independent testing remain required.
+- **Observability:** liveness/readiness, request correlation, structured logs and basic metrics exist; centralized collection, alert routing and runbooks remain required.
+- **Backup and recovery:** verified backup/restore tooling exists; approved RPO/RTO/retention, automation and off-site encrypted storage remain required.
+- **Quality:** UI component tests, automated accessibility checks, lint, deterministic installs and dependency scanning exist; real-browser E2E, manual accessibility and device/browser verification remain required.
+- **Performance:** a reproducible load test and local measurements exist; response-time budgets and target-environment validation remain required.

@@ -161,6 +161,24 @@ The portal implements generic OIDC Authorization Code + PKCE using provider disc
 Role templates define explicit permission identifiers and a scope type. Proposed templates and subject-to-role assignments use independent review and audit. Scope references and subject IDs are opaque external references; this registry does not verify identity-provider membership or directly issue permission claims. A future identity-provider adapter must map only approved, effective, in-scope assignments into the signed API token claims and support revocation/expiry synchronization. Until then, the existing JWT permission array remains the sole authorization authority.
 
 
+## Identity lifecycle provisioning (provider independent)
+
+`asaa_identity` separates ASAA's authoritative access state from any identity provider. `IdentityProvider` (upsert user, disable, set entitlements, revoke sessions, get/list users) is the only integration seam; concrete adapters register by name (`ASAA_AP_IDENTITY_PROVIDER`). `none` is the default and makes processing endpoints return 503; `memory` is a mock for development/test and is rejected in production.
+
+- Desired state is computed from the employee-to-subject link, employee status and approved, in-window role assignments of Active role templates.
+- Changes are written to a transactional outbox (`identity_sync_jobs`) in the same transaction as the trigger (link creation, exit-case completion, assignment approval/revocation). Jobs are level-triggered, so retries converge on current truth.
+- Transient failures retry with exponential backoff; permanent failures or exhausted retries are dead-lettered, audited and logged at ERROR; operators can retry via the API.
+- `reconcile` compares desired state with provider users, reports missing, disabled, entitlement drift, should-be-disabled and unmanaged users (without personal data) and can queue repairs. Unmanaged users are reported, never deleted.
+- Not decided: the real provider, how provider subjects map to employees in practice, and what the provider SLA for revocation is.
+
+## Observability and hardening
+
+`RequestContextMiddleware` assigns/validates `X-Request-ID`, writes JSON access logs without query strings or bodies, and feeds an in-process metrics registry exposed at `/metrics` (route-template labels; token-protected; disabled in production without a token). `HardeningMiddleware` adds security headers, `Cache-Control: no-store` on API paths and a 1 MiB body limit. `/health` is dependency-free liveness; `/ready` checks the database. Log redaction is key-name and value-pattern based. Log shipping, dashboards and alert routing are intentionally not chosen.
+
+## Recovery tooling
+
+`apps/ap-api/scripts/backup_restore.py` produces SQLite (online backup API) or PostgreSQL (`pg_dump -Fc`) backups with a SHA-256 manifest and row-count/Alembic-revision verification, optional Fernet encryption, and `restore --verify`. Scheduling, storage location, key custody and retention are deployment decisions not made here.
+
 ## Implementation status
 
 This document describes intended boundaries and the observed logical architecture. The authoritative inventory of implemented, unverified and planned capabilities is [Project Status](PROJECT_STATUS.md). Do not infer that every logical domain described above exists as an operational module.

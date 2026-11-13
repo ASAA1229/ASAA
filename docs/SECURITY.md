@@ -188,3 +188,26 @@ No production security approval is implied by the presence of these checklist it
 ## Security status and assurance evidence
 
 The current security gap state and verification evidence are tracked in [Project Status](PROJECT_STATUS.md), especially ASAA-002 through ASAA-006. This document defines required controls; it does not certify that the controls have passed production review. Release decisions follow [Release Readiness](RELEASE_READINESS.md).
+
+
+## 17. Security verification evidence (2026-11-13, local)
+
+Evidence is from the local environment only (SQLite and a disposable PostgreSQL 18); it is not independent assurance and not production approval.
+
+| Control | Evidence | Result |
+|---|---|---|
+| Authentication fails closed | `test_unauthenticated_and_malformed_credentials_are_rejected_on_every_route`, `test_all_routes_fail_closed_when_identity_is_unconfigured`, `test_non_rs256_configuration_is_refused` | Forged (alg none, foreign key), wrong issuer/audience, expired, missing `sub`/`org_id`, malformed permissions: 401; unconfigured identity: 503 on every API operation. |
+| Server-side permission enforcement | `test_every_api_route_denies_a_principal_with_no_permissions` (route inventory from the OpenAPI document; > 90 operations) | Every `/api/` operation returns 403 for a principal with no permissions, regardless of organization. |
+| Organization isolation / IDOR | `test_cross_organization_record_isolation`, `test_valid_token_works_and_org_comes_only_from_the_token` | Another organization's employee, supplier, customer, compensation, audit and leave records return 404/empty; caller-supplied organization parameters/headers have no effect. |
+| Field/role separation for payroll | `test_hr_access_does_not_reveal_compensation_or_payroll`, `test_write_permission_does_not_imply_approval_or_read` | HR read/write does not expose compensation data or payroll endpoints; compensation write does not imply read or approval; maker cannot approve own record. |
+| Mass assignment / injection | `test_mass_assignment_and_unknown_fields_are_rejected`, `test_injection_strings_are_treated_as_data` | Unknown fields (organization_id, status, created_by) rejected with 422; SQL metacharacters stored as data. |
+| Audit | `test_privileged_actions_write_attributable_audit_events`, `test_rejected_privileged_action_does_not_create_success_audit_or_change_state` | Events carry actor, correlation ID and timestamp, are organization-scoped, require `audit:read`, and contain no compensation amounts; rejected actions leave no success event. |
+| Audit-write failure behavior | `test_failed_audit_write_leaves_no_partial_state` | Fail closed: if the audit insert fails the business change is rolled back, the client receives a generic 500, and service recovers when the audit store is healthy again. |
+| Logging and error redaction | `tests/test_observability.py` | Bearer tokens, JWTs, e-mail addresses, URL passwords, `token=`/`password=` pairs and sensitive keys are redacted; stack frames are not logged; readiness failures do not leak connection detail. |
+| HTTP hardening | `test_security_headers_and_no_store_on_api_responses`, `test_oversized_request_bodies_are_rejected_with_413`, `test_api_docs_are_disabled_in_production_mode` | `nosniff`, `X-Frame-Options: DENY`, `no-referrer`, restrictive CSP, `Cache-Control: no-store` on API responses, 1 MiB body limit, OpenAPI/docs disabled in production. `/metrics` is hidden in production unless a token is configured. |
+| Identity lifecycle | `tests/test_identity_sync.py` | Revocation (disable, session revoke, entitlement clear) is idempotent; stale leaver jobs do not lock out re-hired staff; dead-letter jobs alert and are audited; identity-sync permissions are separated (repair needs enqueue and reconcile) and organization-isolated; the in-memory provider is refused in production. |
+| Dependency vulnerabilities | `npm audit --audit-level=high` = 0; `pip-audit` = none known | Also automated in CI (not yet run on GitHub for the new jobs). |
+
+**Findings.** The new negative API tests found no authorization defect in the existing API. Defects found elsewhere: portal crash for partially-permitted sessions (fixed), portal reporting an active connection after 401 (fixed), a vulnerable test-framework dependency chain (replaced), `package-lock.json` untracked (fixed), OpenAPI/docs exposed in production mode and no security headers/body limit (fixed).
+
+**Not done (still required by section 12):** threat model, data classification, penetration test, independent review, database-level audit immutability, rate limiting, real identity provider and MFA verification, production key management, privacy impact assessment.

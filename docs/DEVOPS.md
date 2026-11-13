@@ -72,3 +72,16 @@ Required sequence:
 Central logs, metrics, traces, alert routing, on-call ownership, incident management and backup monitoring are requirements only until configured and tested in a real environment. See [Operations](OPERATIONS.md) and [Release Readiness](RELEASE_READINESS.md).
 
 Do not report CI as deployment, a configured Jenkins endpoint as a working pipeline, or a configured Nexus repository as a verified artifact flow.
+
+
+## 7. Changes made 2026-11-13 (configured, not yet executed on GitHub)
+
+| Workflow | Change |
+|---|---|
+| `portal-ci.yml` | `npm ci` from the now-tracked `package-lock.json`; steps for `npm run lint`, `test:web`, `test:ui`, `build`; new job `web-dependency-audit` (`npm audit --audit-level=high`); path filters include `tests/**`, lockfile and tool configs. |
+| `people-api-ci.yml` | New job `python-dependency-audit` (`pip-audit`); new job `local-load-and-smoke` (spawned API, 20 s load run with p95 regression budget, JSON artifact upload). |
+| `release-smoke.yml` | New manual, read-only post-deploy smoke workflow taking a base URL. |
+
+Resolved from section 2: lockfile generated and committed; deterministic clean install configured; Python and npm dependency scanning configured. Still open: dependency update/remediation policy, SBOM, artifact checksums, provenance, license policy. YAML for all four workflows parses; none of these changed definitions has a recorded GitHub run, so none is marked CI VERIFIED.
+
+Deployment, environments, approvals and rollback remain not implemented: they require a hosting target, release owner and secrets store. Exactly what is needed is listed in [Operations](OPERATIONS.md) section 11.

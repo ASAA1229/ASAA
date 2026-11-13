@@ -164,6 +164,26 @@ This checklist converts the documented operational gaps into release tasks. Curr
 Production deployment is **NO-GO** while any mandatory P0 task is unchecked, unless a formally approved exception is documented and does not compromise security, legal obligations, data integrity or recoverability. The current PostgreSQL CI run is useful evidence for migration/API compatibility only; it does not close the production database checklist.
 
 
+## 11. Operational tooling added 2026-11-13 and external configuration still needed
+
+### Tooling now in the repository (verified locally only)
+- `scripts/smoke_test.py` — read-only post-deploy checks (liveness, readiness, request ID, headers, anonymous refusal, production hardening, optional authenticated read). Also `release-smoke.yml`.
+- `scripts/backup_restore.py` — backup, verify and restore with manifest/checksum/row-count verification and optional encryption. Example restore drill: `backup` -> `restore --database-url <isolated target> --verify` and record `restore_seconds` from its JSON output.
+- `scripts/load_test.py` — local or remote load/concurrency measurement.
+- API: `/health`, `/ready`, `/metrics` (set `ASAA_AP_METRICS_TOKEN`; hidden in production without it), JSON logs with `X-Request-ID` (`ASAA_AP_LOG_LEVEL`), identity sync worker `python -m asaa_identity.worker`.
+- Alert conditions to wire once a monitoring system exists: `/ready` failing; 5xx rate from `asaa_http_requests_total`; log message `identity_sync_dead_letter`; `GET /api/v1/identity-sync/status` `alert=true`; failed or stale backups (not yet emitted by any scheduler).
+
+### Exact external decisions/configuration still required (cannot be closed by engineering alone)
+1. **Hosting and network (ASAA-001, 010):** provider/region, runtime (container/VM), HTTPS termination and trusted origins (`ASAA_AP_CORS_ORIGINS`), environment owners, separate dev/staging/production.
+2. **Production PostgreSQL (ASAA-001):** PostgreSQL 16+ with TLS verification, encryption at rest, separate migration and runtime roles; `ASAA_AP_ENVIRONMENT=production`, `ASAA_AP_DATABASE_URL`; then run `scripts/validate_postgresql.py` as the runtime role and attach redacted output.
+3. **Identity provider (ASAA-002/003):** provider, tenant, issuer, API audience, public client id, redirect/logout URIs, JWKS URL, MFA `acr`/`amr` values, permission/org claim mapping, a provider adapter implementing `IdentityProvider` (SCIM/admin API credentials in a secret store), and the employee-to-subject mapping rule.
+4. **Backup/DR (ASAA-005):** owner-approved RPO, RTO, retention, off-site storage target, key custody for encrypted backups, schedule runner, restore-drill owner, backup-failure alert route.
+5. **Monitoring (ASAA-011):** log collector/destination, metrics scraper and metrics token, alert routing with on-call owner and runbooks.
+6. **Release (ASAA-010):** deployment mechanism, approval gates, migration-only credential, rollback/forward-recovery procedure, smoke token for an authenticated check.
+7. **Performance (ASAA-009):** workload profile and response-time budgets; a production-like environment to rerun `load_test.py` against.
+8. **Repository (ASAA-012):** administrator action to create `dev`/`fix`/`test` branches and branch protection/required checks.
+9. **Business (ASAA-006):** named owners, approved policies and signed UAT.
+
 ## Status and release authority
 
 Current operational gaps and evidence are maintained in [Project Status](PROJECT_STATUS.md). The formal release decision and mandatory GO/NO-GO checks are maintained in [Release Readiness](RELEASE_READINESS.md). This operations guide describes procedures and must not be treated as evidence that a procedure has been executed.

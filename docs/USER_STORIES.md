@@ -371,3 +371,19 @@ For current cross-project maturity, P0/P1/P2 gaps, release decision and evidence
 **Status:** CI VERIFIED — commit `69e08b2b591cc570d0af0eb4d8121cb32989b00c`, web CI run [43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233).
 
 The browser OIDC client now applies the HTTPS policy to the JWKS endpoint as well as the authorization and token endpoints. Four Node.js regression tests cover HTTPS acceptance, local-development HTTP exceptions, remote HTTP rejection and non-HTTP scheme rejection. This closes the JWKS transport-validation code gap only; it does not close provider selection, tenant activation, MFA policy, identity lifecycle or full SSO acceptance.
+
+
+## Implementation update — 2026-11-13 (local evidence; owner acceptance not recorded)
+
+Story status below uses the canonical vocabulary where achievable. Items marked "blocked" depend on external decisions listed in [Operations](OPERATIONS.md) section 11. See [Project Status](PROJECT_STATUS.md) for evidence.
+
+| Story | Previous | Update |
+|---|---|---|
+| ASAA-P0-02 Recover the platform | NOT STARTED | IN DEVELOPMENT — backup, verify and restore tooling with SHA-256/row-count verification and optional encryption passes local SQLite and PostgreSQL 18 round trips. Blocked: RPO/RTO/retention, schedule, off-site storage, alerting. |
+| ASAA-P0-04 Provision and revoke identities | NOT STARTED | IN DEVELOPMENT — provider-independent joiner/mover/leaver sync, revocation, retry, dead-letter and reconciliation implemented and tested against a mock provider (15 tests). Blocked: real provider and employee mapping. |
+| ASAA-P0-06 Prove security and audit controls | NEEDS TESTING | NEEDS TESTING — 15 negative API security tests pass locally; independent review, DB privilege review and penetration test pending. |
+| ASAA-P0-07 Operate and observe releases | NOT STARTED | IN DEVELOPMENT — health/readiness, structured redacted logs with request IDs, metrics, smoke script/workflow implemented. Blocked: hosting, monitoring provider, deployment and rollback. |
+| ASAA-P1-17 End-to-end quality and accessibility | NEEDS TESTING | NEEDS TESTING — 17 jsdom UI tests and axe checks on 17 launch workspaces pass; real-browser E2E, screen reader, contrast and device testing absent. |
+| Frontend quality (ASAA-008) | n/a | TEST PASSED locally — lockfile, `npm ci`, lint and audits; CI run pending. |
+
+No new business-workflow story (finance, HR, payroll, procurement) was implemented in this increment: the remaining stories need approved policy decisions (leave policy engine, statutory payroll rules, procure-to-pay rules) or external services (document storage, notifications), which this increment did not assume.

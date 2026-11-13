@@ -23,6 +23,9 @@ The repository currently contains:
 - Payroll foundations: restricted compensation, payroll periods/runs/entries, review and closure controls.
 - Workforce finance: timesheet and expense claim foundations.
 - Identity foundations: browser OIDC Authorization Code + PKCE flow and API RS256/JWKS verification with configurable MFA assurance claims.
+- Identity lifecycle provisioning (2026-11-13): provider-independent adapter contract, in-memory mock provider, outbox-based joiner/mover/leaver sync, retry/dead-letter, reconciliation report. Verified only against the mock; no real provider is connected.
+- Operations tooling (2026-11-13): health/readiness, request IDs, redacted JSON logs, metrics, security headers, backup/restore/verify, smoke and load scripts, all verified locally.
+- Quality tooling (2026-11-13): ESLint, jsdom UI tests with axe, negative API security tests, dependency audits, tracked npm lockfile.
 
 These are foundational capabilities. A visible UI, API route or database model is not proof that the entire business workflow is accepted or production operational.
 
