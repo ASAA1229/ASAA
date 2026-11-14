@@ -59,3 +59,8 @@ Re-evaluate this decision only from the current [Project Status](PROJECT_STATUS.
 ## 7. Update 2026-11-14 (second follow-up)
 
 Decision remains **NO-GO**. Additional locally verified items: SCIM adapter (fake server), encrypted/rotated/scheduled backups with staleness check, alert rules and log schema, provisional PostgreSQL performance gate, cross-browser and mobile reflow E2E. Explicitly not run: the container deployment rehearsal (Docker daemon unavailable) and promtool (CI only). All new workflows are unexecuted on GitHub.
+
+
+## Update 2026-11-14 (documentation owner)
+
+Head `a40c7ca` has a failing lint (`playwright.config.js` parse error) and removed accessibility CSS; the earlier green lint, E2E and accessibility evidence is for `ac2f696`. Decision unchanged: NO-GO. No GitHub Actions run observed.

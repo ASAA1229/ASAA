@@ -59,7 +59,7 @@ Scores are repository maturity judgements (not the organization-wide score). The
 ### Branches and pull requests
 - Default branch: `main`.
 - Branches observed: `main`, `new`, `docs/organization-preservation-baseline`.
-- Required ASAA branches `dev`, `fix` and `test` are not present.
+- Required ASAA branches `dev`, `fix` and `test`: absent at the first assessment; observed on origin on 2026-11-14 (see ASAA-012). The `docs/organization-preservation-baseline` branch was the only extra branch at that time.
 - `main` and `new` are reported as unprotected by the branch metadata inspected. Required-check/ruleset configuration could not be fully inspected due GitHub integration permission limits.
 - `new` is 408 commits ahead of `main` in GitHub compare output. Review history and scope before any merge.
 - PR #1 is open from `docs/organization-preservation-baseline` to `main`; it is unrelated to the current application delivery. No merge is authorized by this status record.
@@ -67,9 +67,9 @@ Scores are repository maturity judgements (not the organization-wide score). The
 ### Application and data
 - Frontend: React 18, Vite 6, JavaScript/JSX.
 - API: Python 3.11+, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, PyJWT.
-- Database: local SQLite default; PostgreSQL 16 integration workflow; 15 migration revisions documented in the development guide.
+- Database: local SQLite default; PostgreSQL 16 integration workflow; 16 Alembic revisions (0016 adds identity sync tables; see the 2026-11-13 record below).
 - API tests are present under `apps/ap-api/tests`, including security, authorization, people, AP/AR, governance and PostgreSQL integration.
-- Web: `npm run test:web` (4 Node.js OIDC policy tests), `npm run test:ui` (17 Vitest/Testing Library/axe tests), `npm run lint` (ESLint flat config) and `npm run build`. `package-lock.json` is now tracked (it was previously git-ignored) and CI uses `npm ci`. No real-browser E2E suite exists.
+- Web: `npm run test:web` (4 Node.js OIDC policy tests), `npm run test:ui` (17 Vitest/Testing Library/axe tests), `npm run lint` (ESLint flat config) and `npm run build`. `package-lock.json` is now tracked (it was previously git-ignored) and CI uses `npm ci`. A Playwright real-browser E2E suite was added on 2026-11-14 (section 7).
 - API: 16 Alembic revisions (0016 adds identity sync tables); new packages `asaa_identity`, `asaa_ap.observability`, `asaa_ap.hardening`; scripts `backup_restore.py`, `load_test.py`, `smoke_test.py`.
 
 ### CI evidence
@@ -201,3 +201,17 @@ Full question-level source reconciliation; individual normalized requirement pop
 
 ### Status recording rule
 For every epic, track Development, Testing, Integration, Acceptance/Release independently. Use NOT ASSESSED where evidence is absent. COMPLETED — VERIFIED requires defined acceptance criteria, passing evidence for the stated revision/environment and authorized acceptance. RELEASED — OPERATIONAL additionally requires approved release and operational evidence.
+
+
+## 2026-11-14 documentation reconciliation and head check (documentation owner)
+
+Head inspected: `a40c7ca` (a commit by a human collaborator, "Refactor CI workflow and remove deprecated E2E API script", after the code agent's last verified commit `ac2f696`).
+
+| Check at `a40c7ca` | Result |
+|---|---|
+| Coordinator-reported at `ac2f696` | lint OK, build OK, pytest SQLite 153 passed / 6 skipped (agent-reported 159 on PostgreSQL; Playwright 5 projects) |
+| `npm run lint` (documentation-owner rerun) | **FAIL**: `playwright.config.js` 41:10 `Parsing error: Identifier 'defineConfig' has already been declared`. The commit appended a second, Chromium-only copy of the Playwright configuration to the existing five-project file, so the file no longer parses. |
+| Same commit, `src/styles.css` | Removes the skip-link, `:focus-visible`, focusable table-region, 320 px reflow and `.text-link` target-size rules that the earlier accessibility fixes (ASAA-007) depended on. |
+| Same commit, hygiene | Adds generated `.e2e-install.log` and `.e2e-result.json` to version control. |
+
+Consequence: until the config and CSS are restored, the lint result, the Playwright E2E and the accessibility evidence recorded for `ac2f696` do not apply to head `a40c7ca`. They remain valid only for `ac2f696`. This is a code issue for the code owner, not changed by this documentation update. Environment note: the working tree also holds uncommitted work in progress (notifications module, migration 0017) that is not evidence. pytest and Playwright were not rerun by the documentation owner because of that in-progress work. No GitHub Actions run has been observed (`gh` is unauthenticated), so nothing is CI VERIFIED. Release decision unchanged: NO-GO.

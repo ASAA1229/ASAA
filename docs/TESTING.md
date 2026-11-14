@@ -123,3 +123,8 @@ Even `/health` showed >100 ms median latency under this load, so the numbers are
 A release candidate must pass all tests relevant to the enabled scope. P0 security, data-integrity, authorization, recovery and critical workflow defects block release. UI/E2E, accessibility, performance, compatibility and operational tests must be completed for included workflows or the affected capability must be disabled/excluded with explicit owner acceptance.
 
 Do not invent coverage percentages or convert skipped tests into passed tests.
+
+
+## Head check note — 2026-11-14
+
+At head `a40c7ca` `npm run lint` fails with a parse error in `playwright.config.js` (duplicate declarations from an appended second configuration), and `src/styles.css` lost the accessibility and reflow rules. The Playwright, axe and lint evidence in this document is therefore valid for `ac2f696` only until those are repaired. See PROJECT_STATUS section "2026-11-14 documentation reconciliation and head check".

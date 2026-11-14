@@ -136,7 +136,7 @@ The CI workflow `.github/workflows/people-api-ci.yml`:
 - Installs `.[test]`, compiles source/tests, runs pytest and checks Alembic upgrade/downgrade/upgrade on SQLite.
 - Uses read-only GitHub contents permission.
 
-SQLite CI does not replace PostgreSQL integration tests. The separate postgres-integration workflow starts PostgreSQL 16, applies all 15 migrations, runs the complete API suite plus PostgreSQL-specific people/payroll persistence checks, and verifies downgrade/re-upgrade on the disposable CI database. Latest passing evidence: [PostgreSQL integration CI 43407390790](https://github.com/ASAA1229/ASAA/actions/runs/43407390790) and [API quality CI 43407390884](https://github.com/ASAA1229/ASAA/actions/runs/43407390884).
+SQLite CI does not replace PostgreSQL integration tests. The separate postgres-integration workflow starts PostgreSQL 16, applies all 16 migrations, runs the complete API suite plus PostgreSQL-specific people/payroll persistence checks, and verifies downgrade/re-upgrade on the disposable CI database. Latest passing evidence: [PostgreSQL integration CI 43407390790](https://github.com/ASAA1229/ASAA/actions/runs/43407390790) and [API quality CI 43407390884](https://github.com/ASAA1229/ASAA/actions/runs/43407390884).
 
 ## 7. Configuration reference
 

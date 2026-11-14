@@ -34,7 +34,7 @@ Required improvements:
 
 Required ASAA branches: `main`, `dev`, `new`, `fix`, `test`.
 
-Observed branches: `main`, `new`, `docs/organization-preservation-baseline`. Branches `dev`, `fix` and `test` were not present. `main` and `new` metadata reported unprotected. Full ruleset/required-check inspection was restricted by GitHub integration permissions.
+Observed branches at the first assessment: `main`, `new`, `docs/organization-preservation-baseline`; `dev`, `fix` and `test` were not present then and were observed on origin on 2026-11-14 (ASAA-012). `main` and `new` metadata reported unprotected. Full ruleset/required-check inspection was restricted by GitHub integration permissions.
 
 The `new` branch is reported 408 commits ahead of `main`. Inspect the complete history and compare before proposing any merge. PR #1 is a separate open documentation PR from `docs/organization-preservation-baseline` to `main`; it is not authorization to merge the current application branch.
 
