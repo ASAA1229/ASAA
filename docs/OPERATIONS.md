@@ -173,11 +173,18 @@ Production deployment is **NO-GO** while any mandatory P0 task is unchecked, unl
 - API: `/health`, `/ready`, `/metrics` (set `ASAA_AP_METRICS_TOKEN`; hidden in production without it), JSON logs with `X-Request-ID` (`ASAA_AP_LOG_LEVEL`), identity sync worker `python -m asaa_identity.worker`.
 - Alert conditions to wire once a monitoring system exists: `/ready` failing; 5xx rate from `asaa_http_requests_total`; log message `identity_sync_dead_letter`; `GET /api/v1/identity-sync/status` `alert=true`; failed or stale backups (not yet emitted by any scheduler).
 
+### Added later on 2026-11-14 (verified locally unless marked)
+- Encrypted, rotated, scheduled backups: `backup_restore.py scheduled` (cron/Task Scheduler/Kubernetes CronJob to be chosen) and `check-staleness` (exit 2) for the monitoring system; key from `env:ASAA_BACKUP_KEY`; retention flags `--keep-daily/--keep-weekly/--keep-monthly` (defaults 7/4/6 are placeholders pending approved retention).
+- `monitoring/asaa-alerts.yml` rules for Prometheus (job name `asaa-api` assumed) with `monitoring/asaa-alerts.test.yml`; log contract `monitoring/log-schema.json`.
+- `monitoring/performance-budget.json`: provisional load budget used by CI.
+- SCIM provisioning: set `ASAA_AP_IDENTITY_PROVIDER=scim`, `ASAA_AP_SCIM_BASE_URL`, `ASAA_AP_SCIM_BEARER_TOKEN`, optional `ASAA_AP_SCIM_GROUP_PREFIX`; run `python -m asaa_identity.worker`. Provider-specific behaviour must be verified in a sandbox first.
+- `deploy/rehearsal.sh` (needs Docker): migrate, smoke, bad release, rollback, smoke. **Not yet executed anywhere.**
+
 ### Exact external decisions/configuration still required (cannot be closed by engineering alone)
 1. **Hosting and network (ASAA-001, 010):** provider/region, runtime (container/VM), HTTPS termination and trusted origins (`ASAA_AP_CORS_ORIGINS`), environment owners, separate dev/staging/production.
 2. **Production PostgreSQL (ASAA-001):** PostgreSQL 16+ with TLS verification, encryption at rest, separate migration and runtime roles; `ASAA_AP_ENVIRONMENT=production`, `ASAA_AP_DATABASE_URL`; then run `scripts/validate_postgresql.py` as the runtime role and attach redacted output.
 3. **Identity provider (ASAA-002/003):** provider, tenant, issuer, API audience, public client id, redirect/logout URIs, JWKS URL, MFA `acr`/`amr` values, permission/org claim mapping, a provider adapter implementing `IdentityProvider` (SCIM/admin API credentials in a secret store), and the employee-to-subject mapping rule.
-4. **Backup/DR (ASAA-005):** owner-approved RPO, RTO, retention, off-site storage target, key custody for encrypted backups, schedule runner, restore-drill owner, backup-failure alert route.
+4. **Backup/DR (ASAA-005):** owner-approved RPO, RTO and retention values (the repository defaults are placeholders), off-site storage target, custody and rotation of the backup key, a scheduler to invoke `backup_restore.py scheduled`, a monitor that alerts on `check-staleness` exit code 2, restore-drill owner.
 5. **Monitoring (ASAA-011):** log collector/destination, metrics scraper and metrics token, alert routing with on-call owner and runbooks.
 6. **Release (ASAA-010):** deployment mechanism, approval gates, migration-only credential, rollback/forward-recovery procedure, smoke token for an authenticated check.
 7. **Performance (ASAA-009):** workload profile and response-time budgets; a production-like environment to rerun `load_test.py` against.

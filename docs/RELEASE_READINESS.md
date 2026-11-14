@@ -55,3 +55,7 @@ Re-evaluate this decision only from the current [Project Status](PROJECT_STATUS.
 ## 6. Update 2026-11-13
 
 **Decision remains NO-GO.** The engineering increment closed the locally achievable parts of the gap register (see [Project Status](PROJECT_STATUS.md) section 7): lockfile/lint/audit tooling, UI and accessibility tests, negative security tests, identity provisioning adapter with mock provider, observability and hardening, backup/restore and load/smoke tooling. Local results: API 125 passed (PostgreSQL enabled) / 123 passed, 2 skipped (without), UI 17, Node 4, lint clean, build and audits clean. The new and changed GitHub workflows have not yet run, so no new CI VERIFIED claim is made. Every remaining P0 gate depends on an external decision, environment or independent review listed in [Operations](OPERATIONS.md) section 11.
+
+## 7. Update 2026-11-14 (second follow-up)
+
+Decision remains **NO-GO**. Additional locally verified items: SCIM adapter (fake server), encrypted/rotated/scheduled backups with staleness check, alert rules and log schema, provisional PostgreSQL performance gate, cross-browser and mobile reflow E2E. Explicitly not run: the container deployment rehearsal (Docker daemon unavailable) and promtool (CI only). All new workflows are unexecuted on GitHub.

@@ -85,3 +85,12 @@ Do not report CI as deployment, a configured Jenkins endpoint as a working pipel
 Resolved from section 2: lockfile generated and committed; deterministic clean install configured; Python and npm dependency scanning configured. Still open: dependency update/remediation policy, SBOM, artifact checksums, provenance, license policy. YAML for all four workflows parses; none of these changed definitions has a recorded GitHub run, so none is marked CI VERIFIED.
 
 Deployment, environments, approvals and rollback remain not implemented: they require a hosting target, release owner and secrets store. Exactly what is needed is listed in [Operations](OPERATIONS.md) section 11.
+
+## 8. Additional workflows configured 2026-11-14 (not yet executed on GitHub)
+
+| Workflow | Purpose |
+|---|---|
+| `monitoring-ci.yml` | `promtool check rules` and `promtool test rules` for `monitoring/asaa-alerts*.yml` using the official Prometheus Docker image. |
+| `deploy-rehearsal.yml` | Runs `deploy/rehearsal.sh` (migrate, smoke, bad release, rollback, smoke) on a runner; deploys nowhere. |
+| `postgres-integration.yml` (extended) | Adds the PostgreSQL load run against `monitoring/performance-budget.json` and artifact upload. |
+| `portal-ci.yml` (`web-e2e`) | Playwright now covers Chromium, Firefox, WebKit and two mobile emulations (browsers installed with `npx playwright install --with-deps chromium firefox webkit`). |

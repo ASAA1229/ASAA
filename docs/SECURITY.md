@@ -223,3 +223,15 @@ Evidence is from the local environment only (SQLite and a disposable PostgreSQL 
 | E2E credentials hygiene | `apps/ap-api/scripts/e2e_api.py` | Fresh RSA key and 30-minute tokens per run, written only to the git-ignored `.e2e/`; the previously committed token file was untracked (it was expired, issuer `e2e.invalid`, signed by a discarded key). |
 
 Still open: the production role matrix is an owner/DBA decision (the policy above is the repository baseline); the grants must be re-run after each migration (`provision` is idempotent); this is local evidence, not a review of any production database.
+
+### 17.2 Update 2026-11-14 (second follow-up): provisioning, backups and delivery artifacts
+
+| Control | Evidence | Result |
+|---|---|---|
+| SCIM adapter transport and secrets | `tests/test_scim_provider.py` | HTTPS required for non-localhost endpoints; bearer token only from configuration; 401/403 are permanent (not retried); filter values escaped; 429/5xx back off with bounded retries; no personal data in errors. |
+| Encrypted backups | `tests/test_backup_restore.py` | AES-256-GCM with authenticated frames (index + final flag): bit flips, reordered frames, truncation and wrong key rejected; key from environment/file, must decode to 32 bytes; unencrypted source removed after encryption. Key custody and rotation remain deployment decisions. |
+| Backup monitoring | `check-staleness` | Exit code 2 for no backup, failed latest run, stale or missing artifact. |
+| Container image | `apps/ap-api/Dockerfile` | Non-root user, no secrets baked in, healthcheck; not built or scanned locally (Docker daemon not running). |
+| Alerting | `monitoring/asaa-alerts.yml` | Authentication-denial spike and 5xx alerts defined; routing/ownership not configured. |
+
+Limitations unchanged: no independent review, no provider/MFA activation, no vendor-specific SCIM validation, no image vulnerability scan, rate limiting still absent.

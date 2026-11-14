@@ -392,3 +392,9 @@ No new business-workflow story (finance, HR, payroll, procurement) was implement
 - Portal access: a pasted token is now verified by the API before the session is shown as connected (ASAA-P0-03 foundation; provider activation still external).
 - Accessibility: skip link, dialog focus management, visible focus, AA contrast for muted text and the previously white-on-light forms, live-region toasts (ASAA-P1-17 partial).
 - ASAA-P0-06: runtime database role is least-privilege with append-only audit rows, verified on local PostgreSQL 18; independent review pending.
+
+### Update 2026-11-14 (second follow-up)
+- ASAA-P0-04: SCIM 2.0 provisioning adapter implemented and tested against a local fake SCIM server (IN DEVELOPMENT; real provider outstanding).
+- ASAA-P0-02: backups are AES-256-GCM encrypted, rotated, scheduled and monitored via a staleness check (IN DEVELOPMENT; objectives, scheduler, off-site storage outstanding).
+- ASAA-P1-17: Firefox, WebKit, mobile-emulation, 320 px reflow and 640 px zoom-equivalent checks pass locally (NEEDS TESTING; CI, screen reader and physical devices outstanding).
+- ASAA-P0-07: alert rules, log schema, deployment rehearsal assets (rehearsal NOT RUN; promtool run by CI only).
