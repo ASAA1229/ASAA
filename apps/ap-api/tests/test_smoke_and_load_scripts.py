@@ -1,4 +1,5 @@
 """Runs the deployment smoke script and a short load run against a really spawned local API process."""
+import json
 import sys
 from pathlib import Path
 
@@ -42,3 +43,25 @@ def test_short_load_run_reports_percentiles_with_zero_errors(spawned):
 def test_percentile_helper():
     assert load_test.percentile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 50) in (5, 6)
     assert load_test.percentile([7], 99) == 7
+
+
+def test_budget_gate_accepts_a_good_run_and_flags_each_kind_of_violation():
+    result = {"error_rate": 0.0, "throughput_rps": 60.0, "overall": {"p95_ms": 900.0, "p99_ms": 1700.0},
+              "by_operation": {"list_suppliers": {"p95_ms": 800.0}, "create_supplier": {"p95_ms": 1200.0}, "ready": {"p95_ms": 300.0}}}
+    budget = json.loads((ROOT.parents[1] / "monitoring" / "performance-budget.json").read_text())
+    assert load_test.evaluate_budget(result, budget) == []
+    slow = {**result, "overall": {"p95_ms": 2500.0, "p99_ms": 4000.0}, "error_rate": 0.05, "throughput_rps": 5.0,
+            "by_operation": {"list_suppliers": {"p95_ms": 9000.0}, "create_supplier": {"p95_ms": 1.0}}}
+    problems = " | ".join(load_test.evaluate_budget(slow, budget))
+    for expected in ("overall p95", "overall p99", "error rate", "throughput", "list_suppliers p95", "operation ready was not exercised"):
+        assert expected in problems
+
+
+def test_load_script_exits_nonzero_when_budget_is_violated(spawned, tmp_path):
+    base, token = spawned
+    tight = tmp_path / "tight.json"
+    tight.write_text('{"overall_p95_ms": 0.001}')
+    token_file = tmp_path / "t.txt"
+    token_file.write_text(token)
+    code = load_test.main(["--base-url", base, "--token-file", str(token_file), "--concurrency", "2", "--duration", "2", "--budget-file", str(tight)])
+    assert code == 1

@@ -1,0 +1,32 @@
+name: ASAA monitoring rules
+
+on:
+  push:
+    branches: [main, dev, new, fix, test]
+    paths:
+      - "monitoring/**"
+      - "apps/ap-api/src/asaa_ap/observability.py"
+      - ".github/workflows/monitoring-ci.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "monitoring/**"
+      - "apps/ap-api/src/asaa_ap/observability.py"
+      - ".github/workflows/monitoring-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  alert-rules-promtool:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: promtool check rules
+        run: >
+          docker run --rm -v "$PWD/monitoring:/m" --entrypoint promtool prom/prometheus:v2.55.1
+          check rules /m/asaa-alerts.yml
+      - name: promtool unit tests
+        run: >
+          docker run --rm -v "$PWD/monitoring:/m" --entrypoint promtool prom/prometheus:v2.55.1
+          test rules /m/asaa-alerts.test.yml

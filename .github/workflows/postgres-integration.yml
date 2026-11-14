@@ -5,11 +5,13 @@ on:
     branches: [main, dev, new, fix, test]
     paths:
       - "apps/ap-api/**"
+      - "monitoring/performance-budget.json"
       - ".github/workflows/postgres-integration.yml"
   pull_request:
     branches: [main, dev]
     paths:
       - "apps/ap-api/**"
+      - "monitoring/performance-budget.json"
       - ".github/workflows/postgres-integration.yml"
 
 permissions:
@@ -62,3 +64,16 @@ jobs:
         run: |
           python -m alembic downgrade -1
           python -m alembic upgrade head
+      - name: PostgreSQL load run against provisional performance budget (monitoring/performance-budget.json)
+        env:
+          ASAA_AP_ENVIRONMENT: test
+        run: >
+          python scripts/load_test.py --concurrency 20 --duration 20 --workers 2
+          --database-url "$ASAA_AP_DATABASE_URL"
+          --budget-file ../../monitoring/performance-budget.json --json-out pg-load-result.json
+      - name: Upload PostgreSQL load result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-load-result
+          path: apps/ap-api/pg-load-result.json

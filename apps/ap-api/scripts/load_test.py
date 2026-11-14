@@ -127,6 +127,27 @@ async def run_load(base_url: str, token: str, concurrency: int, duration: float,
         return summarize(samples, time.perf_counter() - started, errors)
 
 
+def evaluate_budget(result: dict, budget: dict) -> list[str]:
+    """Return human-readable violations of a performance budget (empty list = within budget)."""
+    problems = []
+    overall = result["overall"]
+    if "overall_p95_ms" in budget and overall["p95_ms"] > budget["overall_p95_ms"]:
+        problems.append(f"overall p95 {overall['p95_ms']} ms > {budget['overall_p95_ms']} ms")
+    if "overall_p99_ms" in budget and overall["p99_ms"] > budget["overall_p99_ms"]:
+        problems.append(f"overall p99 {overall['p99_ms']} ms > {budget['overall_p99_ms']} ms")
+    if "max_error_rate" in budget and result["error_rate"] > budget["max_error_rate"]:
+        problems.append(f"error rate {result['error_rate']:.2%} > {budget['max_error_rate']:.2%}")
+    if "min_throughput_rps" in budget and result["throughput_rps"] < budget["min_throughput_rps"]:
+        problems.append(f"throughput {result['throughput_rps']} rps < {budget['min_throughput_rps']} rps")
+    for name, limits in budget.get("operations", {}).items():
+        row = result["by_operation"].get(name)
+        if row is None:
+            problems.append(f"operation {name} was not exercised")
+        elif "p95_ms" in limits and row["p95_ms"] > limits["p95_ms"]:
+            problems.append(f"{name} p95 {row['p95_ms']} ms > {limits['p95_ms']} ms")
+    return problems
+
+
 def spawn_api(database_url: str | None, workers: int, tmp: Path, migrate_url: str | None = None):
     key, public = make_keys()
     port = free_port()
@@ -159,6 +180,7 @@ def main(argv=None) -> int:
     parser.add_argument("--token-file", help="bearer token for --base-url")
     parser.add_argument("--p95-budget-ms", type=float, help="fail if overall p95 exceeds this")
     parser.add_argument("--max-error-rate", type=float, default=0.01)
+    parser.add_argument("--budget-file", type=Path, help="JSON performance budget (see monitoring/performance-budget.json)")
     parser.add_argument("--json-out", type=Path)
     args = parser.parse_args(argv)
 
@@ -174,13 +196,19 @@ def main(argv=None) -> int:
         result["environment"] = {"python": platform.python_version(), "os": platform.platform(), "cpus": os.cpu_count(),
                                  "database": db_label, "api_workers": args.workers if process else None,
                                  "concurrency": args.concurrency, "target": "local spawned API" if process else base}
-        print(json.dumps(result, indent=2))
-        if args.json_out:
-            args.json_out.write_text(json.dumps(result, indent=2))
         failed = result["error_rate"] > args.max_error_rate
         if args.p95_budget_ms and result["overall"]["p95_ms"] > args.p95_budget_ms:
             print(f"BUDGET EXCEEDED: p95 {result['overall']['p95_ms']} ms > {args.p95_budget_ms} ms", file=sys.stderr)
             failed = True
+        if args.budget_file:
+            violations = evaluate_budget(result, json.loads(args.budget_file.read_text()))
+            result["budget_violations"] = violations
+            for violation in violations:
+                print("BUDGET VIOLATION: " + violation, file=sys.stderr)
+            failed = failed or bool(violations)
+        print(json.dumps(result, indent=2))
+        if args.json_out:
+            args.json_out.write_text(json.dumps(result, indent=2))
         if result["error_rate"] > args.max_error_rate:
             print(f"ERROR RATE {result['error_rate']:.2%} exceeds {args.max_error_rate:.2%}", file=sys.stderr)
         return 1 if failed else 0
