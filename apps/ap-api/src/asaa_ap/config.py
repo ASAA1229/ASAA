@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # Identity lifecycle adapter name. "none" = not configured. "memory" is a mock for dev/test only.
     identity_provider: str = "none"
+    scim_base_url: str | None = None
+    scim_bearer_token: str | None = None
+    scim_group_prefix: str = "asaa:"
     # When set, GET /metrics requires "Authorization: Bearer <token>". In production /metrics is disabled unless set.
     metrics_token: str | None = None
 

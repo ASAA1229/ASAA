@@ -6,8 +6,8 @@ import time
 from asaa_ap.config import get_settings
 from asaa_ap.database import SessionLocal
 from asaa_identity import service
-from asaa_identity.memory import InMemoryIdentityProvider
-from asaa_identity.provider import register_provider, resolve_provider
+from asaa_identity.bootstrap import register_configured_providers
+from asaa_identity.provider import resolve_provider
 
 
 def main() -> int:
@@ -16,8 +16,7 @@ def main() -> int:
     parser.add_argument("--interval", type=int, default=30)
     args = parser.parse_args()
     settings = get_settings()
-    if settings.identity_provider == "memory" and settings.environment != "production":
-        register_provider("memory", InMemoryIdentityProvider)
+    register_configured_providers(settings)
     provider = resolve_provider(settings.identity_provider)
     if provider is None:
         logging.getLogger("asaa.identity_sync").error("no_identity_provider_configured")
