@@ -1,0 +1,64 @@
+name: ASAA PostgreSQL integration
+
+on:
+  push:
+    branches: [main, dev, new, fix, test]
+    paths:
+      - "apps/ap-api/**"
+      - ".github/workflows/postgres-integration.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "apps/ap-api/**"
+      - ".github/workflows/postgres-integration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: asaa_ap
+          POSTGRES_USER: asaa
+          POSTGRES_PASSWORD: asaa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U asaa -d asaa_ap"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: apps/ap-api
+    env:
+      ASAA_AP_ENVIRONMENT: test
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://asaa:asaa@localhost:5432/asaa_ap
+      ASAA_AP_POSTGRES_TEST_URL: postgresql+psycopg://asaa:asaa@localhost:5432/asaa_ap
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/ap-api/pyproject.toml
+      - name: Install API and test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Compile source and tests
+        run: python -m compileall -q src tests
+      - name: Apply all migrations to PostgreSQL
+        run: python -m alembic upgrade head
+      - name: Verify PostgreSQL schema revision
+        run: python -m alembic current
+      - name: Run complete API suite and PostgreSQL integration tests
+        run: python -m pytest -q
+      - name: Verify PostgreSQL migration downgrade and re-upgrade
+        run: |
+          python -m alembic downgrade -1
+          python -m alembic upgrade head
