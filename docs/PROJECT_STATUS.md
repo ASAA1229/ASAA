@@ -170,3 +170,34 @@ After each increment:
 7. Re-evaluate release gates.
 
 Do not change this baseline silently. Preserve prior dated assessment records when superseded.
+
+
+---
+
+## ASAA Master Requirements Baseline v1.0 (2026-11-14)
+
+The organization-approved planning and governance baseline now covers ASAA, Portfolio, JARVIS, Templates and shared ecosystem capabilities. Round 6 (12 consolidation stages) is complete at framework/consolidation level. This approval does not imply that individual requirements, all 1,000 source answers, repository evidence, named owners, dependencies, gaps, estimates or delivery dates have been fully validated.
+
+See `docs/ASAA_MASTER_REQUIREMENTS_BASELINE.md`, `docs/PROJECT_SCOPE.md` and `docs/EPIC_STATUS.md`. Outstanding source reconciliation, requirement population, repository/runtime evidence, owner/dependency validation, evidence-based gap analysis and delivery estimates remain pending. This is a planning baseline only; it does not authorize implementation, testing, deployment, paid services or merges.
+
+## ASAA Master Requirements Baseline v1.0 — 2026-11-14
+
+**Governance state: APPROVED for planning and requirements governance only.** The baseline covers ASAA organization, Portfolio, JARVIS, Templates and shared ecosystem capabilities. Approval does not authorize coding, testing, repository implementation changes beyond this documentation update, deployment, paid services, merges or releases.
+
+Round 6 consolidation is complete at framework level (12/12 stages). Discovery history records five rounds, 50 sets and 1,000 questions, all answered with all options selected. Those selections represent desired target requirements, not proof that every requirement applies to every project or that implementation exists.
+
+### Required distinctions
+- Keep organization-wide, shared, project-specific, cross-project, future/conditional, external and not-applicable requirements separately classified.
+- Preserve existing verified work. Do not restart or rewrite projects solely to align with the baseline.
+- Distinguish planned, in development, implemented-unverified, tested, integrated, owner-accepted and released-operational states.
+- A code artifact, user report, passing test or CI run alone does not prove full workflow acceptance or production operation.
+- Maintain bidirectional traceability: discovery source → requirement → project/module → epic → acceptance criteria → implementation → tests → evidence → approval/release.
+- Use the ASAA organization branch standard: main, dev, new, fix, test. Branch presence does not imply protection/rulesets.
+- Shared capabilities require explicit owner, consumers, interface, data authority, permission, versioning, operations and recovery. Shared identity does not imply unrestricted cross-project data access.
+- No paid services without explicit approval; preserve project-specific cost and privacy constraints.
+
+### Open validation items
+Full question-level source reconciliation; individual normalized requirement population; exhaustive duplicate/conflict verification; detailed decision approvals; project applicability mapping; named owners and RACI; dependency graph; requirement-level acceptance criteria; repository/runtime evidence; evidence-based gap scoring; delivery estimates and milestone dates remain pending unless explicitly evidenced in this repository.
+
+### Status recording rule
+For every epic, track Development, Testing, Integration, Acceptance/Release independently. Use NOT ASSESSED where evidence is absent. COMPLETED — VERIFIED requires defined acceptance criteria, passing evidence for the stated revision/environment and authorized acceptance. RELEASED — OPERATIONAL additionally requires approved release and operational evidence.
