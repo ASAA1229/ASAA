@@ -1,0 +1,50 @@
+# Local deployment rehearsal stack (NOT a production definition). Used by deploy/rehearsal.sh.
+# Credentials below are throw-away rehearsal values for a local, unpublished database.
+name: asaa-rehearsal
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: asaa_ap
+      POSTGRES_USER: asaa
+      POSTGRES_PASSWORD: rehearsal-only-password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asaa -d asaa_ap"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  migrate:
+    image: asaa-api:${API_IMAGE_TAG:-rehearsal-1}
+    profiles: ["migrate"]
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      ASAA_AP_ENVIRONMENT: test
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://asaa:rehearsal-only-password@postgres:5432/asaa_ap
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    image: asaa-api:${API_IMAGE_TAG:-rehearsal-1}
+    environment:
+      ASAA_AP_ENVIRONMENT: production
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://asaa:rehearsal-only-password@postgres:5432/asaa_ap
+      ASAA_AP_JWT_PUBLIC_KEY: ${ASAA_AP_JWT_PUBLIC_KEY}
+      ASAA_AP_JWT_ISSUER: https://rehearsal.invalid
+      ASAA_AP_JWT_AUDIENCE: asaa-rehearsal
+      ASAA_AP_CORS_ORIGINS: '["http://127.0.0.1:8080"]'
+      ASAA_AP_LOG_LEVEL: INFO
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  portal:
+    image: asaa-portal:${PORTAL_IMAGE_TAG:-rehearsal-1}
+    ports:
+      - "127.0.0.1:8080:80"

@@ -1,0 +1,10 @@
+node_modules
+dist
+apps
+docs
+.git
+.venv
+tests
+test-results
+playwright-report
+.e2e
