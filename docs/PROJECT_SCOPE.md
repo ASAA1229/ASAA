@@ -28,3 +28,20 @@ No single stack is mandated across ASAA. Current repository documentation descri
 
 ## Current status summary
 Repository documentation records substantial local API/UI/security/database and browser-test work and a repository maturity judgement of 5.6/10. Production release is recorded as **NO-GO**. External identity/provider activation, production infrastructure, business UAT, independent assurance, production recovery and operational readiness remain open. See `docs/PROJECT_STATUS.md` for detailed evidence and gates.
+
+
+---
+
+# ASAA Project Scope — 2026-11-14
+
+Purpose: internal enterprise operating and management platform for ASAA.
+
+Users: organization owner/management, HR, finance, operations, employees and explicitly authorized external parties.
+
+In scope: governance and organization administration; identity and authorization; workforce/HR lifecycle; onboarding/offboarding; leave, payroll, timesheets and expenses; suppliers, procurement and AP; AR and customer/commercial workflows; project/resource management; reporting/analytics; audit, security, integrations, DevOps and operations.
+
+Conditional: production rollout, provider activation, paid services and business policies without named approval. Future domains remain planned until individually specified and evidenced.
+
+Architecture: no forced ecosystem-wide stack. Current repo docs describe React/Vite web, FastAPI/SQLAlchemy API and PostgreSQL migrations. Preserve module-level choices and verified work. Apply least privilege, auditability, privacy and explicit ownership.
+
+Current evidence: repo status reports local API/UI/E2E/security/database verification and 5.6/10 repository maturity; production remains NO-GO. Real identity provider, production DB/hosting, business UAT, recovery objectives, live monitoring and operational gates remain open.
