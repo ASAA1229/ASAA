@@ -24,12 +24,16 @@ def as_principal(client, subject, org, permissions):
     client.app.dependency_overrides[get_principal] = lambda: Principal(subject, org, frozenset(permissions))
 
 
+# Routes that require a valid token but deliberately no permission (session introspection).
+AUTH_ONLY_ROUTES = {"/api/v1/me"}
+
+
 def api_routes():
     """All /api/ operations, taken from the public OpenAPI document (stable across FastAPI versions)."""
     for path, operations in sorted(app.openapi()["paths"].items()):
         if path.startswith("/api/"):
             for method in sorted(operations):
-                if method.upper() in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+                if method.upper() in {"GET", "POST", "PUT", "PATCH", "DELETE"} and path not in AUTH_ONLY_ROUTES:
                     yield method.upper(), path
 
 
@@ -298,3 +302,13 @@ def test_failed_audit_write_leaves_no_partial_state(client):
     # error body must not leak internals
     # service recovers once the audit store is healthy again
     assert client.post("/api/v1/ap/suppliers", json={"legal_name": "Unaudited Co"}).status_code == 201
+
+
+def test_whoami_requires_a_valid_token_and_returns_only_verified_claims(client, identity_settings):
+    client.app.dependency_overrides.pop(get_principal)
+    assert client.get("/api/v1/me").status_code == 401
+    assert client.get("/api/v1/me", headers={"Authorization": "Bearer not.a.jwt"}).status_code == 401
+    ok = client.get("/api/v1/me", headers={"Authorization": "Bearer " + token(identity_settings, permissions=["b:x", "a:y"])})
+    assert ok.status_code == 200
+    assert ok.json() == {"subject": "u1", "organization_id": "org-a", "permissions": ["a:y", "b:x"]}
+    assert ok.headers["cache-control"] == "no-store"

@@ -2,7 +2,7 @@ import hmac
 import logging
 from typing import Annotated
 
-from fastapi import FastAPI, Header, HTTPException, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +14,7 @@ from asaa_people.lifecycle import router as hr_lifecycle_router
 from asaa_people.workflows import router as people_workflows_router
 from asaa_ap.config import get_settings
 from asaa_ap.database import engine
+from asaa_ap.security import Principal, get_principal
 from asaa_ap.hardening import HardeningMiddleware
 from asaa_ap.observability import RequestContextMiddleware, configure_logging, metrics
 from asaa_governance.api import router as master_data_router
@@ -59,6 +60,12 @@ app.include_router(workforce_finance_router)
 app.include_router(identity_sync_router)
 if settings.identity_provider == "memory" and settings.environment != "production":
     register_provider("memory", InMemoryIdentityProvider)
+
+
+@app.get("/api/v1/me", tags=["Identity"])
+def whoami(principal: Annotated[Principal, Depends(get_principal)]):
+    """Verified session summary. Requires only a valid token; lets clients confirm a token is accepted."""
+    return {"subject": principal.subject, "organization_id": principal.organization_id, "permissions": sorted(principal.permissions)}
 
 
 @app.get("/health", tags=["Operations"])
