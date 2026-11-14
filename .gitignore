@@ -25,5 +25,5 @@ backups/
 *.key
 .e2e/
 deploy/rehearsal-result.json
-.e2e/
 .e2e-result.json
+*.log
