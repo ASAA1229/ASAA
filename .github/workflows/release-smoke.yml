@@ -1,0 +1,33 @@
+name: ASAA post-deploy smoke test
+
+# Manual, read-only smoke check against an already deployed environment. No deployment is performed here.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL of the deployed API (https://...)"
+        required: true
+      expect_production:
+        description: "Also assert production hardening (docs disabled, metrics protected)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run smoke checks
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          EXPECT_PROD: ${{ inputs.expect_production }}
+        run: |
+          args=(--base-url "$BASE_URL")
+          if [ "$EXPECT_PROD" = "true" ]; then args+=(--expect-production); fi
+          python apps/ap-api/scripts/smoke_test.py "${args[@]}"

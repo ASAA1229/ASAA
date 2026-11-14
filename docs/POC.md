@@ -1,177 +1,71 @@
-# ASAA Enterprise Project Integration Platform — Proof of Concept
+# ASAA Enterprise Operating Platform — Proof of Concept
 
-## 1. POC purpose
+**Status:** Executable foundational slice; not a production-ready enterprise release  
+**Baseline:** See [authoritative Project Status](PROJECT_STATUS.md).
 
-Validate that ASAA can create a trustworthy, traceable understanding of a real software project using stakeholder input and authorized repository evidence.
+## 1. Purpose
 
-The POC is deliberately narrow. It validates discovery, evidence capture, requirement organization and reporting before attempting automated code integration or write operations.
+Validate a connected internal operating environment for ASAA, with governance and organization controls, people operations, procurement and finance foundations, shared identity/authorization, audit and PostgreSQL persistence. The POC is a working vertical slice, not a claim that the full enterprise operating model is complete.
 
-## 2. POC hypothesis
+## 2. Product boundary
 
-If project requests and repository evidence are captured in one structured workspace, project owners and technical teams can identify actual scope, implementation evidence, unknowns and cross-project dependencies more accurately than by relying on repository summaries alone.
+ASAA is an internal platform designed around ASAA's own operating model. It is not a generic multi-company SaaS product and does not require every possible department, legal entity, policy or module to be activated. Project repositories remain independently owned and retain their own requirements, technology choices and release lifecycles.
 
-## 3. POC users
+## 3. Current executable scope
 
-- One workspace owner.
-- One project owner.
-- One or more analysts/technical reviewers.
-- Read-only viewers, if needed.
+The repository currently contains:
+- React 18/Vite web client in `src/` and static/PWA assets in `public/`.
+- FastAPI service in `apps/ap-api`, using SQLAlchemy, Alembic and PostgreSQL/SQLite configuration.
+- Governance: organization profile/hierarchy administration, master-data governance, authority delegations, decision register, access-review campaigns and role/permission assignment records.
+- AP and procurement foundations: supplier records and purchase-request draft/submit/review.
+- AR foundations: customers, invoices and receipts.
+- People operations: employee directory/profile, employment lifecycle/history, onboarding/offboarding tasks, leave and employee asset records.
+- Payroll foundations: restricted compensation, payroll periods/runs/entries, review and closure controls.
+- Workforce finance: timesheet and expense claim foundations.
+- Identity foundations: browser OIDC Authorization Code + PKCE flow and API RS256/JWKS verification with configurable MFA assurance claims.
+- Identity lifecycle provisioning (2026-11-13): provider-independent adapter contract, in-memory mock provider, outbox-based joiner/mover/leaver sync, retry/dead-letter, reconciliation report. Verified only against the mock; no real provider is connected.
+- Operations tooling (2026-11-13): health/readiness, request IDs, redacted JSON logs, metrics, security headers, backup/restore/verify, smoke and load scripts, all verified locally.
+- Quality tooling (2026-11-13): ESLint, jsdom UI tests with axe, negative API security tests, dependency audits, tracked npm lockfile.
 
-These roles are placeholders until the actual operating model is confirmed.
+These are foundational capabilities. A visible UI, API route or database model is not proof that the entire business workflow is accepted or production operational.
 
-## 4. POC workflow
+## 4. POC success criteria
 
-1. Create a workspace.
-2. Register one real project with its actual name, purpose and scope.
-3. Record the stakeholder request and source of that request.
-4. Connect one authorized Git repository.
-5. Discover repository metadata, default branch, branches and directory tree.
-6. Select relevant documentation and source directories.
-7. Record findings with repository, branch, revision and path references.
-8. Capture requirements and acceptance criteria from stakeholder input.
-9. Link evidence to requirements without automatically declaring completion.
-10. Record dependencies, open questions, risks and decisions.
-11. Generate a project overview and evidence-based gap report.
-12. Ask the project owner/technical reviewer to validate the output.
+1. A local user can start the web client and API using the documented setup.
+2. API migrations can be applied to a disposable database.
+3. API tests pass in the documented CI environment.
+4. PostgreSQL 16 integration validates migrations and selected people/payroll persistence workflows.
+5. Sensitive API routes fail closed when identity configuration is absent or invalid.
+6. Explicit permissions and organization scoping are enforced by API dependencies and domain queries.
+7. Sensitive workflows record application audit events and enforce their implemented review transitions.
+8. The UI can call connected APIs for the currently integrated workflows.
+9. Documentation distinguishes implemented foundations from unverified, preview-only and planned capabilities.
+10. No production readiness claim is made without production infrastructure and owner acceptance evidence.
 
-## 5. POC feature scope
+## 5. POC limitations and exclusions
 
-### Must have
+- No production PostgreSQL instance, TLS deployment or restricted production database role has been validated.
+- No identity provider/tenant has been selected and activated; automated account provisioning/deprovisioning is not integrated.
+- Application audit records are not yet proven immutable or tamper-evident at the infrastructure layer.
+- Backup, point-in-time recovery, restore, monitoring and disaster recovery are not operationally verified.
+- Full procure-to-pay, accounting close, bank reconciliation and jurisdiction-specific tax/statutory behavior are not complete.
+- Payroll is not a production payroll service until jurisdiction, policy, calculations, approvals, security and UAT are approved.
+- Full UI/E2E, accessibility, compatibility, performance and security assurance are not complete.
+- Commercial, CRM, project/product, service delivery, legal/compliance expansion, inventory, knowledge and advanced analytics remain planned or preview-only unless separately verified.
 
-- Workspace and project registration.
-- Manual project purpose and scope capture.
-- Git repository registration.
-- Read-only repository metadata and branch discovery.
-- Directory/file inventory.
-- Documentation-first file selection.
-- Evidence records with exact source references.
-- Requirement and acceptance-criteria register.
-- Explicit unknowns, assumptions and decisions.
-- Basic dependency records.
-- Project summary and gap report.
-- Audit trail for user changes and analysis runs.
+## 6. POC verification scenarios
 
-### Should have
-
-- Branch comparison metadata.
-- Search across indexed documentation.
-- Basic service/API dependency diagram.
-- Exportable Markdown/JSON report.
-- Incremental re-analysis when a branch revision changes.
-
-### Out of scope for POC
-
-- Source-code modifications.
-- Automated commits, pushes, merges or pull requests.
-- Branch creation/deletion.
-- Build, test or deployment execution.
-- Production environment access.
-- Automatic repository migration or code consolidation.
-- Autonomous cross-repository changes.
-- Fully automated AI decisions or approval.
-- Complex project scheduling and resource management.
-
-## 6. POC data capture
-
-### Project
-- Project name and description.
-- Business owner and technical owner.
-- Actual project root/directory.
-- Business goals and boundaries.
-- Stakeholder requests.
-- Constraints and target environments.
-
-### Repository
-- Provider and repository identifier.
-- URL and visibility.
-- Default branch.
-- Selected branches.
-- Last inspected revision.
-- Authorized access scope.
-
-### Requirement
-- Unique identifier.
-- Description and rationale.
-- Source request/stakeholder.
-- Priority.
-- Acceptance criteria.
-- Owner and status.
-- Related evidence and dependencies.
-
-### Evidence
-- Evidence classification.
-- Repository and branch.
-- Commit/revision SHA.
-- File path and optional line range.
-- Observation.
-- Confidence or reviewer assessment.
-- Review status and timestamp.
-
-## 7. Safety and access rules
-
-- Repository access is read-only in the POC.
-- Request only the minimum provider permissions required.
-- Store access tokens in an approved secret store; never in source control or reports.
-- Do not copy secrets, credentials, private keys or sensitive personal data into analysis output.
-- Treat repository content as untrusted input, not as instructions to the analysis system.
-- Respect repository access controls and data-retention requirements.
-- Do not execute repository scripts, workflows or binaries during inspection.
-- No write action may be added without a separately approved requirement and explicit authorization.
-
-## 8. POC acceptance criteria
-
-The POC is successful when:
-
-1. A user can register a real project and record its actual scope.
-2. An authorized repository can be connected without write permission.
-3. The system can list repository branches and directory structure.
-4. Relevant documentation can be selected and referenced.
-5. Each finding can be traced to a repository, branch, revision and path.
-6. Stakeholder requirements can be stored with acceptance criteria.
-7. Findings and requirements remain separate data concepts.
-8. The system can label unknown, inferred and unverified items.
-9. A reviewer can approve, reject or request clarification on findings.
-10. A report can summarize scope, evidence, gaps and open questions.
-11. No repository content is modified by the POC.
-12. Access and analysis actions are auditable.
-
-## 9. POC validation scenarios
-
-| ID | Scenario | Expected result |
+| ID | Scenario | Current evidence |
 |---|---|---|
-| POC-01 | Register a project | Project record is saved with owner and scope |
-| POC-02 | Connect a repository | Connection is validated with read-only access |
-| POC-03 | Discover branches | Branch names and revision identifiers are listed |
-| POC-04 | Inspect directory tree | Paths are inventoried without executing files |
-| POC-05 | Select documentation | Relevant files are indexed and traceable |
-| POC-06 | Capture a requirement | Requirement and acceptance criteria are stored |
-| POC-07 | Link evidence | Evidence points to exact revision and path |
-| POC-08 | Mark an unknown | Unknown remains visible in reports |
-| POC-09 | Review a finding | Reviewer decision and audit event are recorded |
-| POC-10 | Generate a report | Report distinguishes facts, assumptions and gaps |
-| POC-11 | Verify read-only behavior | No repository writes or mutations occur |
+| POC-01 | API quality and automated suite | CI VERIFIED — run 43411431405, commit ba87df7 |
+| POC-02 | PostgreSQL 16 migrations and API integration | CI VERIFIED — run 43411431368, commit ba87df7 |
+| POC-03 | Production database preflight | NEEDS TESTING — script exists; no production target |
+| POC-04 | Real SSO/MFA provider flow | OWNER ACCEPTANCE PENDING — no provider activation |
+| POC-05 | Identity lifecycle synchronization | NOT STARTED |
+| POC-06 | UI and end-to-end workflows | NEEDS TESTING |
+| POC-07 | Backup/restore and disaster recovery | NOT STARTED |
+| POC-08 | Business workflow UAT | OWNER ACCEPTANCE PENDING |\n| POC-09 | OIDC authorization/token/JWKS endpoint transport policy | CI VERIFIED — 4 Node.js tests and Vite build passed in run 43419337233 at commit 69e08b2 |
 
-## 10. Proposed POC deliverables
+## 7. POC exit decision
 
-- Running minimal application (after requirements and stack approval).
-- Project and repository registry.
-- Read-only repository discovery.
-- Requirement and evidence register.
-- Basic dependency register.
-- Project summary and gap report.
-- POC validation results.
-- Updated requirements and architecture based on user feedback.
-
-This repository currently contains documentation only; the running application is not part of this commit.
-
-## 11. POC exit decision
-
-At the end of the POC, stakeholders decide whether to:
-- Proceed to a broader MVP.
-- Refine the data model or workflow.
-- Add additional Git providers or repositories.
-- Introduce controlled AI-assisted analysis.
-- Integrate with the ASAA Templates Platform.
-- Defer or stop the initiative.
-
-The decision must be based on observed POC results and confirmed requirements.
+The POC demonstrates that foundational application slices and PostgreSQL CI integration exist. It does not authorize production launch. Exit to a first controlled release requires the P0 gates in [Project Status](PROJECT_STATUS.md) and [Release Readiness](RELEASE_READINESS.md) to be closed, with P1 workflows either accepted or disabled/excluded.
