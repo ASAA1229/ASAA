@@ -1,0 +1,18 @@
+# ASAA Epic Register — 2026-11-14
+
+| ID | Epic | Development | Testing | Integration | Acceptance/release |
+|---|---|---|---|---|---|
+| ASAA-E01 | Governance and organization administration | Partially implemented | Local evidence; UAT pending | Cross-project partial | Not accepted for production |
+| ASAA-E02 | Identity/authentication/authorization | Partially implemented | Local negative/security tests | Real provider/lifecycle sync pending | Provider/owner acceptance pending |
+| ASAA-E03 | People and workforce lifecycle | Partially implemented | Local API/UI evidence | Provider lifecycle sync pending | Business UAT pending |
+| ASAA-E04 | Payroll, leave, timesheets, expenses | Partially implemented | Local tests/browser checks | Domain integration partial | Owner acceptance pending |
+| ASAA-E05 | Supplier, procurement and AP | Partially implemented | Local API/UI evidence | External provider pending | Owner acceptance pending |
+| ASAA-E06 | AR, customer and commercial | Partially implemented | Local API/UI evidence | Billing integration pending | Owner acceptance pending |
+| ASAA-E07 | Project/product/service delivery | Not assessed/planned | Not assessed | Not assessed | Not accepted |
+| ASAA-E08 | Analytics and reporting | Not assessed/planned | Not assessed | Not assessed | Not accepted |
+| ASAA-E09 | Security, privacy, audit | Partially implemented | Local tests/DB privilege checks | Shared integration pending | Independent assurance pending |
+| ASAA-E10 | CI/CD, release and operations | Partially implemented | Some local/CI evidence | Production deployment absent | Release NO-GO |
+| ASAA-E11 | Backup, recovery, continuity | Partially implemented | Local restore evidence | Production schedule/offsite pending | RPO/RTO approval pending |
+| ASAA-E12 | Shared ecosystem/data integration | Partial foundations/not assessed | Not assessed | Cross-project contracts pending | Not accepted |
+
+Repository status snapshot remains NO-GO for production. Keep development, testing, integration, acceptance and release separate.
