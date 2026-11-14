@@ -201,6 +201,10 @@ def review_leave_request(request_id: str, payload: LeaveRequestReview, db: Db,
     row.review_note = payload.review_note
     audit(db, principal, "leave_request.reviewed", "hr_leave_request", row.id,
           {"decision": row.status}, x_correlation_id)
+    # Outbox: tell the requester the outcome if an active "leave.reviewed" template exists (no sensitive data in the message).
+    from asaa_notifications.service import enqueue as enqueue_notification
+    enqueue_notification(db, principal.organization_id, row.created_by, "leave.reviewed", {"decision": row.status},
+                         idempotency_key=f"leave.reviewed:{row.id}:{row.status}", correlation_id=x_correlation_id)
     db.commit()
     db.refresh(row)
     return serialize(row)

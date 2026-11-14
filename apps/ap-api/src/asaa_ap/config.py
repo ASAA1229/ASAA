@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     scim_base_url: str | None = None
     scim_bearer_token: str | None = None
     scim_group_prefix: str = "asaa:"
+    # Notification delivery adapter name. "none" = not configured; "memory" is a mock for dev/test only.
+    notification_provider: str = "none"
     # When set, GET /metrics requires "Authorization: Bearer <token>". In production /metrics is disabled unless set.
     metrics_token: str | None = None
 
@@ -44,6 +46,8 @@ class Settings(BaseSettings):
             raise ValueError("Production requires a PostgreSQL database URL")
         if self.environment == "production" and self.identity_provider == "memory":
             raise ValueError("The in-memory identity provider must not be used in production")
+        if self.environment == "production" and self.notification_provider == "memory":
+            raise ValueError("The in-memory notification provider must not be used in production")
         return self
 
 
