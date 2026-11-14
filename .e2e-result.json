@@ -1,0 +1,1429 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--reporter=json"
+    ],
+    "configFile": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\playwright.config.js",
+    "rootDir": "C:/Users/chinn/OneDrive/Desktop/projects/ASAA/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/chinn/OneDrive/Desktop/projects/ASAA/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/chinn/OneDrive/Desktop/projects/ASAA/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e",
+        "snapshotDir": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://127.0.0.1:4173",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.8127.18 Safari/537.36",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "screen": {
+            "width": 1920,
+            "height": 1080
+          },
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "defaultBrowserType": "chromium"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.65.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "launch.spec.js",
+      "file": "launch.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "sign-in",
+          "file": "launch.spec.js",
+          "line": 26,
+          "column": 6,
+          "specs": [
+            {
+              "title": "sign-in screen has no accessibility violations",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3409,
+                      "error": {
+                        "message": "Error: axe violations on sign-in\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on sign-in\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:30:5",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on sign-in\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:30:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:38:55.836Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-sign-in-sign-in-scr-1b5ac-no-accessibility-violations\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-sign-in-sign-in-scr-1b5ac-no-accessibility-violations\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-sign-in-sign-in-scr-1b5ac-no-accessibility-violations\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-cd016d4d95023a26255c",
+              "file": "launch.spec.js",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "an invalid token is refused by the real API and the user stays on sign-in",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 11010,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: /Connect with development token/ })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: /Connect with development token/ }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Connect with development token/ })\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: /Connect with development token/ })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: /Connect with development token/ }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Connect with development token/ })\u001b[22m\n\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:38:88",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 88,
+                          "line": 38
+                        },
+                        "snippet": " \u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByPlaceholder(\u001b[32m\"Paste a development access token\"\u001b[39m)\u001b[33m.\u001b[39mfill(\u001b[32m\"not.a.jwt\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 37 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/Connect with development token/\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 38 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/Connect with development token/\u001b[39m }))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 39 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByText(\u001b[32m\"API connected\"\u001b[39m))\u001b[33m.\u001b[39mtoHaveCount(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 40 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 41 |\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 88,
+                            "line": 38
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: /Connect with development token/ })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: /Connect with development token/ }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Connect with development token/ })\u001b[22m\n\n\n  36 |     await page.getByPlaceholder(\"Paste a development access token\").fill(\"not.a.jwt\");\n  37 |     await page.getByRole(\"button\", { name: /Connect with development token/ }).click();\n> 38 |     await expect(page.getByRole(\"button\", { name: /Connect with development token/ })).toBeVisible();\n     |                                                                                        ^\n  39 |     await expect(page.getByText(\"API connected\")).toHaveCount(0);\n  40 |   });\n  41 |\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:38:88"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:01.177Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-sign-in-an-invalid--4d532-d-the-user-stays-on-sign-in\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-sign-in-an-invalid--4d532-d-the-user-stays-on-sign-in\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-sign-in-an-invalid--4d532-d-the-user-stays-on-sign-in\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 88,
+                        "line": 38
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-caa10e08163657128600",
+              "file": "launch.spec.js",
+              "line": 33,
+              "column": 3
+            },
+            {
+              "title": "a valid token signs in and a read-only token only sees what it may read",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 861,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:12.965Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-dbd0064a0da25f7d9ddf",
+              "file": "launch.spec.js",
+              "line": 42,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "launch workflows (live API)",
+          "file": "launch.spec.js",
+          "line": 51,
+          "column": 6,
+          "specs": [
+            {
+              "title": "organization admin: register the organization profile and a department",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1995,
+                      "error": {
+                        "message": "Error: axe violations on organization profile form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x16: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on organization profile form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x16: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:57:5",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on organization profile form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x16: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:57:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:13.944Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-85c1a-on-profile-and-a-department\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-85c1a-on-profile-and-a-department\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-85c1a-on-profile-and-a-department\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-071026cb46ddf608ffc9",
+              "file": "launch.spec.js",
+              "line": 52,
+              "column": 3
+            },
+            {
+              "title": "people/HR: create an employee and see it in the directory",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 11886,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('cell', { name: /E2E-ll9d4o/ })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('cell', { name: /E2E-ll9d4o/ }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('cell', { name: /E2E-ll9d4o/ })\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('cell', { name: /E2E-ll9d4o/ })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('cell', { name: /E2E-ll9d4o/ }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('cell', { name: /E2E-ll9d4o/ })\u001b[22m\n\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:77:70",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 70,
+                          "line": 77
+                        },
+                        "snippet": " \u001b[90m 75 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByLabel(\u001b[32m\"Last name\"\u001b[39m)\u001b[33m.\u001b[39mfill(\u001b[32m\"Rao\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 76 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/Add employee/\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"cell\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mRegExp\u001b[39m(code) }))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByText(\u001b[32m\"Asha Rao\"\u001b[39m)\u001b[33m.\u001b[39mfirst())\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m     \u001b[36mawait\u001b[39m expectNoA11yViolations(page\u001b[33m,\u001b[39m \u001b[32m\"people directory\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 80 |\u001b[39m   })\u001b[33m;\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 70,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('cell', { name: /E2E-ll9d4o/ })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('cell', { name: /E2E-ll9d4o/ }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('cell', { name: /E2E-ll9d4o/ })\u001b[22m\n\n\n  75 |     await page.getByLabel(\"Last name\").fill(\"Rao\");\n  76 |     await page.getByRole(\"button\", { name: /Add employee/ }).click();\n> 77 |     await expect(page.getByRole(\"cell\", { name: new RegExp(code) })).toBeVisible();\n     |                                                                      ^\n  78 |     await expect(page.getByText(\"Asha Rao\").first()).toBeVisible();\n  79 |     await expectNoA11yViolations(page, \"people directory\");\n  80 |   });\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:77:70"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:16.922Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-60028-and-see-it-in-the-directory\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-60028-and-see-it-in-the-directory\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-60028-and-see-it-in-the-directory\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 70,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-d5905a014233ae2d285a",
+              "file": "launch.spec.js",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "AP: create a supplier through the form and see it listed as Draft",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2779,
+                      "error": {
+                        "message": "Error: axe violations on supplier form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x7: .nav-group:nth-child(7) > .nav-caption | .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on supplier form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x7: .nav-group:nth-child(7) > .nav-caption | .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:88:5",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on supplier form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x7: .nav-group:nth-child(7) > .nav-caption | .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:88:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:30.206Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-a7c30--and-see-it-listed-as-Draft\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-a7c30--and-see-it-listed-as-Draft\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-a7c30--and-see-it-listed-as-Draft\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-4a5bdbf09f7528d4cbd8",
+              "file": "launch.spec.js",
+              "line": 82,
+              "column": 3
+            },
+            {
+              "title": "AR: create a customer from the AR workspace dialog",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2890,
+                      "error": {
+                        "message": "Error: axe violations on add customer dialog\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x16: .nav-group:nth-child(7) > .nav-caption | .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on add customer dialog\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x16: .nav-group:nth-child(7) > .nav-caption | .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:101:5",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on add customer dialog\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x16: .nav-group:nth-child(7) > .nav-caption | .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:101:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:34.130Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-8eca6-rom-the-AR-workspace-dialog\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-8eca6-rom-the-AR-workspace-dialog\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-8eca6-rom-the-AR-workspace-dialog\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-62488261ec05f1ed3022",
+              "file": "launch.spec.js",
+              "line": 95,
+              "column": 3
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Leave management",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2558,
+                      "error": {
+                        "message": "Error: axe violations on Leave management\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Leave management\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Leave management\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:38.272Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-3ef73-passes-axe-Leave-management\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-3ef73-passes-axe-Leave-management\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-3ef73-passes-axe-Leave-management\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-7f24eecd5cf9d3150261",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Compensation & payroll",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2668,
+                      "error": {
+                        "message": "Error: axe violations on Compensation & payroll\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Compensation & payroll\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Compensation & payroll\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:41.925Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-2d2a7-es-axe-Compensation-payroll\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-2d2a7-es-axe-Compensation-payroll\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-2d2a7-es-axe-Compensation-payroll\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-73d82c087f09528326fd",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Timesheets",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2480,
+                      "error": {
+                        "message": "Error: axe violations on Timesheets\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Timesheets\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Timesheets\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:45.721Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-f96d3-n-and-passes-axe-Timesheets\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-f96d3-n-and-passes-axe-Timesheets\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-f96d3-n-and-passes-axe-Timesheets\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-6f4c759a56e6c28e4893",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Expenses",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2584,
+                      "error": {
+                        "message": "Error: axe violations on Expenses\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Expenses\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Expenses\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(8) > .nav-caption | .nav-group:nth-child(9) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:49.369Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-e51fa-ion-and-passes-axe-Expenses\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-e51fa-ion-and-passes-axe-Expenses\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-e51fa-ion-and-passes-axe-Expenses\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-693e823fe7ec25122e02",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Procurement",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2522,
+                      "error": {
+                        "message": "Error: axe violations on Procurement\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(6) > .nav-caption | .nav-group:nth-child(7) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Procurement\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(6) > .nav-caption | .nav-group:nth-child(7) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Procurement\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x5: .nav-group:nth-child(6) > .nav-caption | .nav-group:nth-child(7) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:53.084Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-d7bdb--and-passes-axe-Procurement\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-d7bdb--and-passes-axe-Procurement\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-d7bdb--and-passes-axe-Procurement\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-6431323523ef2f30220d",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Master data",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2352,
+                      "error": {
+                        "message": "Error: axe violations on Master data\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x6: .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption | .nav-group:nth-child(4) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Master data\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x6: .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption | .nav-group:nth-child(4) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Master data\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x6: .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption | .nav-group:nth-child(4) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:39:56.720Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-d42ff--and-passes-axe-Master-data\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-d42ff--and-passes-axe-Master-data\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-d42ff--and-passes-axe-Master-data\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-61e98a485e9cb8613f16",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Identity & access",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3858,
+                      "error": {
+                        "message": "Error: axe violations on Identity & access\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x7: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Identity & access\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x7: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Identity & access\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x7: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:40:00.269Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-78bcd--passes-axe-Identity-access\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-78bcd--passes-axe-Identity-access\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-78bcd--passes-axe-Identity-access\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-9dfc22362a06ef6df639",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "screen renders with an authorized session and passes axe: Settings",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 13,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3708,
+                      "error": {
+                        "message": "Error: axe violations on Settings\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x6: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on Settings\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x6: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on Settings\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x6: .nav-group:nth-child(1) > .nav-caption | .nav-group:nth-child(2) > .nav-caption | .nav-group:nth-child(3) > .nav-caption\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:114:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:40:06.187Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-8a22f-ion-and-passes-axe-Settings\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-8a22f-ion-and-passes-axe-Settings\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-8a22f-ion-and-passes-axe-Settings\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-08359889f5a841316642",
+              "file": "launch.spec.js",
+              "line": 110,
+              "column": 5
+            },
+            {
+              "title": "timesheet: the create form opens, is accessible and can be closed",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3990,
+                      "error": {
+                        "message": "Error: axe violations on timesheet form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x21: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                        "stack": "Error: axe violations on timesheet form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x21: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:123:5",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 49,
+                          "line": 23
+                        },
+                        "snippet": " \u001b[90m 21 |\u001b[39m   \u001b[36mconst\u001b[39m results \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mAxeBuilder\u001b[39m({ page })\u001b[33m.\u001b[39mwithTags([\u001b[32m\"wcag2a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag2aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21a\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"wcag21aa\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"best-practice\"\u001b[39m])\u001b[33m.\u001b[39manalyze()\u001b[33m;\u001b[39m\n \u001b[90m 22 |\u001b[39m   \u001b[36mconst\u001b[39m summary \u001b[33m=\u001b[39m results\u001b[33m.\u001b[39mviolations\u001b[33m.\u001b[39mmap(v \u001b[33m=>\u001b[39m \u001b[32m`${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   expect(summary\u001b[33m,\u001b[39m \u001b[32m`axe violations on ${label}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m test\u001b[33m.\u001b[39mdescribe(\u001b[32m\"sign-in\"\u001b[39m\u001b[33m,\u001b[39m () \u001b[33m=>\u001b[39m {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 49,
+                            "line": 23
+                          },
+                          "message": "Error: axe violations on timesheet form\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"color-contrast [serious] x21: .nav-group:nth-child(4) > .nav-caption | .nav-group:nth-child(5) > .nav-caption | .crumb > span\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  21 |   const results = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\", \"wcag21a\", \"wcag21aa\", \"best-practice\"]).analyze();\n  22 |   const summary = results.violations.map(v => `${v.id} [${v.impact}] x${v.nodes.length}: ${v.nodes.slice(0, 3).map(n => n.target.join(\" \")).join(\" | \")}`);\n> 23 |   expect(summary, `axe violations on ${label}`).toEqual([]);\n     |                                                 ^\n  24 | }\n  25 |\n  26 | test.describe(\"sign-in\", () => {\n    at expectNoA11yViolations (C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:23:49)\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:123:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:40:11.456Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-04955-ccessible-and-can-be-closed\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-04955-ccessible-and-can-be-closed\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-launch-workflows-li-04955-ccessible-and-can-be-closed\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 49,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-85d943b7c83f748a77fd",
+              "file": "launch.spec.js",
+              "line": 118,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "keyboard-only operation",
+          "file": "launch.spec.js",
+          "line": 129,
+          "column": 6,
+          "specs": [
+            {
+              "title": "sign-in can be completed with the keyboard alone",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 951,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:40:17.620Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-dda4c3bbdb537b7eeb1a",
+              "file": "launch.spec.js",
+              "line": 130,
+              "column": 3
+            },
+            {
+              "title": "skip link moves focus past the navigation to the main content",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 11300,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('link', { name: /skip to main content/i })\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" getByRole('link', { name: /skip to main content/i }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('link', { name: /skip to main content/i })\u001b[22m\n\u001b[2m    23 × locator resolved to <a class=\"skip-link\" href=\"#main-content\">Skip to main content</a>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('link', { name: /skip to main content/i })\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" getByRole('link', { name: /skip to main content/i }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('link', { name: /skip to main content/i })\u001b[22m\n\u001b[2m    23 × locator resolved to <a class=\"skip-link\" href=\"#main-content\">Skip to main content</a>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:148:24",
+                        "location": {
+                          "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                          "column": 24,
+                          "line": 148
+                        },
+                        "snippet": " \u001b[90m 146 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mkeyboard\u001b[33m.\u001b[39mpress(\u001b[32m\"Tab\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 147 |\u001b[39m     \u001b[36mconst\u001b[39m skip \u001b[33m=\u001b[39m page\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"link\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/skip to main content/i\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 148 |\u001b[39m     \u001b[36mawait\u001b[39m expect(skip)\u001b[33m.\u001b[39mtoBeFocused()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 149 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mkeyboard\u001b[33m.\u001b[39mpress(\u001b[32m\"Enter\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 150 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m\"#main-content\"\u001b[39m))\u001b[33m.\u001b[39mtoBeFocused()\u001b[33m;\u001b[39m\n \u001b[90m 151 |\u001b[39m   })\u001b[33m;\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                            "column": 24,
+                            "line": 148
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('link', { name: /skip to main content/i })\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" getByRole('link', { name: /skip to main content/i }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('link', { name: /skip to main content/i })\u001b[22m\n\u001b[2m    23 × locator resolved to <a class=\"skip-link\" href=\"#main-content\">Skip to main content</a>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n\n\n  146 |     await page.keyboard.press(\"Tab\");\n  147 |     const skip = page.getByRole(\"link\", { name: /skip to main content/i });\n> 148 |     await expect(skip).toBeFocused();\n      |                        ^\n  149 |     await page.keyboard.press(\"Enter\");\n  150 |     await expect(page.locator(\"#main-content\")).toBeFocused();\n  151 |   });\n    at C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js:148:24"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:40:18.873Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-keyboard-only-opera-e0edb-igation-to-the-main-content\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-keyboard-only-opera-e0edb-igation-to-the-main-content\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\test-results\\launch-keyboard-only-opera-e0edb-igation-to-the-main-content\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\chinn\\OneDrive\\Desktop\\projects\\ASAA\\tests\\e2e\\launch.spec.js",
+                        "column": 24,
+                        "line": 148
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-3233be8da8df830c8013",
+              "file": "launch.spec.js",
+              "line": 144,
+              "column": 3
+            },
+            {
+              "title": "navigation, dialog open, Escape close and focus return work by keyboard; focus is always visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 911,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-13T17:40:30.814Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd57c505df0f442f2e66-ee035a83ee5ec9f6b30a",
+              "file": "launch.spec.js",
+              "line": 153,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-13T17:38:24.548Z",
+    "duration": 128151.413,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 16,
+    "flaky": 0
+  }
+}

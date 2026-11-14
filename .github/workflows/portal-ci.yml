@@ -9,6 +9,8 @@ on:
       - "tests/**"
       - "playwright.config.js"
       - "apps/ap-api/**"
+      - "playwright.config.js"
+      - "apps/ap-api/**"
       - "index.html"
       - "package.json"
       - "package-lock.json"

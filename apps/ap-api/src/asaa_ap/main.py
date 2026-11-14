@@ -66,6 +66,12 @@ def whoami(principal: Annotated[Principal, Depends(get_principal)]):
     return {"subject": principal.subject, "organization_id": principal.organization_id, "permissions": sorted(principal.permissions)}
 
 
+@app.get("/api/v1/me", tags=["Identity"])
+def whoami(principal: Annotated[Principal, Depends(get_principal)]):
+    """Verified session summary. Requires only a valid token; lets clients confirm a token is accepted."""
+    return {"subject": principal.subject, "organization_id": principal.organization_id, "permissions": sorted(principal.permissions)}
+
+
 @app.get("/health", tags=["Operations"])
 def health():
     return {"status": "ok", "service": "asaa-enterprise-api"}
