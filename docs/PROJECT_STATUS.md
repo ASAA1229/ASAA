@@ -155,3 +155,12 @@ After each increment:
 7. Re-evaluate release gates.
 
 Do not change this baseline silently. Preserve prior dated assessment records when superseded.
+
+
+---
+
+## ASAA Master Requirements Baseline v1.0 (2026-11-14)
+
+The organization-approved planning and governance baseline now covers ASAA, Portfolio, JARVIS, Templates and shared ecosystem capabilities. Round 6 (12 consolidation stages) is complete at framework/consolidation level. This approval does not imply that individual requirements, all 1,000 source answers, repository evidence, named owners, dependencies, gaps, estimates or delivery dates have been fully validated.
+
+See `docs/ASAA_MASTER_REQUIREMENTS_BASELINE.md`, `docs/PROJECT_SCOPE.md` and `docs/EPIC_STATUS.md`. Outstanding source reconciliation, requirement population, repository/runtime evidence, owner/dependency validation, evidence-based gap analysis and delivery estimates remain pending. This is a planning baseline only; it does not authorize implementation, testing, deployment, paid services or merges.
