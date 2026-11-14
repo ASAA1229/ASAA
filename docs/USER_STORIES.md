@@ -383,7 +383,12 @@ Story status below uses the canonical vocabulary where achievable. Items marked 
 | ASAA-P0-04 Provision and revoke identities | NOT STARTED | IN DEVELOPMENT — provider-independent joiner/mover/leaver sync, revocation, retry, dead-letter and reconciliation implemented and tested against a mock provider (15 tests). Blocked: real provider and employee mapping. |
 | ASAA-P0-06 Prove security and audit controls | NEEDS TESTING | NEEDS TESTING — 15 negative API security tests pass locally; independent review, DB privilege review and penetration test pending. |
 | ASAA-P0-07 Operate and observe releases | NOT STARTED | IN DEVELOPMENT — health/readiness, structured redacted logs with request IDs, metrics, smoke script/workflow implemented. Blocked: hosting, monitoring provider, deployment and rollback. |
-| ASAA-P1-17 End-to-end quality and accessibility | NEEDS TESTING | NEEDS TESTING — 17 jsdom UI tests and axe checks on 17 launch workspaces pass; real-browser E2E, screen reader, contrast and device testing absent. |
+| ASAA-P1-17 End-to-end quality and accessibility | NEEDS TESTING | NEEDS TESTING — updated 2026-11-14: 17 jsdom tests plus 19 passed real-browser Playwright tests (live local API, axe including contrast, keyboard-only checks) pass locally; screen reader, zoom, mobile/device and multi-browser testing absent; CI run pending. |
 | Frontend quality (ASAA-008) | n/a | TEST PASSED locally — lockfile, `npm ci`, lint and audits; CI run pending. |
 
 No new business-workflow story (finance, HR, payroll, procurement) was implemented in this increment: the remaining stories need approved policy decisions (leave policy engine, statutory payroll rules, procure-to-pay rules) or external services (document storage, notifications), which this increment did not assume.
+
+### Update 2026-11-14
+- Portal access: a pasted token is now verified by the API before the session is shown as connected (ASAA-P0-03 foundation; provider activation still external).
+- Accessibility: skip link, dialog focus management, visible focus, AA contrast for muted text and the previously white-on-light forms, live-region toasts (ASAA-P1-17 partial).
+- ASAA-P0-06: runtime database role is least-privilege with append-only audit rows, verified on local PostgreSQL 18; independent review pending.

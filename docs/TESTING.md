@@ -9,13 +9,13 @@
 |---|---|---|
 | Static/compile | Python compile, frontend build, lint/type checks | Python compile in API CI; Vite production build; ESLint flat config (`npm run lint`) with 0 errors and 0 warnings locally (2026-11-13). No TypeScript/type-check layer (JavaScript/JSX). |
 | Unit | Domain rules, schemas, state transitions, calculations | API pytest suite; coverage percentage not recorded. |
-| API/integration | Authentication, authorization, CRUD, workflow transitions, errors and audit | API suite: 125 passed with PostgreSQL integration enabled, 123 passed / 2 skipped without PostgreSQL (local, 2026-11-13). |
+| API/integration | Authentication, authorization, CRUD, workflow transitions, errors and audit | API suite: 130 passed passed with PostgreSQL integration enabled, 124 passed, 6 skipped without PostgreSQL (local, 2026-11-14). |
 | Database/migrations | Upgrade, downgrade/re-upgrade, constraints, transaction and concurrency behavior | SQLite migration checks and PostgreSQL 16 CI (earlier commit); local PostgreSQL 18 upgrade/downgrade/re-upgrade of all 16 revisions and PostgreSQL integration tests passed locally. |
 | UI/component | Rendering, validation, role-aware controls, errors and accessibility semantics | 17 Vitest + Testing Library (jsdom) tests plus 4 Node.js OIDC policy tests, run locally. |
-| E2E | Real user journeys across UI/API/database | Not evidenced. No real-browser suite exists; the jsdom tests mock the API with `fetch`. |
+| E2E | Real user journeys across UI/API/database | 19 passed Playwright tests in Chromium against `vite preview` and a live local API (fresh SQLite, per-run RSA key). Single browser, no device matrix, run locally only so far. |
 | Security | Authentication, MFA, tenant isolation, IDOR, privilege escalation, SoD, sensitive fields, audit | `tests/test_security_negative.py` (15 tests) plus existing security/authorization tests; independent assurance pending. |
 | Performance | Load, stress, soak, concurrency, pool/capacity and response budgets | `apps/ap-api/scripts/load_test.py` with recorded local numbers (section 4). No soak, no target-infrastructure evidence, no approved budgets. |
-| Accessibility/compatibility | Keyboard, screen reader, contrast, zoom, responsive layout, browsers/devices | axe-core automated checks (jsdom, color-contrast rule not evaluated) over the sign-in screen, overview, AR, AP, people directory, add-customer dialog and 17 launch workspaces. No screen-reader, contrast, zoom or device/browser evidence. |
+| Accessibility/compatibility | Keyboard, screen reader, contrast, zoom, responsive layout, browsers/devices | jsdom axe checks (no contrast) plus real-browser @axe-core/playwright scans (WCAG 2 A/AA + best-practice, colour contrast included) and keyboard-only checks (sign-in, skip link, dialog focus). No screen-reader, zoom/reflow, mobile or multi-browser evidence. |
 | Operational | Deployment smoke, alerts, backup/restore, rollback and DR | `scripts/smoke_test.py` (tested against a spawned API); backup -> restore -> verify round trip tested locally on SQLite and PostgreSQL 18. No alerting, rollback or DR exercise. |
 | Business acceptance | Approved finance, HR, payroll, procurement and governance scenarios | Owner acceptance pending. |
 
@@ -44,6 +44,9 @@ Workflow: `.github/workflows/portal-ci.yml`
 - Job `web-dependency-audit`: `npm audit --audit-level=high`.
 - Latest recorded successful run (earlier commit): [43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233).
 
+### Web E2E
+Job `web-e2e` in `portal-ci.yml`: installs the API, Chromium and runs `npx playwright test` (builds the app, serves it with `vite preview`, starts `scripts/e2e_api.py`). Uploads the Playwright report. Configured, **not yet run on GitHub**; the same suite passed locally (see Project Status section 7).
+
 ### Post-deploy smoke
 Workflow: `.github/workflows/release-smoke.yml` (manual `workflow_dispatch`, read-only). It performs no deployment.
 
@@ -56,6 +59,8 @@ npm ci
 npm run lint
 npm run test:web      # Node.js OIDC transport-policy tests
 npm run test:ui       # Vitest + Testing Library + axe (jsdom)
+npx playwright install chromium   # once
+npm run test:e2e      # real Chromium + live local API + axe incl. contrast
 npm run build
 npm audit --audit-level=high
 ```
@@ -71,9 +76,11 @@ python -m pip_audit --skip-editable
 python scripts/load_test.py --concurrency 20 --duration 20
 python scripts/smoke_test.py --base-url http://127.0.0.1:8000
 python scripts/backup_restore.py backup --database-url sqlite:///./asaa_ap.db --out backups/
+python scripts/db_roles.py provision --admin-url postgresql://admin@host/db   # needs ASAA_DB_*_PASSWORD env
+PGPASSWORD=... python scripts/db_roles.py check --runtime-url postgresql://asaa_runtime@host/db
 ```
 
-PostgreSQL-dependent tests run only when `ASAA_AP_POSTGRES_TEST_URL` (and, for the integration module, an identical `ASAA_AP_DATABASE_URL`) point at a **disposable, freshly migrated** PostgreSQL database. The integration module uses fixed business keys, so a second run against the same database fails with HTTP 409 until the database is recreated. Use only a disposable local/test database for downgrade/re-upgrade and restore tests.
+PostgreSQL-dependent tests run only when `ASAA_AP_POSTGRES_TEST_URL` (and, for the integration module, an identical `ASAA_AP_DATABASE_URL`) point at a **disposable, freshly migrated** PostgreSQL database. The integration module uses fixed business keys, so a second run against the same database fails with HTTP 409 until the database is recreated. The integration module now uses a unique organization per run, so reruns no longer collide. Role-separation tests (`tests/test_db_privileges.py`) create and drop their own database and roles and need an administrative test URL. Use only a disposable local/test database for downgrade/re-upgrade and restore tests.
 
 ## 4. Local measurements recorded 2026-11-13
 

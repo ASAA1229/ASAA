@@ -211,3 +211,15 @@ Evidence is from the local environment only (SQLite and a disposable PostgreSQL 
 **Findings.** The new negative API tests found no authorization defect in the existing API. Defects found elsewhere: portal crash for partially-permitted sessions (fixed), portal reporting an active connection after 401 (fixed), a vulnerable test-framework dependency chain (replaced), `package-lock.json` untracked (fixed), OpenAPI/docs exposed in production mode and no security headers/body limit (fixed).
 
 **Not done (still required by section 12):** threat model, data classification, penetration test, independent review, database-level audit immutability, rate limiting, real identity provider and MFA verification, production key management, privacy impact assessment.
+
+### 17.1 Update 2026-11-14: database privileges and session verification
+
+| Control | Evidence | Result |
+|---|---|---|
+| Migration/runtime role separation | `scripts/db_roles.py provision`, `tests/test_db_privileges.py` (local PostgreSQL 18) | Runtime role: not superuser/createdb/createrole/replication/bypassrls; no schema CREATE; owns no tables; DML only; `alembic_version` SELECT-only; `audit_events` SELECT/INSERT only; CREATE/DROP/ALTER/TRUNCATE refused; attempts executed and refused inside rolled-back transactions; migrations by the runtime role fail while the migration role succeeds. |
+| Checker is not vacuous | `test_checker_detects_an_over_privileged_role` | The owner/admin role fails the check. |
+| Application works with least privilege | `test_application_works_end_to_end_as_the_runtime_role_and_audit_rows_are_append_only` | Reads, creates and audit inserts succeed under the runtime role with zero errors; `UPDATE audit_events` is refused. |
+| Session verification | `test_whoami_requires_a_valid_token_and_returns_only_verified_claims`, Playwright invalid-token test | `/api/v1/me` needs only a valid token and returns verified claims; the portal no longer treats an arbitrary string as a connected session. |
+| E2E credentials hygiene | `apps/ap-api/scripts/e2e_api.py` | Fresh RSA key and 30-minute tokens per run, written only to the git-ignored `.e2e/`; the previously committed token file was untracked (it was expired, issuer `e2e.invalid`, signed by a discarded key). |
+
+Still open: the production role matrix is an owner/DBA decision (the policy above is the repository baseline); the grants must be re-run after each migration (`provision` is idempotent); this is local evidence, not a review of any production database.
