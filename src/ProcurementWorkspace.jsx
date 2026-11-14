@@ -128,7 +128,7 @@ export default function ProcurementWorkspace({ requests = [], suppliers = [], ap
             {isExpanded && <div className="procurement-request-detail">
               <p>{row.purpose}</p>
               <div className="procurement-meta"><span>Cost centre: <b>{row.cost_center || "—"}</b></span><span>Project: <b>{row.project_reference || "—"}</b></span><span>Version: <b>{row.version}</b></span></div>
-              <div className="table-wrap"><table><thead><tr><th>Description</th><th>Quantity</th><th>Unit cost</th><th>Line total</th></tr></thead><tbody>{(row.lines || []).map(line => <tr key={line.id}><td>{line.description}</td><td>{line.quantity} {line.unit_of_measure}</td><td>{money(line.estimated_unit_cost, row.currency)}</td><td>{money(line.estimated_line_total, row.currency)}</td></tr>)}</tbody></table></div>
+              <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable data table"><table><thead><tr><th>Description</th><th>Quantity</th><th>Unit cost</th><th>Line total</th></tr></thead><tbody>{(row.lines || []).map(line => <tr key={line.id}><td>{line.description}</td><td>{line.quantity} {line.unit_of_measure}</td><td>{money(line.estimated_unit_cost, row.currency)}</td><td>{money(line.estimated_line_total, row.currency)}</td></tr>)}</tbody></table></div>
               {row.reviewed_by && <p className="procurement-review-note"><ShieldCheck size={14}/> Reviewed by {row.reviewed_by} · {row.review_reason || "No reason supplied"}</p>}
               {(canSubmit && own && ["Draft", "Returned"].includes(row.status)) && <div className="procurement-action">
                 <label>Submission note<input value={reason} onChange={e => setReasons(current => ({ ...current, [row.id]: e.target.value }))} placeholder="Explain why this request is ready for review" /></label>
@@ -151,7 +151,7 @@ export default function ProcurementWorkspace({ requests = [], suppliers = [], ap
     </section>
     {showSuppliers && <section className="panel list-panel">
       <div className="list-heading"><div><h2>Supplier directory</h2><p>Supplier records already available through Accounts Payable.</p></div><span>{suppliers.length} suppliers</span></div>
-      <div className="table-wrap"><table><thead><tr><th>Supplier</th><th>Code</th><th>Category</th><th>Email</th><th>Status</th></tr></thead><tbody>
+      <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable data table"><table><thead><tr><th>Supplier</th><th>Code</th><th>Category</th><th>Email</th><th>Status</th></tr></thead><tbody>
         {suppliers.map(row => <tr key={row.id}><td><b>{row.legal_name}</b><small>{row.trading_name || row.id.slice(0, 8)}</small></td><td>{row.supplier_code || "—"}</td><td>{row.category || "—"}</td><td>{row.email || "—"}</td><td>{row.status || "—"}</td></tr>)}
       </tbody></table>{!suppliers.length && <div className="empty-state">No supplier records available to this account.</div>}</div>
     </section>}

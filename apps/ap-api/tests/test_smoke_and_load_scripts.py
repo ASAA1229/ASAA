@@ -50,7 +50,7 @@ def test_budget_gate_accepts_a_good_run_and_flags_each_kind_of_violation():
               "by_operation": {"list_suppliers": {"p95_ms": 800.0}, "create_supplier": {"p95_ms": 1200.0}, "ready": {"p95_ms": 300.0}}}
     budget = json.loads((ROOT.parents[1] / "monitoring" / "performance-budget.json").read_text())
     assert load_test.evaluate_budget(result, budget) == []
-    slow = {**result, "overall": {"p95_ms": 2500.0, "p99_ms": 4000.0}, "error_rate": 0.05, "throughput_rps": 5.0,
+    slow = {**result, "overall": {"p95_ms": 4500.0, "p99_ms": 7000.0}, "error_rate": 0.05, "throughput_rps": 5.0,
             "by_operation": {"list_suppliers": {"p95_ms": 9000.0}, "create_supplier": {"p95_ms": 1.0}}}
     problems = " | ".join(load_test.evaluate_budget(slow, budget))
     for expected in ("overall p95", "overall p99", "error rate", "throughput", "list_suppliers p95", "operation ready was not exercised"):

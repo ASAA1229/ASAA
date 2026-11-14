@@ -82,8 +82,8 @@ jobs:
       - name: Install API dependencies
         run: python -m pip install -e "apps/ap-api[test]"
       - run: npm ci
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium, Firefox and WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
       - name: Real-browser E2E and axe (production build via vite preview, live local API)
         env:
           E2E_PYTHON: python

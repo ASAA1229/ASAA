@@ -117,3 +117,7 @@
 @media(max-width:700px){.people-panel,.payroll-panel{padding:14px}.people-form,.payroll-form{align-items:stretch}.people-field,.payroll-field{flex-basis:100%}.people-statusbar,.payroll-statusbar{align-items:flex-start}.people-statusbar>div,.payroll-statusbar>div{align-items:flex-start;flex-direction:column;gap:4px}.people-table th,.people-table td,.payroll-table th,.payroll-table td{padding:10px 8px}}
 .skip-link{position:absolute;left:-9999px;top:8px;z-index:100;background:var(--gold);color:#171a20;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none}.skip-link:focus{left:12px}
 :focus-visible{outline:2px solid #f2ce92;outline-offset:2px}#main-content:focus,.modal:focus{outline:none}
+.dashboard-grid>*,.metric-grid>*,.settings-grid>*,.module-content-grid>*{min-width:0}
+@media (max-width:900px){.dashboard-grid,.settings-grid{grid-template-columns:minmax(0,1fr)}}
+.table-wrap:focus-visible,.people-table-wrap:focus-visible,.payroll-table-wrap:focus-visible{outline:2px solid #f2ce92;outline-offset:-2px}
+.text-link{min-height:24px;padding:4px 0}
