@@ -7,6 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${REHEARSAL_PYTHON:-python3}"
+# Host ports are configurable: some Windows hosts reserve ranges (e.g. 8080) for Hyper-V/WSL.
+export API_PORT="${API_PORT:-8000}" PORTAL_PORT="${PORTAL_PORT:-8080}"
 COMPOSE=(docker compose -f deploy/docker-compose.yml)
 RESULT=deploy/rehearsal-result.json
 STEPS=()
@@ -27,9 +29,9 @@ export ASAA_AP_JWT_PUBLIC_KEY="$($PY -c 'import json,sys;print(json.loads(sys.ar
 TOKEN="$($PY -c 'import json,sys;print(json.loads(sys.argv[1])["token"])' "$CREDS")"
 TOKEN_FILE="$(mktemp)"; printf '%s' "$TOKEN" > "$TOKEN_FILE"
 
-smoke() { $PY apps/ap-api/scripts/smoke_test.py --base-url http://127.0.0.1:8000 --token-file "$TOKEN_FILE" --expect-production; }
-wait_ready() { for _ in $(seq 1 40); do curl -fsS http://127.0.0.1:8000/ready >/dev/null 2>&1 && return 0; sleep 2; done; return 1; }
-supplier_count() { curl -fsS -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8000/api/v1/ap/suppliers?limit=100" | $PY -c 'import json,sys;print(len(json.load(sys.stdin)))'; }
+smoke() { $PY apps/ap-api/scripts/smoke_test.py --base-url http://127.0.0.1:${API_PORT} --token-file "$TOKEN_FILE" --expect-production; }
+wait_ready() { for _ in $(seq 1 40); do curl -fsS http://127.0.0.1:${API_PORT}/ready >/dev/null 2>&1 && return 0; sleep 2; done; return 1; }
+supplier_count() { curl -fsS -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:${API_PORT}/api/v1/ap/suppliers?limit=100" | $PY -c 'import json,sys;print(len(json.load(sys.stdin)))'; }
 
 # 1. build release 1 (good) and release 2 (deliberately broken)
 docker build -q -t asaa-api:rehearsal-1 apps/ap-api >/dev/null && record build-release-1 true "asaa-api:rehearsal-1"
@@ -44,9 +46,9 @@ REV_BEFORE="$("${COMPOSE[@]}" exec -T postgres psql -U asaa -d asaa_ap -tAc 'sel
 "${COMPOSE[@]}" up -d api portal >/dev/null
 wait_ready && record deploy-release-1 true "ready" || { record deploy-release-1 false "api not ready"; exit 1; }
 smoke >/dev/null && record smoke-release-1 true "all smoke checks passed" || { record smoke-release-1 false "smoke failed"; exit 1; }
-curl -fsS -o /dev/null http://127.0.0.1:8080/ && record portal-serves true "static portal reachable"
+curl -fsS -o /dev/null http://127.0.0.1:${PORTAL_PORT}/ && record portal-serves true "static portal reachable"
 curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"legal_name":"Rehearsal Supplier"}' \
-  http://127.0.0.1:8000/api/v1/ap/suppliers >/dev/null && record write-before-release-2 true "supplier created"
+  http://127.0.0.1:${API_PORT}/api/v1/ap/suppliers >/dev/null && record write-before-release-2 true "supplier created"
 COUNT_BEFORE="$(supplier_count)"
 
 # 3. simulated bad release: release 2 must fail the smoke test

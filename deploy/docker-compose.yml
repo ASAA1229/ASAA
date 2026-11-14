@@ -36,10 +36,10 @@ services:
       ASAA_AP_JWT_PUBLIC_KEY: ${ASAA_AP_JWT_PUBLIC_KEY}
       ASAA_AP_JWT_ISSUER: https://rehearsal.invalid
       ASAA_AP_JWT_AUDIENCE: asaa-rehearsal
-      ASAA_AP_CORS_ORIGINS: '["http://127.0.0.1:8080"]'
+      ASAA_AP_CORS_ORIGINS: '["http://127.0.0.1:${PORTAL_PORT:-8080}"]'
       ASAA_AP_LOG_LEVEL: INFO
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,4 +47,4 @@ services:
   portal:
     image: asaa-portal:${PORTAL_IMAGE_TAG:-rehearsal-1}
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:${PORTAL_PORT:-8080}:80"
