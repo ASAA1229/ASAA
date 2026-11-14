@@ -15,6 +15,7 @@ const invoices = [{ id: "i1", customer_id: "c1", invoice_number: "INV-1001", sta
 const suppliers = [{ id: "s1", legal_name: "Globex Supplies", status: "Pending Verification", version: 1, category: "Stationery" }];
 
 const routes = {
+  "GET /api/v1/me": { subject: "u1" },
   "GET /api/v1/ar/customers": customers,
   "GET /api/v1/ar/invoices": invoices,
   "GET /api/v1/ar/receipts": [],
@@ -72,7 +73,7 @@ describe("authenticated session", () => {
   it("sends the bearer token and only requests endpoints the token is permitted to read", async () => {
     const { calls } = await signIn(["supplier:read", "ar:customer:read"]);
     const paths = calls.map(c => c.path).sort();
-    expect(paths).toEqual(["/api/v1/ap/suppliers", "/api/v1/ar/customers"]);
+    expect(paths).toEqual(["/api/v1/ap/suppliers", "/api/v1/ar/customers", "/api/v1/me"]);
     expect(calls[0].headers.Authorization).toMatch(/^Bearer .+\..+\./);
   });
 

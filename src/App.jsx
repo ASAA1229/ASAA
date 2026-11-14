@@ -7,7 +7,7 @@ import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, ArrowDownLeft, ArrowUpRight, Bell, BriefcaseBusiness, Building2, CalendarDays,
   Check, ChevronDown, CircleHelp, Clock3, Command, CreditCard, FileCheck2, FileText,
@@ -202,6 +202,10 @@ function App() {
     const granted = new Set(Array.isArray(claims.permissions) ? claims.permissions : []);
     const jobs = permittedJobs.filter(([, , permission]) => granted.has(permission)).map(([key, path]) => [key, path]);
     let unauthorized = false;
+    // Confirm the token is actually accepted by the API before reporting a connected session.
+    try { await api("/api/v1/me"); }
+    catch (e) { if (e.status === 401) unauthorized = true; }
+    if (unauthorized) { setLoading(false); setError("The access token was not accepted by the API."); return; }
     const results = await Promise.all(jobs.map(async ([key, path]) => {
       try { return [key, await api(path)]; }
       catch (e) { if (e.status === 401) unauthorized = true; return [key, [], e.message]; }
@@ -244,6 +248,7 @@ function App() {
 
 
   return <div className="app-shell">
+    <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById("main-content")?.focus(); }}>Skip to main content</a>
     <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}>
       <div className="brand"><div className="brand-mark">A</div><div><strong>ASAA</strong><span>OPERATING PLATFORM</span></div><button className="icon-btn sidebar-close" aria-label="Close navigation" onClick={() => setMobileNav(false)}><X size={18}/></button></div>
       <div className="workspace-switch"><div className="workspace-avatar">A</div><div><b>ASAA Workspace</b><small>Founder workspace</small></div><ChevronDown size={15}/></div>
@@ -262,7 +267,7 @@ function App() {
         <div className="top-actions"><div className="system-status"><span className={connected ? "status-dot online" : "status-dot"}/>{connected ? "API connected" : "Not connected"}</div><button className="icon-btn" title="Help"><CircleHelp size={18}/></button><button className="icon-btn notification-btn" title="Notifications"><Bell size={18}/><i/></button><div className="top-avatar">{token ? "AD" : "PV"}</div></div>
       </header>
 
-      <div className="content">
+      <div className="content" id="main-content" tabIndex={-1}>
         {!token && !previewMode ? <ConnectScreen apiBase={apiBase} setApiBase={setApiBase} tokenInput={tokenInput} setTokenInput={setTokenInput} connect={connect} error={error} ssoError={ssoError} ssoConfigured={isSsoConfigured} onSsoSignIn={signInSso} onExplore={() => setPreviewMode(true)}/> :
         <>
           {!token && <div className="preview-banner"><ShieldCheck size={16}/><span><b>UI preview mode</b> — live company records are hidden until you connect an authorized API session.</span><button className="btn btn-quiet" onClick={() => setModal("connection")}>Connect live data</button></div>}
@@ -291,7 +296,7 @@ function App() {
        modal === "quick" ? <div className="quick-grid">{[["expense","Expense claim",Receipt],["customer","Customer",Users],["supplier","Supplier",Building2]].map(([key,label,Icon]) => <button className="quick-option" key={key} onClick={() => setModal(key)}><Icon size={20}/><b>{label}</b><span>Create a new {label.toLowerCase()}</span></button>)}</div> :
        <RecordForm kind={modal} onCancel={() => setModal("")} onSave={createRecord}/>}
     </Modal>}
-    {toast && <div className="toast"><Check size={16}/>{toast}</div>}
+    {toast && <div className="toast" role="status" aria-live="polite"><Check size={16}/>{toast}</div>}
   </div>;
 }
 
@@ -362,12 +367,26 @@ function RecordForm({kind,onCancel,onSave}) {
 
 function ConnectionForm({apiBase,setApiBase,tokenInput,setTokenInput,connect,connected,ssoConfigured,onSsoSignIn,ssoError}) { return <div className="record-form">{ssoConfigured && <button className="btn btn-primary" onClick={onSsoSignIn}>Sign in with SSO</button>}{ssoError && <div className="form-error">{ssoError}</div>}<label>API endpoint<input value={apiBase} onChange={e=>setApiBase(e.target.value)}/></label><label>Access token<textarea rows="4" value={tokenInput} onChange={e=>setTokenInput(e.target.value)} placeholder="Paste an identity-provider token"/></label><small className="field-help">The token is held in memory only. Disconnect or refresh to clear it.</small><div className="modal-actions"><span className="field-help">{connected?"API session active":"No active API session"}</span><button className="btn btn-primary" onClick={connect}>Connect</button></div></div>; }
 function Modal({title,onClose,children}) {
+  const dialogRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    const onKey = e => { if (e.key === "Escape") onClose(); };
+    const opener = document.activeElement;
+    dialogRef.current?.focus();
+    const onKey = e => {
+      if (e.key === "Escape") { closeRef.current(); return; }
+      if (e.key !== "Tab" || !dialogRef.current) return;
+      // Keep keyboard focus inside the modal dialog.
+      const items = [...dialogRef.current.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')];
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-heading"><h2>{title}</h2><button className="icon-btn" aria-label="Close dialog" onClick={onClose}><X size={18}/></button></div>{children}</div></div>;
+    return () => { document.removeEventListener("keydown", onKey); if (opener instanceof HTMLElement) opener.focus(); };
+  }, []);
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title}><div className="modal-heading"><h2>{title}</h2><button className="icon-btn" aria-label="Close dialog" onClick={onClose}><X size={18}/></button></div>{children}</div></div>;
 }
 function sectionDescription(name) { return MODULE_INFO[name]?.description || ({ "AR · Receivables":"Manage customers, invoices, incoming receipts and balances.", "AP · Payables":"Manage suppliers and the purchasing-to-payment lifecycle.", "Timesheets":"Track work periods, hours and independent review.", "Expenses":"Capture expense claims and track approvals and reimbursement.", "Governance":"Review decisions, delegations and authority.", "Reports":"A consolidated view of current operating records.", "Settings":"Manage your workspace connection and device experience." })[name] || "Manage your ASAA workspace."; }
 
