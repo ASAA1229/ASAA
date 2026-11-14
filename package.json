@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "audit:high": "npm audit --audit-level=high",
     "test:ui": "vitest run",
-    "test": "npm run test:web && npm run test:ui"
+    "test": "npm run test:web && npm run test:ui",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -22,7 +23,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.65.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.10",

@@ -38,7 +38,11 @@ export default [
     rules: { "react/jsx-uses-vars": "error", "react/jsx-uses-react": "off" },
   },
   {
-    files: ["tests/web/**/*.js", "scripts/**/*.mjs", "vite.config.js", "eslint.config.js", "vitest.config.js"],
+    files: ["tests/web/**/*.js", "scripts/**/*.mjs", "vite.config.js", "eslint.config.js", "vitest.config.js", "playwright.config.js"],
     languageOptions: { ecmaVersion: "latest", sourceType: "module", globals: { ...globals.node } },
+  },
+  {
+    files: ["tests/e2e/**/*.js"],
+    languageOptions: { ecmaVersion: "latest", sourceType: "module", globals: { ...globals.node, ...globals.browser } },
   },
 ];
