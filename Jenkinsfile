@@ -19,6 +19,8 @@ pipeline {
     NPM_CONFIG_FUND = 'false'
   }
   parameters {
+    booleanParam(name: 'DEPLOY_LOCAL_PROD', defaultValue: false, description: 'After every gate passes on branch main (or new when ALLOW_NEW_BRANCH_DEPLOY is set), deploy to the LOCAL production stack (ports 8100/8101) with deploy/local-prod/up.ps1. It smoke-tests and rolls back by itself on failure. Never deploys anywhere else.')
+    booleanParam(name: 'ALLOW_NEW_BRANCH_DEPLOY', defaultValue: false, description: 'Owner switch: allow DEPLOY_LOCAL_PROD to run from branch new.')
     booleanParam(name: 'TRIGGER_LOCAL_STACK_DEPLOY', defaultValue: false, description: 'After a green build of branch new, trigger the ASAA-Local-Stack job (local development stack only; the job must exist).')
   }
   stages {
@@ -89,6 +91,24 @@ pipeline {
     stage('Package and verify checksum') {
       steps {
         bat 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ci\\jenkins\\package-dist.ps1'
+      }
+    }
+    stage('Deploy to local production') {
+      when {
+        allOf {
+          expression { params.DEPLOY_LOCAL_PROD }
+          expression { currentBranchName() == 'main' || (currentBranchName() == 'new' && params.ALLOW_NEW_BRANCH_DEPLOY) }
+        }
+      }
+      steps {
+        // Secrets, keys and release state live outside the disposable workspace (deploy\local-prod\setup.ps1, same Windows account).
+        // up.ps1 builds, migrates, deploys, smoke-tests and rolls back to the previous image tag by itself when the smoke test fails.
+        powershell '''
+          $ErrorActionPreference = 'Stop'
+          if (-not $env:ASAA_LOCAL_PROD_HOME) { $env:ASAA_LOCAL_PROD_HOME = Join-Path $env:USERPROFILE 'asaa-local-prod' }
+          & (Join-Path $env:WORKSPACE 'deploy\local-prod\up.ps1')
+          if ($LASTEXITCODE -ne 0) { throw 'Local production deploy failed its smoke test (rollback was attempted by up.ps1).' }
+        '''
       }
     }
     stage('Archive verified build') {

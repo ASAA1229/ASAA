@@ -8,3 +8,7 @@ tests
 test-results
 playwright-report
 .e2e
+.local-prod
+.env
+.env.*
+deploy/local-prod

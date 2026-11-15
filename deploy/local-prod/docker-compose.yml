@@ -1,0 +1,46 @@
+# LOCAL production deployment on this machine (portal :8100, API :8101). The database is the host PostgreSQL service, not a container.
+# Always run through deploy/local-prod/up.ps1 (it passes --env-file ../../.env.local-prod and the image tags).
+# restart: unless-stopped brings both containers back after a reboot once Docker Desktop starts at sign-in.
+name: asaa-local-prod
+
+x-api-env: &api-env
+  ASAA_AP_ENVIRONMENT: production
+  ASAA_AP_JWT_ISSUER: https://asaa.local.invalid
+  ASAA_AP_JWT_AUDIENCE: asaa-local-prod
+  ASAA_AP_CORS_ORIGINS: '["http://localhost:${PORTAL_PORT:-8100}","http://127.0.0.1:${PORTAL_PORT:-8100}"]'
+  ASAA_AP_LOG_LEVEL: INFO
+  ASAA_AP_METRICS_TOKEN: ${ASAA_METRICS_TOKEN}
+
+services:
+  migrate:
+    image: asaa-api:${API_IMAGE_TAG}
+    profiles: ["migrate"]
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      <<: *api-env
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://${ASAA_DB_MIGRATOR_ROLE:-asaa_migrator}:${ASAA_DB_MIGRATOR_PASSWORD}@host.docker.internal:${ASAA_PG_PORT:-5432}/${ASAA_DB_NAME:-asaa}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+  api:
+    image: asaa-api:${API_IMAGE_TAG}
+    restart: unless-stopped
+    entrypoint: ["sh", "-c", "export ASAA_AP_JWT_PUBLIC_KEY=\"$$(cat /run/keys/jwt_public.pem)\"; exec \"$$@\"", "--"]
+    command: ["uvicorn", "asaa_ap.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    environment:
+      <<: *api-env
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://${ASAA_DB_RUNTIME_ROLE:-asaa_runtime}:${ASAA_DB_RUNTIME_PASSWORD}@host.docker.internal:${ASAA_PG_PORT:-5432}/${ASAA_DB_NAME:-asaa}
+    volumes:
+      - ${ASAA_KEYS_DIR:-../../.local-prod/keys}/jwt_public.pem:/run/keys/jwt_public.pem:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports:
+      - "127.0.0.1:${API_PORT:-8101}:8000"
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+  portal:
+    image: asaa-portal:${PORTAL_IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORTAL_PORT:-8100}:80"
