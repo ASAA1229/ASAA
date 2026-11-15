@@ -38,7 +38,7 @@ pipeline {
           } else {
             throw "Python 3.11+ is required. Install it for the Jenkins agent account and add it to PATH, or set the Jenkins agent environment variable PYTHON to its full executable path."
           }
-          if ($LASTEXITCODE -ne 0 -or $version -notmatch 'Python 3\.(1[1-9]|[2-9][0-9])') {
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch 'Python 3[.](1[1-9]|[2-9][0-9])') {
             throw "Python 3.11 or newer is required; detected: $version"
           }
         '''
