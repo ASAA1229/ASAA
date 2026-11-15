@@ -46,6 +46,14 @@ The repository root `Jenkinsfile` defines a Windows-agent CI pipeline for locked
 
 The pipeline definition has not been executed or verified on a Jenkins controller/agent. Configure a Jenkins Pipeline job to use this repository's root `Jenkinsfile`; confirm the agent has the required tools and access before treating any run as CI evidence. Nexus publishing/retrieval is not configured, and no Nexus artifact flow is claimed.
 
+### Local development stack
+
+`Jenkinsfile.stack` is a separate Pipeline job named **ASAA-Local-Stack**. Set its script path to `Jenkinsfile.stack`, source branch to `new`, and keep its workspace persistent (do not enable post-build workspace cleanup). It accepts `DEPLOY`, `START`, `STOP`, `RESTART` and `STATUS`. A successful `new`-branch build in each of the four project CI jobs queues `DEPLOY`; that job checks out and validates all four projects before starting them. `STOP` stops the applications and Templates' local PostgreSQL server without deleting its data.
+
+The stack job needs Node.js 24/npm 11, Git, Python 3.11+, PostgreSQL `initdb`/`pg_ctl`/`psql`, Microsoft Edge for the JARVIS browser check, and a non-administrator Windows Jenkins service account. Add a Jenkins **username/password** credential named `github-read-token` with read access to the four repositories; do not put a GitHub token in a URL or source file. Missing prerequisites or failed checks prevent startup.
+
+The development applications bind to loopback only: ASAA `http://127.0.0.1:5173` (API docs on `:8001`), JARVIS `http://127.0.0.1:3000`, Templates `http://127.0.0.1:5000` (API on `:4000`), and Portfolio `http://127.0.0.1:8080`. Jenkins is intended to be exposed over HTTP `:8000` and HTTPS `:8443` through a TLS reverse proxy. The current Jenkins listener is plain HTTP on `:8443`; its service must move to a loopback backend port before the proxy can use `:8443`. Application pipelines do not change Jenkins or proxy settings. ASAA uses its local development database default, Templates uses its project-local PostgreSQL cluster on port 54339, and no MongoDB is configured by these projects. Portfolio's local development storage is not durable. This stack is for localhost development only, not production or LAN access.
+
 If these tools are selected for this project, verify actual agent execution, credentials scope, artifact coordinates, checksums, retention and retrieval from the target repository before marking integration complete.
 
 ## 5. Deployment and release controls

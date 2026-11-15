@@ -118,7 +118,7 @@ Do not run downgrade commands against production without a reviewed, tested reco
 uvicorn asaa_ap.main:app --reload
 ```
 
-The local development server normally listens at `http://127.0.0.1:8000`. FastAPI interactive API documentation is normally available at `/docs`; disable or protect interactive documentation in production according to the security policy.
+The local development API normally listens at `http://127.0.0.1:8001` (override with `API_PORT`). FastAPI interactive API documentation is normally available at `/docs`; disable or protect interactive documentation in production according to the security policy.
 
 ## 6. Tests and quality checks
 
@@ -189,14 +189,14 @@ The responsive ASAA portal lives at the repository root (`src/`, `public/`) and 
 
 ```bash
 npm install
-npm run dev  # http://localhost:5000
+npm run dev  # http://localhost:5173
 npm run build
 npm run preview
 ```
 
 The portal consumes the API using a bearer token from the configured upstream identity provider. The current connection screen accepts a development/session token and keeps it in memory only; it is cleared on reload or sign-out and is not written to local storage, IndexedDB or service-worker caches. Production single sign-on, MFA, refresh-token handling and identity-provider redirect must be configured before production access.
 
-Set `VITE_API_BASE_URL` to the API origin at build time. Configure API `ASAA_AP_CORS_ORIGINS` as a JSON array of exact trusted portal origins. For local development use `["http://localhost:5000", "http://127.0.0.1:5000"]`; for production use the exact HTTPS portal origin. Do not use wildcard origins. The API remains the authorization authority: visible workspace titles do not grant permissions. The initial Founder/CEO/Director designation is a workspace profile label; effective actions depend on verified token permission claims.
+Set `VITE_API_BASE_URL` to the API origin at build time. Configure API `ASAA_AP_CORS_ORIGINS` as a JSON array of exact trusted portal origins. For local development use `["http://localhost:5173", "http://127.0.0.1:5173"]`; for production use the exact HTTPS portal origin. Do not use wildcard origins. The API remains the authorization authority: visible workspace titles do not grant permissions. The initial Founder/CEO/Director designation is a workspace profile label; effective actions depend on verified token permission claims.
 
 The PWA service worker caches only the application shell and same-origin static assets. API paths and cross-origin API requests are not cached. This supports installability and shell launch, not offline access to financial or personal records.
 

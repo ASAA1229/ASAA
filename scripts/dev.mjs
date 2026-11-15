@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 
 const isWindows = process.platform === "win32";
 const npmCommand = isWindows ? "npm.cmd" : "npm";
+const apiPort = process.env.API_PORT?.trim() || "8001";
 const children = [];
 
 function start(label, command, args, options = {}) {
@@ -42,8 +43,8 @@ function stop(exitCode = 0) {
 }
 
 console.log("Starting ASAA web and API services. Press Ctrl+C to stop both.");
-console.log("Web: http://localhost:5000");
-console.log("API: http://127.0.0.1:8000  |  Docs: http://127.0.0.1:8000/docs");
+console.log("Web: http://localhost:5173");
+console.log(`API: http://127.0.0.1:${apiPort}  |  Docs: http://127.0.0.1:${apiPort}/docs`);
 start("WEB", npmCommand, ["run", "dev:web"]);
 start("API", process.execPath, ["scripts/dev-api.mjs"]);
 process.on("SIGINT", () => stop(0));

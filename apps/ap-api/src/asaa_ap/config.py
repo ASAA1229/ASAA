@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     required_amr: str | None = None
     jwt_leeway_seconds: int = Field(default=30, ge=0, le=300)
     supplier_status_transitions_json: str = '{"Draft":["Pending Verification","Archived"],"Pending Verification":["Active","On Hold","Archived"],"Active":["On Hold","Suspended","Archived"],"On Hold":["Active","Suspended","Archived"],"Suspended":["Active","On Hold","Archived"],"Archived":[]}'
-    cors_origins: list[str] = ["http://localhost:5000", "http://127.0.0.1:5000"]
+    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     app_name: str = "ASAA Finance API"
     log_level: str = "INFO"
     # Identity lifecycle adapter name. "none" = not configured. "memory" is a mock for dev/test only.

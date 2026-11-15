@@ -82,7 +82,7 @@ python -m alembic upgrade head
 python -m alembic current
 python -m pip_audit --skip-editable
 python scripts/load_test.py --concurrency 20 --duration 20
-python scripts/smoke_test.py --base-url http://127.0.0.1:8000
+python scripts/smoke_test.py --base-url http://127.0.0.1:8001
 python scripts/backup_restore.py keygen            # base64 AES-256 key; store in a secret manager
 python scripts/backup_restore.py scheduled --database-url sqlite:///./asaa_ap.db --out backups/ --encrypt-key-file env:ASAA_BACKUP_KEY
 python scripts/backup_restore.py check-staleness --out backups/ --max-age-hours 26   # exit 2 = alert
