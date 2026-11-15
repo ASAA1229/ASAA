@@ -59,7 +59,8 @@ pipeline {
     stage('SBOM and dependency audit') {
       steps {
         bat 'npm audit --audit-level=high'
-        bat 'npm sbom --sbom-format=cyclonedx --output-file=asaa-dependencies.cdx.json'
+        // npm sbom has no --output-file option (it prints to stdout), so redirect it and verify the written file.
+        bat 'npm sbom --sbom-format=cyclonedx > asaa-dependencies.cdx.json'
         bat 'node scripts\\sbom-verify.mjs asaa-dependencies.cdx.json package-lock.json'
       }
     }
