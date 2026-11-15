@@ -4,7 +4,9 @@ Each section is returned only when the caller holds the read permission of its s
 the record APIs would. Money is aggregated per currency (never summed across currencies). Payroll amounts and salaries are NEVER
 included. Every section carries lineage (source tables) and the generation time so freshness is visible.
 """
-from datetime import datetime, timezone
+import calendar
+import re
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated
 
@@ -25,6 +27,24 @@ from asaa_registers.models import GovernedRecord
 from asaa_workforce_finance.models import ExpenseClaim, Timesheet
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
+
+PERIOD = re.compile(r"^([0-9]{4})(?:-(?:Q([1-4])|(0[1-9]|1[0-2])))?$")
+
+
+def period_bounds(label: str):
+    """Fiscal period label (YYYY, YYYY-Qn or YYYY-MM, calendar-aligned until the owner sets a fiscal calendar) to (first, last) dates."""
+    m = PERIOD.match(label or "")
+    if not m:
+        return None
+    year, quarter, month = int(m.group(1)), m.group(2), m.group(3)
+    if quarter:
+        first_month, last_month = (int(quarter) - 1) * 3 + 1, int(quarter) * 3
+    elif month:
+        first_month = last_month = int(month)
+    else:
+        first_month, last_month = 1, 12
+    last_day = calendar.monthrange(year, last_month)[1]
+    return date(year, first_month, 1), date(year, last_month, last_day)
 
 
 def by_status(db: Session, model, org: str, column=None) -> dict:
@@ -99,6 +119,28 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         section("payroll_accounting", "Payroll accounting totals (closed runs)", ["payroll_runs", "payroll_entries"],
                 {"closed_run_totals_by_currency": {c: {"runs": n, "gross": str(Decimal(g or 0)), "deductions": str(Decimal(d or 0)), "net": str(Decimal(nt or 0))} for c, n, g, d, nt in closed},
                  "note": "Totals only, for approved finance exports. No journal posting, tax or statutory calculation is performed (pending owner accounting policy)."})
+    if "register:budget:read" in perms and "expense:claim:read:all" in perms:
+        budgets = db.scalars(select(GovernedRecord).where(GovernedRecord.organization_id == org, GovernedRecord.register_type == "budget", GovernedRecord.status == "Approved")).all()
+        planned: dict = {}
+        not_comparable = []
+        for b in budgets:
+            data = b.data or {}
+            key = (data.get("currency"), data.get("fiscal_period"))
+            if period_bounds(key[1]) is None:
+                not_comparable.append({"code": b.code, "fiscal_period": key[1], "reason": "fiscal period is not YYYY, YYYY-Qn or YYYY-MM"})
+                continue
+            planned[key] = planned.get(key, Decimal(0)) + Decimal(str(data.get("planned_amount", "0")))
+        lines = []
+        for (currency, label), amount in sorted(planned.items()):
+            first, last = period_bounds(label)
+            actual = db.scalar(select(func.sum(ExpenseClaim.amount)).where(ExpenseClaim.organization_id == org, ExpenseClaim.currency == currency, ExpenseClaim.status.in_(["Approved", "Reimbursement Recorded"]),
+                                                                           ExpenseClaim.expense_date >= first, ExpenseClaim.expense_date <= last)) or 0
+            actual = Decimal(actual)
+            lines.append({"currency": currency, "fiscal_period": label, "planned": str(amount.quantize(Decimal("0.01"))), "actual_expenses": str(actual.quantize(Decimal("0.01"))),
+                          "variance": str((amount - actual).quantize(Decimal("0.01"))), "over_budget": actual > amount})
+        section("budget_variance", "Budget versus expense actuals (derived)", ["governed_records", "expense_claims"],
+                {"lines": lines, "not_comparable": not_comparable,
+                 "note": "Approved budget lines per currency and calendar-aligned period against approved or reimbursed expense claims only. Supplier invoices, payroll and cost-centre mapping are not included and approval thresholds are pending owner policy. Not a forecast."})
     if "ar:customer:read" in perms:
         section("customers", "Customers", ["ar_customers"], {"customers_by_status": by_status(db, ARCustomer, org)})
     if "ar:receipt:read" in perms:

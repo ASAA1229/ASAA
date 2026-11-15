@@ -336,12 +336,13 @@
       "name": "Employee relations",
       "category": "People & Workforce",
       "requirement_refs": [
-        "REQUIREMENTS section 3C"
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Restricted case register (type, stage, authorised investigator, milestone) behind its own register:er_case permissions, with maker-checker review and audit. Case evidence storage, investigation and appeal workflow engines and access-history views are NOT implemented."
     },
     {
       "name": "Offboarding",
@@ -702,7 +703,7 @@
       "story_refs": [],
       "state": "partial",
       "release_scope": "p1_pending_scope_decision",
-      "notes": "Budget-line register (period, currency, decimal planned amount, cost centre) with review and audit. No actuals comparison, forecasting or approval thresholds (pending owner policy) are implemented. Everything else the workspace name implies is not implemented."
+      "notes": "Budget-line register (period, currency, decimal planned amount, cost centre) with review and audit, plus a derived budget versus expense-claim actuals view per currency and period. Supplier invoices, payroll, cost-centre mapping, forecasting and approval thresholds (pending owner policy) are NOT implemented. Everything else the workspace name implies is not implemented."
     },
     {
       "name": "Expenses",
@@ -939,12 +940,13 @@
       "name": "AI intelligence",
       "category": "Analytics & Intelligence",
       "requirement_refs": [
-        "REQUIREMENTS section 3J"
+        "REQUIREMENTS section 3J",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Governed register of AI use cases that must require human review and source provenance and can only be Disabled or Evaluation only. No model, search, summarisation or recommendation is implemented or connected; everything else the workspace name implies is NOT implemented."
     },
     {
       "name": "Automation & agents",

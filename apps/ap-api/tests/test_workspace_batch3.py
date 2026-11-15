@@ -153,3 +153,35 @@ def test_platform_status_reports_flags_without_secrets(client):
     assert "password" not in text and "secret" not in text and "token" not in text.replace("notification", "")
     as_p(client, "nobody", set())
     assert client.get("/api/v1/operations/status").status_code == 403
+
+
+# ---------------------------------------------------------------- budget variance, employee relations, AI use cases
+def test_budget_variance_compares_approved_budgets_with_expense_actuals_per_currency(client, db):
+    from asaa_workforce_finance.models import ExpenseClaim
+    as_p(client)
+    for code, period, amount in (("B-Q1", "2027-Q1", "1000.00"), ("B-BAD", "FY27", "5.00")):
+        rec = client.post("/api/v1/registers/budget", json={"code": code, "title": code, "data": {"fiscal_period": period, "currency": "INR", "planned_amount": amount}}).json()
+        approve(client, "budget", rec)
+    for status, day, amount in (("Approved", date(2027, 2, 1), "400.25"), ("Reimbursement Recorded", date(2027, 3, 31), "700.00"),
+                                ("Draft", date(2027, 2, 2), "9.00"), ("Approved", date(2027, 4, 1), "50.00")):
+        db.add(ExpenseClaim(organization_id="org-a", employee_subject="e1", expense_date=day, category_code="TRAVEL", description="x", amount=Decimal(amount), currency="INR", status=status, created_by="e1"))
+    db.commit()
+    data = client.get("/api/v1/reports/summary").json()["sections"]["budget_variance"]["data"]
+    assert data["lines"] == [{"currency": "INR", "fiscal_period": "2027-Q1", "planned": "1000.00", "actual_expenses": "1100.25", "variance": "-100.25", "over_budget": True}]
+    assert data["not_comparable"][0]["code"] == "B-BAD"
+    as_p(client, "reader", {"expense:claim:read:all"})
+    assert "budget_variance" not in client.get("/api/v1/reports/summary").json()["sections"]
+
+
+def test_employee_relations_case_and_ai_use_case_guardrails(client):
+    as_p(client)
+    case = {"case_type": "Grievance", "case_stage": "Opened"}
+    assert client.post("/api/v1/registers/er_case", json={"code": "ER-1", "title": "Case one", "data": case}).status_code == 201
+    assert client.post("/api/v1/registers/er_case", json={"code": "ER-2", "title": "Case two", "data": {**case, "case_stage": "Nope"}}).status_code == 422
+    ai = {"purpose": "Summarise policies", "approved_sources": "Policy register", "human_review_required": True, "provenance_required": True,
+          "deployment_mode": "Evaluation only", "risk_note": "May be wrong"}
+    assert client.post("/api/v1/registers/ai_use_case", json={"code": "AI-1", "title": "Summaries", "data": ai}).status_code == 201
+    for bad in ({**ai, "human_review_required": False}, {**ai, "provenance_required": False}, {**ai, "deployment_mode": "Live"}):
+        assert client.post("/api/v1/registers/ai_use_case", json={"code": "AI-X", "title": "Bad one", "data": bad}).status_code == 422
+    as_p(client, "nobody", FIN)  # restricted: no register permission means no access to employee relations cases
+    assert client.get("/api/v1/registers/er_case").status_code == 403

@@ -186,6 +186,7 @@ function App() {
           {section === "Timesheets" && (token ? <WorkforceFinanceWorkspace kind="timesheet" records={data.timesheets} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Expenses" && (token ? <WorkforceFinanceWorkspace kind="expense" records={data.expenses} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
           {["People directory","Employment lifecycle","Onboarding","Offboarding","Leave management","Employee assets"].includes(section) && <PeopleWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
+          {section === "Budgets & forecasting" && <ReportsWorkspace name="Budget versus actuals" only={["budget_variance"]} api={api} connected={!!token}/>}
           {section === "Leave management" && <LeavePolicyPanel api={api} claims={claims} connected={!!token}/>}
           {section === "Compensation & payroll" && <PayrollWorkspace api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
                     {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}

@@ -270,6 +270,12 @@ export const REGISTER_WORKSPACES = {
   "Attendance & shifts": [
     "shift_roster"
   ],
+  "Employee relations": [
+    "er_case"
+  ],
+  "AI intelligence": [
+    "ai_use_case"
+  ],
   "Contracts & renewals": [
     "contract"
   ]

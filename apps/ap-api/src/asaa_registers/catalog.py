@@ -159,7 +159,22 @@ _MORE2 = [
         Field("system", "str", "System", True), Field("rpo_minutes", "int", "RPO (minutes) - pending owner approval"),
         Field("rto_minutes", "int", "RTO (minutes) - pending owner approval"), Field("runbook_reference", "str", "Runbook reference"))),
 ]
+_MORE3 = [
+    RegisterType("er_case", "Employee relations", "Employee relations case", "Employee relations cases", (
+        Field("case_type", "enum", "Case type", True, ("Grievance", "Investigation", "Appeal", "Other")),
+        Field("case_stage", "enum", "Stage", True, ("Opened", "Investigating", "Findings recorded", "Appeal", "Closed")),
+        Field("investigator_subject", "str", "Authorised investigator (identity subject)"),
+        Field("next_milestone", "str", "Next milestone"), Field("milestone_due", "date", "Milestone due"),
+        Field("outcome_note", "str", "Outcome note (no evidence text here)"))),
+    RegisterType("ai_use_case", "AI intelligence", "AI use case", "AI use cases", (
+        Field("purpose", "str", "Purpose", True), Field("approved_sources", "str", "Approved data sources", True),
+        Field("human_review_required", "bool", "Human review of every output (must be on)", True),
+        Field("provenance_required", "bool", "Outputs must cite sources", True),
+        Field("deployment_mode", "enum", "Mode (no model is connected; live use is not available)", True, ("Disabled", "Evaluation only")),
+        Field("risk_note", "str", "Risk and limits", True))),
+]
 TYPES.update({t.key: t for t in _MORE})
+TYPES.update({t.key: t for t in _MORE3})
 TYPES.update({t.key: t for t in _MORE2})
 
 
@@ -224,6 +239,8 @@ def validate_data(register_type: str, data: dict) -> dict:
                 if not all(isinstance(t[k], str) and t[k] for k in ("from", "to", "action")):
                     raise DataError("transition fields must be non-empty text")
         cleaned[f.name] = value
+    if register_type == "ai_use_case" and not (cleaned.get("human_review_required") is True and cleaned.get("provenance_required") is True):
+        raise DataError("AI use cases must require human review and source provenance")
     if register_type == "workflow_definition":
         states = set(cleaned["states"])
         if cleaned["initial_state"] not in states:
