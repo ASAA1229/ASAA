@@ -49,7 +49,7 @@ Workflow: `.github/workflows/portal-ci.yml`
 Job `web-e2e` in `portal-ci.yml`: installs the API, Chromium and runs `npx playwright test` (builds the app, serves it with `vite preview`, starts `scripts/e2e_api.py`). Uploads the Playwright report. Configured, **not yet run on GitHub**; the same suite passed locally (see Project Status section 7).
 
 ### Monitoring rules
-Workflow `.github/workflows/monitoring-ci.yml` runs `promtool check rules` and `promtool test rules` (official Prometheus image). Not yet run on GitHub; not run locally.
+Workflow `.github/workflows/monitoring-ci.yml` runs `promtool check rules` and `promtool test rules` (official Prometheus image). Not yet run on GitHub. Update 2026-11-15: run locally through the `prom/prometheus:v2.55.1` image, check and test passed (agent-reported).
 
 ### Deployment rehearsal
 Workflow `.github/workflows/deploy-rehearsal.yml` runs `deploy/rehearsal.sh` (migrate, smoke, bad release, rollback, smoke) on the runner and uploads `rehearsal-result.json`. Not yet run anywhere.
@@ -128,3 +128,11 @@ Do not invent coverage percentages or convert skipped tests into passed tests.
 ## Head check note — 2026-11-14
 
 At head `a40c7ca` `npm run lint` fails with a parse error in `playwright.config.js` (duplicate declarations from an appended second configuration), and `src/styles.css` lost the accessibility and reflow rules. The Playwright, axe and lint evidence in this document is therefore valid for `ac2f696` only until those are repaired. See PROJECT_STATUS section "2026-11-14 documentation reconciliation and head check".
+
+
+## Update 2026-11-15
+
+- Coordinator-verified at `37f478d`: lint, build, 17 UI tests, pytest SQLite 165 passed / 6 skipped. The a40c7ca regression noted above was repaired in that commit, so the Playwright, axe and lint evidence applies again.
+- Agent-reported: Playwright 96 passed / 3 skipped across 5 projects; container deployment rehearsal 13/13; promtool check/test passed.
+- New tests since: notification outbox (12, migration 0017), governed registers (`tests/e2e/registers.spec.js`, `tests/ui/register-workspace.test.jsx`, `apps/ap-api/tests/test_registers.py`), workspace inventory sync test, reports and audit-view tests. Commits 3bda274, b1006d4 and 0dbb67b are agent-pushed and not yet coordinator-verified.
+- No GitHub Actions run observed.

@@ -94,3 +94,8 @@ Deployment, environments, approvals and rollback remain not implemented: they re
 | `deploy-rehearsal.yml` | Runs `deploy/rehearsal.sh` (migrate, smoke, bad release, rollback, smoke) on a runner; deploys nowhere. |
 | `postgres-integration.yml` (extended) | Adds the PostgreSQL load run against `monitoring/performance-budget.json` and artifact upload. |
 | `portal-ci.yml` (`web-e2e`) | Playwright now covers Chromium, Firefox, WebKit and two mobile emulations (browsers installed with `npx playwright install --with-deps chromium firefox webkit`). |
+
+
+## Update 2026-11-15
+
+`deploy-rehearsal` assets were exercised locally once (13/13 steps, agent-reported, host ports via `API_PORT`/`PORTAL_PORT`) and the Prometheus rules were checked and tested with the `prom/prometheus:v2.55.1` image (agent-reported). Neither has run on GitHub Actions; no run observed. `.gitignore` now ignores `*.log` and `.e2e/`.

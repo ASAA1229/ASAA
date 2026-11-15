@@ -187,6 +187,10 @@ Role templates define explicit permission identifiers and a scope type. Proposed
 
 `apps/ap-api/scripts/backup_restore.py` produces SQLite (online backup API) or PostgreSQL (`pg_dump -Fc`) backups with a SHA-256 manifest and row-count/Alembic-revision verification, optional Fernet encryption, and `restore --verify`. Scheduling, storage location, key custody and retention are deployment decisions not made here.
 
+## Modules added 2026-11-14/15 (agent-pushed; see PROJECT_STATUS)
+
+`asaa_notifications` (provider-independent outbox, migration 0017), `asaa_registers` (governed registers, migration 0018), `asaa_reports` (read-only aggregation with lineage and freshness) and the web workspace registry (`src/workspaces/registry.js`, `inventory.json`).
+
 ## Implementation status
 
 This document describes intended boundaries and the observed logical architecture. The authoritative inventory of implemented, unverified and planned capabilities is [Project Status](PROJECT_STATUS.md). Do not infer that every logical domain described above exists as an operational module.

@@ -215,3 +215,29 @@ Head inspected: `a40c7ca` (a commit by a human collaborator, "Refactor CI workfl
 | Same commit, hygiene | Adds generated `.e2e-install.log` and `.e2e-result.json` to version control. |
 
 Consequence: until the config and CSS are restored, the lint result, the Playwright E2E and the accessibility evidence recorded for `ac2f696` do not apply to head `a40c7ca`. They remain valid only for `ac2f696`. This is a code issue for the code owner, not changed by this documentation update. Environment note: the working tree also holds uncommitted work in progress (notifications module, migration 0017) that is not evidence. pytest and Playwright were not rerun by the documentation owner because of that in-progress work. No GitHub Actions run has been observed (`gh` is unauthenticated), so nothing is CI VERIFIED. Release decision unchanged: NO-GO.
+
+
+## 2026-11-15 reconciliation (documentation owner)
+
+Head at time of writing: `0dbb67b`. Evidence classes are kept apart: coordinator-verified, agent-reported, agent-pushed and pending verification, CI not observed.
+
+| Item | Status | Evidence class |
+|---|---|---|
+| Repair of the a40c7ca regression (commit 37f478d): duplicate Playwright config removed, `e2e_api.py` restored, `/api/v1/me` duplicate removed, duplicated workflow path filters removed, six accessibility/reflow CSS rules restored, `*.log` ignored | repaired; supersedes the 2026-11-14 head-check section above, which stays as dated history | coordinator-verified |
+| At `37f478d`: lint, build, 17 UI tests, pytest SQLite 165 passed / 6 skipped | pass | coordinator-verified |
+| My lint rerun (`npm run lint`) at `0dbb67b` | pass (no ESLint errors) | documentation-owner rerun |
+| Playwright 96 passed / 3 skipped across 5 projects | pass | agent-reported, not rerun by the coordinator or me |
+| Docker deployment rehearsal executed locally: 13/13 steps passed, with `API_PORT=18000 PORTAL_PORT=18080` because port 8080 is reserved on some Windows hosts (commit decebcc) | first real run; supersedes "NOT RUN" in ASAA-010 and in the 2026-11-14 second follow-up table | agent-reported |
+| `promtool check rules` and `test rules` via the `prom/prometheus:v2.55.1` image | passed locally | agent-reported |
+| Notification outbox (migration 0017, 12 tests; sensitive-content minimization, preferences, delivery status, retry/dead-letter, leave-review hook; commit a16459d) | implemented, tested locally | agent-reported (inside the 165) |
+| Governed registers (commit 3bda274, migration 0018): policies and procedures, risk and internal controls, compliance obligations, legal contracts, privacy and retention, knowledge base, announcements, integrations and connectors, workflow and approvals (validated state graphs), security operations, operational incidents; versioned revisions, maker-checker review, per-register permissions, audit events, organization isolation | implemented with API, jsdom and Playwright tests | agent-pushed, pending verification |
+| Workspace inventory (commit b1006d4): 73 workspaces in `src/workspaces/inventory.json` with a sync test; Reports and dashboards routing fixed (was 19 functional, 6 partial, 48 preview; now 20 functional) | implemented | agent-pushed, pending verification |
+| `0dbb67b` audit trail view with action/actor/entity/outcome filters, notifications, governance, reports and financial-reporting workspaces; reports API aggregates per currency and per permission with lineage and freshness, never payroll or salary | implemented with tests | agent-pushed, NOT coordinator-verified |
+
+Gap tally is unchanged (13: 2 complete and verified, 8 partial, 3 blocked). ASAA-007 evidence is restored to the 2026-11-14 level after the repair; ASAA-010 and ASAA-011 gain local execution evidence (rehearsal 13/13, promtool) but stay PARTIALLY COMPLETE because there is no hosting target, alert routing or GitHub run. The maturity score (5.9/10) was not re-scored for this batch. The release decision is NO-GO and nothing is CI VERIFIED (`gh` unauthenticated).
+
+## Delivery phase — 2026-11-15
+
+**Current phase: DEVELOPMENT** (owner direction: DEVELOPMENT, then TESTING, then DEPLOYMENT). Features added in this phase carry the status **IMPLEMENTED — NOT FULLY TESTED** until the testing phase runs. Test-phase and deployment-phase items that are not yet due (full-suite reruns, CI runs, hosted or staging verification, hosting, live providers, production rehearsal) are **deferred to test phase** or **deferred to deployment phase**; they are not failures. Evidence classes used in these documents: coordinator-verified, agent-reported, in progress, CI not observed.
+
+Tracker note: the workbooks add ASAA-014 (governed registers and workspace inventory) as a tracked row with status IMPLEMENTED — NOT FULLY TESTED; verification is deferred to the test phase, so the tracked gap count is 14 (2 complete and verified, 8 partial, 3 blocked, 1 implemented not fully tested).

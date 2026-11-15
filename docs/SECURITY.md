@@ -235,3 +235,11 @@ Still open: the production role matrix is an owner/DBA decision (the policy abov
 | Alerting | `monitoring/asaa-alerts.yml` | Authentication-denial spike and 5xx alerts defined; routing/ownership not configured. |
 
 Limitations unchanged: no independent review, no provider/MFA activation, no vendor-specific SCIM validation, no image vulnerability scan, rate limiting still absent.
+
+
+## 18. Update 2026-11-15 (agent-pushed, pending coordinator verification where marked)
+
+- Notification outbox minimizes sensitive content in message templates and respects preferences (commit a16459d, tested locally).
+- Governed registers carry per-register permissions, maker-checker review, audit events and organization isolation (commit 3bda274; agent-pushed, pending verification).
+- The reports API aggregates per currency and per permission and never exposes payroll or salary data; the audit events endpoint gains action/actor/entity/outcome filters (commit 0dbb67b; agent-pushed, pending verification).
+- The a40c7ca accessibility regression was repaired in 37f478d (coordinator-verified lint, build, UI tests, pytest). Independent security review is still pending; no GitHub Actions run observed.

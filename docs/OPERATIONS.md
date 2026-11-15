@@ -178,7 +178,7 @@ Production deployment is **NO-GO** while any mandatory P0 task is unchecked, unl
 - `monitoring/asaa-alerts.yml` rules for Prometheus (job name `asaa-api` assumed) with `monitoring/asaa-alerts.test.yml`; log contract `monitoring/log-schema.json`.
 - `monitoring/performance-budget.json`: provisional load budget used by CI.
 - SCIM provisioning: set `ASAA_AP_IDENTITY_PROVIDER=scim`, `ASAA_AP_SCIM_BASE_URL`, `ASAA_AP_SCIM_BEARER_TOKEN`, optional `ASAA_AP_SCIM_GROUP_PREFIX`; run `python -m asaa_identity.worker`. Provider-specific behaviour must be verified in a sandbox first.
-- `deploy/rehearsal.sh` (needs Docker): migrate, smoke, bad release, rollback, smoke. **Not yet executed anywhere.**
+- `deploy/rehearsal.sh` (needs Docker): migrate, smoke, bad release, rollback, smoke. **Executed locally once on 2026-11-14 (agent-reported): 13/13 steps passed with API_PORT=18000 PORTAL_PORT=18080 (port 8080 is reserved on some Windows hosts). Not run in CI.**
 
 ### Exact external decisions/configuration still required (cannot be closed by engineering alone)
 1. **Hosting and network (ASAA-001, 010):** provider/region, runtime (container/VM), HTTPS termination and trusted origins (`ASAA_AP_CORS_ORIGINS`), environment owners, separate dev/staging/production.

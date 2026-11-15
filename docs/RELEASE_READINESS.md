@@ -64,3 +64,8 @@ Decision remains **NO-GO**. Additional locally verified items: SCIM adapter (fak
 ## Update 2026-11-14 (documentation owner)
 
 Head `a40c7ca` has a failing lint (`playwright.config.js` parse error) and removed accessibility CSS; the earlier green lint, E2E and accessibility evidence is for `ac2f696`. Decision unchanged: NO-GO. No GitHub Actions run observed.
+
+
+## Update 2026-11-15
+
+The a40c7ca regression was repaired in 37f478d; coordinator-verified there: lint, build, 17 UI tests, pytest SQLite 165 passed / 6 skipped. Rehearsal 13/13 and promtool passed locally (agent-reported). Head `0dbb67b` carries new workspaces and registers that are agent-pushed and not yet coordinator-verified. No GitHub Actions run observed. Decision unchanged: **NO-GO**.
