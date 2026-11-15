@@ -100,6 +100,7 @@ export const MODULE_GROUPS = [
 
 // Workspaces rendered by a real, API-wired component (not the generic preview). Keep in sync with inventory.json.
 export const WIRED_WORKSPACES = [
+  "Documents & records",
   "Financial reporting",
   "Governance",
   "Notifications & reminders",
@@ -172,5 +173,89 @@ export const REGISTER_WORKSPACES = {
   ],
   "Operational incidents": [
     "operational_incident"
+  ],
+  "Documents & records": [
+    "document"
+  ],
+  "Portfolio & projects": [
+    "project"
+  ],
+  "Requirements & roadmaps": [
+    "requirement"
+  ],
+  "Products & lifecycle": [
+    "product"
+  ],
+  "Repositories & engineering": [
+    "repository"
+  ],
+  "QA & testing": [
+    "test_plan"
+  ],
+  "CI/CD & pipelines": [
+    "pipeline"
+  ],
+  "Environments & architecture": [
+    "environment"
+  ],
+  "Releases & artifacts": [
+    "release"
+  ],
+  "Technical knowledge": [
+    "technical_article"
+  ],
+  "Service catalogue": [
+    "service"
+  ],
+  "Client delivery": [
+    "engagement"
+  ],
+  "Work orders & scheduling": [
+    "work_order"
+  ],
+  "Support & SLAs": [
+    "sla"
+  ],
+  "Inventory & stock": [
+    "inventory_item"
+  ],
+  "Facilities, travel & logistics": [
+    "facility_request"
+  ],
+  "CRM & customer accounts": [
+    "account"
+  ],
+  "Leads & sales pipeline": [
+    "lead"
+  ],
+  "Proposals & quotations": [
+    "proposal"
+  ],
+  "Orders & subscriptions": [
+    "order"
+  ],
+  "Customer onboarding & feedback": [
+    "feedback"
+  ],
+  "Marketing & campaigns": [
+    "campaign"
+  ],
+  "Team spaces & collaboration": [
+    "team_space"
+  ],
+  "Calendar & meetings": [
+    "meeting"
+  ],
+  "Forms & service requests": [
+    "form_request"
+  ],
+  "Recruitment": [
+    "vacancy"
+  ],
+  "Performance & learning": [
+    "goal"
   ]
 };
+
+// Every workspace that renders a real component instead of the generic preview (functional or partial).
+export const ROUTED_WORKSPACES = [...new Set([...WIRED_WORKSPACES, ...Object.keys(REGISTER_WORKSPACES)])];

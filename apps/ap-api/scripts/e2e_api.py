@@ -28,8 +28,9 @@ ADMIN_PERMISSIONS = [
     "tms:timesheet:read", "tms:timesheet:write", "tms:timesheet:submit", "expense:claim:read", "expense:claim:write", "audit:read",
 ]
 READER_PERMISSIONS = ["supplier:read"]
-REGISTER_TYPES = ["policy", "risk", "control", "obligation", "contract", "retention_rule", "article", "announcement", "integration",
-                  "workflow_definition", "security_incident", "operational_incident"]
+from asaa_registers.catalog import TYPES as _REGISTER_CATALOG  # noqa: E402
+
+REGISTER_TYPES = list(_REGISTER_CATALOG)
 ADMIN_PERMISSIONS += [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "write")] + ["governance:delegation:read", "governance:delegation:create", "governance:decision:read", "governance:decision:create", "notification:template:read", "notification:outbox:read", "notification:template:write", "notification:send"]
 REVIEWER_PERMISSIONS = [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "review")] + ["governance:delegation:read", "governance:delegation:approve", "governance:decision:read", "governance:decision:approve"]
 

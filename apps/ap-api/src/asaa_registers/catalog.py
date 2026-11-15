@@ -74,6 +74,74 @@ TYPES: dict[str, RegisterType] = {t.key: t for t in [
 ]}
 
 
+# Record-keeping registers for the remaining planned workspaces. They capture owned, versioned, reviewed records only; the domain
+# workflows (scheduling, pipelines, recruiting stages, forecasting ...) are NOT implemented by them.
+STATUS3 = ("Planned", "Active", "Closed")
+_MORE = [
+    RegisterType("document", "Documents & records", "Document record", "Document records", (
+        Field("document_type", "str", "Document type", True),
+        Field("classification", "enum", "Classification", True, ("Public", "Internal", "Confidential", "Restricted")),
+        Field("storage_reference", "ref", "Storage reference (name/key in approved storage, never a link with a secret)"),
+        Field("retention_until", "date", "Retain until"), Field("legal_hold", "bool", "Legal hold"))),
+    RegisterType("project", "Portfolio & projects", "Project", "Projects", (
+        Field("project_status", "enum", "Project status", True, STATUS3), Field("sponsor", "str", "Sponsor"),
+        Field("start_date", "date", "Start date"), Field("end_date", "date", "End date"))),
+    RegisterType("requirement", "Requirements & roadmaps", "Requirement", "Requirements", (
+        Field("priority", "enum", "Priority", True, ("P0", "P1", "P2")), Field("acceptance_criteria", "str", "Acceptance criteria"),
+        Field("target_release", "str", "Target release"))),
+    RegisterType("product", "Products & lifecycle", "Product", "Products", (
+        Field("lifecycle_stage", "enum", "Lifecycle stage", True, ("Discovery", "Build", "Live", "Sunset", "Retired")), Field("product_owner", "str", "Product owner"))),
+    RegisterType("repository", "Repositories & engineering", "Repository", "Repositories", (
+        Field("host", "str", "Host (e.g. github.com)"), Field("default_branch", "str", "Default branch"), Field("owning_team", "str", "Owning team"))),
+    RegisterType("test_plan", "QA & testing", "Test plan", "Test plans", (
+        Field("scope", "str", "Scope", True), Field("last_run_result", "enum", "Last run result", False, ("Not run", "Passed", "Failed")))),
+    RegisterType("pipeline", "CI/CD & pipelines", "Pipeline", "Pipelines", (
+        Field("system", "str", "CI/CD system", True), Field("last_status", "enum", "Last status", False, ("Unknown", "Passing", "Failing")))),
+    RegisterType("environment", "Environments & architecture", "Environment", "Environments", (
+        Field("kind", "enum", "Kind", True, ("Development", "Test", "Staging", "Production")), Field("hosting_reference", "str", "Hosting reference"))),
+    RegisterType("release", "Releases & artifacts", "Release", "Releases", (
+        Field("version_label", "str", "Version", True), Field("commit_reference", "str", "Commit reference"),
+        Field("release_status", "enum", "Release status", True, ("Planned", "Released", "Rolled back")))),
+    RegisterType("technical_article", "Technical knowledge", "Technical article", "Technical articles", (
+        Field("component", "str", "Component"), Field("tags", "str", "Tags (comma separated)"))),
+    RegisterType("service", "Service catalogue", "Service", "Services", (
+        Field("service_owner", "str", "Service owner", True), Field("support_hours", "str", "Support hours"))),
+    RegisterType("engagement", "Client delivery", "Client engagement", "Client engagements", (
+        Field("client", "str", "Client", True), Field("engagement_status", "enum", "Status", True, STATUS3))),
+    RegisterType("work_order", "Work orders & scheduling", "Work order", "Work orders", (
+        Field("assignee", "str", "Assignee"), Field("scheduled_for", "date", "Scheduled for"), Field("work_status", "enum", "Status", True, ("Open", "In progress", "Done")))),
+    RegisterType("sla", "Support & SLAs", "Service level definition", "Service level definitions", (
+        Field("response_target_minutes", "int", "Response target (minutes)", True), Field("resolution_target_minutes", "int", "Resolution target (minutes)"))),
+    RegisterType("inventory_item", "Inventory & stock", "Inventory item", "Inventory items", (
+        Field("sku", "str", "SKU", True), Field("quantity_on_hand", "int", "Quantity on hand", True), Field("location", "str", "Location"))),
+    RegisterType("facility_request", "Facilities, travel & logistics", "Facilities or travel request", "Facilities and travel requests", (
+        Field("request_kind", "enum", "Kind", True, ("Facility", "Travel", "Logistics")), Field("needed_by", "date", "Needed by"))),
+    RegisterType("account", "CRM & customer accounts", "Customer account", "Customer accounts", (
+        Field("segment", "str", "Segment"), Field("account_owner", "str", "Account owner", True))),
+    RegisterType("lead", "Leads & sales pipeline", "Lead", "Leads", (
+        Field("source", "str", "Source"), Field("stage", "enum", "Stage", True, ("New", "Qualified", "Proposal", "Won", "Lost")))),
+    RegisterType("proposal", "Proposals & quotations", "Proposal", "Proposals", (
+        Field("customer", "str", "Customer", True), Field("valid_until", "date", "Valid until"))),
+    RegisterType("order", "Orders & subscriptions", "Order or subscription", "Orders and subscriptions", (
+        Field("customer", "str", "Customer", True), Field("order_kind", "enum", "Kind", True, ("Order", "Subscription")))),
+    RegisterType("feedback", "Customer onboarding & feedback", "Customer feedback", "Customer feedback", (
+        Field("customer", "str", "Customer"), Field("sentiment", "enum", "Sentiment", False, ("Positive", "Neutral", "Negative")))),
+    RegisterType("campaign", "Marketing & campaigns", "Campaign", "Campaigns", (
+        Field("channel", "str", "Channel"), Field("campaign_status", "enum", "Status", True, STATUS3))),
+    RegisterType("team_space", "Team spaces & collaboration", "Team space", "Team spaces", (
+        Field("purpose", "str", "Purpose"), Field("space_owner", "str", "Owner", True))),
+    RegisterType("meeting", "Calendar & meetings", "Meeting record", "Meeting records", (
+        Field("meeting_date", "date", "Meeting date", True), Field("attendees", "str", "Attendees"), Field("decisions", "str", "Decisions"), Field("action_items", "str", "Action items"))),
+    RegisterType("form_request", "Forms & service requests", "Service request", "Service requests", (
+        Field("request_type", "str", "Request type", True), Field("requested_by", "str", "Requested by"))),
+    RegisterType("vacancy", "Recruitment", "Vacancy", "Vacancies", (
+        Field("department", "str", "Department"), Field("headcount", "int", "Headcount", True))),
+    RegisterType("goal", "Performance & learning", "Goal or development plan", "Goals and development plans", (
+        Field("goal_owner", "str", "Goal owner", True), Field("due_date", "date", "Due date"))),
+]
+TYPES.update({t.key: t for t in _MORE})
+
+
 class DataError(ValueError):
     pass
 

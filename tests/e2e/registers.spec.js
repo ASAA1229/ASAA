@@ -78,4 +78,42 @@ test.describe("governed registers (live API)", () => {
     await expect(page.getByText("Access not granted")).toBeVisible();
     await expect(page.getByRole("button", { name: /New policy/i })).toHaveCount(0);
   });
+
+  test("document metadata and a record-keeping register (recruitment) can be created through the UI", async ({ page }) => {
+    await signIn(page, "admin");
+    await openNav(page, "Documents & records");
+    await page.getByRole("button", { name: /New document record/i }).click();
+    let form = page.getByRole("form", { name: /New Document record/ });
+    const code = "DOC-" + unique();
+    await form.getByLabel("Code").fill(code);
+    await form.getByLabel("Title").fill("Signed supplier agreement");
+    await form.getByLabel("Document type").fill("Agreement");
+    await form.getByLabel("Classification").selectOption("Confidential");
+    await form.getByLabel(/Storage reference/).fill("vault:docs/" + code.toLowerCase());
+    await form.getByLabel("Legal hold").check();
+    await form.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByRole("row", { name: new RegExp(code) })).toBeVisible();
+    await expectAccessible(page, "documents register");
+    // a credential-looking value is refused by the API (references are names, never secrets)
+    await page.getByRole("button", { name: /New document record/i }).click();
+    form = page.getByRole("form", { name: /New Document record/ });
+    await form.getByLabel("Code").fill("DOC-" + unique());
+    await form.getByLabel("Title").fill("Bad reference");
+    await form.getByLabel("Document type").fill("Agreement");
+    await form.getByLabel("Classification").selectOption("Internal");
+    await form.getByLabel(/Storage reference/).fill("password=hunter2 secret");
+    await form.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByRole("alert")).toContainText(/reference name/);
+
+    await openNav(page, "Recruitment");
+    await page.getByRole("button", { name: /New vacancy/i }).click();
+    form = page.getByRole("form", { name: /New Vacancy/ });
+    const vcode = "VAC-" + unique();
+    await form.getByLabel("Code").fill(vcode);
+    await form.getByLabel("Title").fill("Support engineer");
+    await form.getByLabel("Headcount").fill("2");
+    await form.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByRole("row", { name: new RegExp(vcode) })).toBeVisible();
+    await expectAccessible(page, "recruitment register");
+  });
 });

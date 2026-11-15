@@ -191,3 +191,27 @@ def test_mass_assignment_and_date_validation(client):
     bad = client.post("/api/v1/registers/policy", json={"code": "POL-8", "title": "Dates wrong", "effective_from": "2026-12-01", "effective_to": "2026-01-01",
                                                           "data": {"document_type": "Policy"}})
     assert bad.status_code == 422 and bad.json()["detail"]["code"] == "effective_to_before_effective_from"
+
+
+def sample_data(spec):
+    data = {}
+    for f in spec.fields:
+        if not f.required:
+            continue
+        data[f.name] = {"enum": f.choices[0] if f.choices else "", "str": "sample", "int": 1, "bool": True, "date": "2026-12-01", "ref": "vault:sample/key",
+                        "strlist": ["Start", "End"], "transitions": [{"from": "Start", "to": "End", "action": "finish"}]}[f.kind]
+        if f.name == "initial_state":
+            data[f.name] = "Start"
+    return data
+
+
+@pytest.mark.parametrize("rtype", sorted(TYPES))
+def test_every_register_type_accepts_a_minimal_valid_record_and_runs_the_review_flow(client, rtype):
+    as_p(client)
+    created = client.post(f"/api/v1/registers/{rtype}", json={"code": "S-1", "title": "Sample record", "data": sample_data(TYPES[rtype])})
+    assert created.status_code == 201, (rtype, created.text)
+    assert approve(client, created.json())["status"] == "Approved"
+    required = [f for f in TYPES[rtype].fields if f.required]
+    if required:  # a record missing its required fields is refused
+        assert client.post(f"/api/v1/registers/{rtype}", json={"code": "S-2", "title": "Missing fields", "data": {}}).status_code == 422
+    assert TYPES[rtype].workspace

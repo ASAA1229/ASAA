@@ -159,9 +159,9 @@
         "ASAA-P1-06",
         "ASAA-P1-15"
       ],
-      "state": "partial",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": "Employee document metadata API exists; no cross-domain records UI."
+      "notes": "Document metadata register (classification, retention date, legal hold, storage reference) with review and audit. Binary storage, malware scanning and signed retrieval are external and NOT implemented."
     },
     {
       "name": "Notifications & reminders",
@@ -227,12 +227,13 @@
       "name": "Recruitment",
       "category": "People & Workforce",
       "requirement_refs": [
-        "REQUIREMENTS section 3C"
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (vacancy): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Onboarding",
@@ -322,12 +323,13 @@
       "name": "Performance & learning",
       "category": "People & Workforce",
       "requirement_refs": [
-        "REQUIREMENTS section 3C"
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (goal): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Employee relations",
@@ -372,144 +374,157 @@
       "name": "Portfolio & projects",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (project): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Requirements & roadmaps",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (requirement): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Products & lifecycle",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (product): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Repositories & engineering",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (repository): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "QA & testing",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (test_plan): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "CI/CD & pipelines",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (pipeline): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Environments & architecture",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (environment): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Releases & artifacts",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (release): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Technical knowledge",
       "category": "Projects, Products & Technology",
       "requirement_refs": [
-        "REQUIREMENTS section 3D"
+        "REQUIREMENTS section 3D",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (technical_article): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Service catalogue",
       "category": "Services & Operations",
       "requirement_refs": [
-        "REQUIREMENTS section 3E"
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (service): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Client delivery",
       "category": "Services & Operations",
       "requirement_refs": [
-        "REQUIREMENTS section 3E"
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (engagement): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Work orders & scheduling",
       "category": "Services & Operations",
       "requirement_refs": [
-        "REQUIREMENTS section 3E"
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (work_order): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Support & SLAs",
       "category": "Services & Operations",
       "requirement_refs": [
-        "REQUIREMENTS section 3E"
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (sla): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Procurement",
@@ -530,23 +545,25 @@
       "name": "Inventory & stock",
       "category": "Services & Operations",
       "requirement_refs": [
-        "REQUIREMENTS section 3E"
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (inventory_item): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Facilities, travel & logistics",
       "category": "Services & Operations",
       "requirement_refs": [
-        "REQUIREMENTS section 3E"
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (facility_request): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Operational incidents",
@@ -564,34 +581,37 @@
       "name": "CRM & customer accounts",
       "category": "Sales & Customers",
       "requirement_refs": [
-        "REQUIREMENTS section 3F"
+        "REQUIREMENTS section 3F",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (account): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Leads & sales pipeline",
       "category": "Sales & Customers",
       "requirement_refs": [
-        "REQUIREMENTS section 3F"
+        "REQUIREMENTS section 3F",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (lead): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Proposals & quotations",
       "category": "Sales & Customers",
       "requirement_refs": [
-        "REQUIREMENTS section 3F"
+        "REQUIREMENTS section 3F",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (proposal): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Contracts & renewals",
@@ -608,34 +628,37 @@
       "name": "Orders & subscriptions",
       "category": "Sales & Customers",
       "requirement_refs": [
-        "REQUIREMENTS section 3F"
+        "REQUIREMENTS section 3F",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (order): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Customer onboarding & feedback",
       "category": "Sales & Customers",
       "requirement_refs": [
-        "REQUIREMENTS section 3F"
+        "REQUIREMENTS section 3F",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (feedback): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Marketing & campaigns",
       "category": "Sales & Customers",
       "requirement_refs": [
-        "REQUIREMENTS section 3F"
+        "REQUIREMENTS section 3F",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (campaign): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "AR · Receivables",
@@ -849,34 +872,37 @@
       "name": "Team spaces & collaboration",
       "category": "Knowledge & Collaboration",
       "requirement_refs": [
-        "REQUIREMENTS section 3I"
+        "REQUIREMENTS section 3I",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (team_space): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Calendar & meetings",
       "category": "Knowledge & Collaboration",
       "requirement_refs": [
-        "REQUIREMENTS section 3I"
+        "REQUIREMENTS section 3I",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (meeting): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Forms & service requests",
       "category": "Knowledge & Collaboration",
       "requirement_refs": [
-        "REQUIREMENTS section 3I"
+        "REQUIREMENTS section 3I",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Record-keeping register (form_request): owned, versioned, reviewed, audited records with per-register permissions. The domain workflow this workspace names (for example scheduling, pipelines, stages, analytics) is NOT implemented."
     },
     {
       "name": "Reports & dashboards",

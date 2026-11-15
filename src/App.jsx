@@ -5,7 +5,7 @@ import WorkforceFinanceWorkspace from "./WorkforceFinanceWorkspace.jsx";
 import AdministrationWorkspace from "./AdministrationWorkspace.jsx";
 import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
-import { MODULE_GROUPS, REGISTER_WORKSPACES, WIRED_WORKSPACES } from "./workspaces/registry.js";
+import { MODULE_GROUPS, REGISTER_WORKSPACES, ROUTED_WORKSPACES } from "./workspaces/registry.js";
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
 import { AuditTrailWorkspace, GovernanceWorkspace, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
@@ -195,7 +195,7 @@ function App() {
           {section === "Governance" && <GovernanceWorkspace api={api} claims={claims} connected={!!token}/>}
           {REGISTER_WORKSPACES[section] && <RegisterWorkspace key={section} name={section} types={REGISTER_WORKSPACES[section]} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} claims={claims} openConnection={() => setModal("connection")}/>}
-          {!WIRED_WORKSPACES.includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
+          {!ROUTED_WORKSPACES.includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>
         </>}
       </div>
