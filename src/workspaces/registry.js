@@ -100,6 +100,10 @@ export const MODULE_GROUPS = [
 
 // Workspaces rendered by a real, API-wired component (not the generic preview). Keep in sync with inventory.json.
 export const WIRED_WORKSPACES = [
+  "Financial reporting",
+  "Governance",
+  "Notifications & reminders",
+  "Audit trail",
   "Policies & procedures",
   "Risk & internal controls",
   "Compliance & obligations",

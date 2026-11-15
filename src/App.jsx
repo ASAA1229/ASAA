@@ -7,6 +7,7 @@ import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { MODULE_GROUPS, REGISTER_WORKSPACES, WIRED_WORKSPACES } from "./workspaces/registry.js";
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
+import { AuditTrailWorkspace, GovernanceWorkspace, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -187,7 +188,11 @@ function App() {
           {["People directory","Employment lifecycle","Onboarding","Offboarding","Leave management","Employee assets"].includes(section) && <PeopleWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Compensation & payroll" && <PayrollWorkspace api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
                     {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
-          {section === "Reports & dashboards" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
+          {section === "Reports & dashboards" && <ReportsWorkspace api={api} connected={!!token}/>}
+          {section === "Financial reporting" && <ReportsWorkspace name="Financial reporting" only={["receivables", "customers", "receipts", "suppliers", "procurement", "expenses"]} api={api} connected={!!token}/>}
+          {section === "Audit trail" && <AuditTrailWorkspace api={api} claims={claims} connected={!!token}/>}
+          {section === "Notifications & reminders" && <NotificationsWorkspace api={api} claims={claims} connected={!!token}/>}
+          {section === "Governance" && <GovernanceWorkspace api={api} claims={claims} connected={!!token}/>}
           {REGISTER_WORKSPACES[section] && <RegisterWorkspace key={section} name={section} types={REGISTER_WORKSPACES[section]} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} claims={claims} openConnection={() => setModal("connection")}/>}
           {!WIRED_WORKSPACES.includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
@@ -260,7 +265,6 @@ function Metric({label,value,note,icon:Icon,tone=""}) { return <div className="m
 function Empty({text}) { return <div className="empty-state"><div><FileText size={20}/></div>{text}</div>; }
 
 
-function Reports({data,stats}) { return <div className="metric-grid"><Metric label="AR outstanding" value={money(stats.outstanding)} note={`${data.invoices.length} invoices`} icon={Landmark}/><Metric label="Receipts recorded" value={data.receipts.length} note="AR receipt records" icon={Wallet}/><Metric label="Timesheets" value={data.timesheets.length} note="Work periods recorded" icon={Clock3}/><Metric label="Expense claims" value={data.expenses.length} note="Claims recorded" icon={Receipt}/></div>; }
 function SettingsPanel({apiBase,claims,openConnection}) { return <div className="settings-grid"><section className="panel info-panel"><div className="panel-heading"><div><h2>Workspace connection</h2><p>API endpoint and session controls</p></div><Settings2 size={18}/></div><div className="data-line"><span>API endpoint</span><b>{apiBase}</b></div><div className="data-line"><span>Organization</span><b>{claims.org_id||"—"}</b></div><button className="btn btn-quiet" onClick={openConnection}>Manage connection</button></section><section className="panel info-panel"><div className="panel-heading"><div><h2>Install on your devices</h2><p>One responsive app across your screens</p></div><Smartphone size={18}/></div><div className="device-row"><Monitor/> Desktop / laptop <span>Browser or installable PWA</span></div><div className="device-row"><Smartphone/> Mobile <span>Add to Home Screen</span></div><div className="device-row"><Laptop/> Tablet <span>Responsive layout</span></div><small className="field-help">The app shell can be cached for offline launch. Financial records and API data are never cached by the service worker.</small></section></div>; }
 
 function RecordForm({kind,onCancel,onSave}) {

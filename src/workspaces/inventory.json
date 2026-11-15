@@ -60,9 +60,9 @@
       "story_refs": [
         "ASAA-P0-05"
       ],
-      "state": "partial",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": "Authority-register API (delegations, decisions) exists; the portal shows the generic preview."
+      "notes": "Authority delegations and decision register over /api/v1/governance with independent approval; registering a delegation does not change JWT permissions."
     },
     {
       "name": "Policies & procedures",
@@ -174,9 +174,9 @@
         "ASAA-P1-10",
         "ASAA-P1-15"
       ],
-      "state": "partial",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": "Notification outbox API exists (templates, preferences, outbox status); no UI."
+      "notes": "Outbox status, retry of dead letters, templates and personal channel preferences over /api/v1/notifications. No real delivery channel is configured (mock provider only)."
     },
     {
       "name": "Integrations & connectors",
@@ -204,9 +204,9 @@
         "ASAA-P0-06",
         "ASAA-P0-11"
       ],
-      "state": "partial",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": "Audit events API exists (GET /api/v1/ap/audit-events); no dedicated view."
+      "notes": "Read-only audit events view with action/actor/entity/outcome filters and paging over GET /api/v1/ap/audit-events (audit:read)."
     },
     {
       "name": "People directory",
@@ -721,10 +721,12 @@
         "REQUIREMENTS section 3G",
         "REQUIREMENTS section 10 (first release scope)"
       ],
-      "story_refs": [],
-      "state": "preview",
+      "story_refs": [
+        "ASAA-P1-09"
+      ],
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": ""
+      "notes": "Read-only per-currency aggregates (receivables, receipts, customers, suppliers, purchase requests, expenses) from GET /api/v1/reports/summary. No tax, statutory or ledger reporting."
     },
     {
       "name": "Payroll accounting",
@@ -888,7 +890,7 @@
       ],
       "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": "Read-only aggregates over loaded AR/AP/people/expense data; no dedicated reporting API yet."
+      "notes": "Read-only permission-filtered aggregates across finance, workforce (headcount only), governance, registers, notifications and identity sync from GET /api/v1/reports/summary, with lineage and freshness."
     },
     {
       "name": "Forecasting & scenarios",

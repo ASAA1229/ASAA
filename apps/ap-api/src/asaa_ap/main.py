@@ -25,6 +25,7 @@ from asaa_workforce_finance.api import router as workforce_finance_router
 from asaa_identity.api import router as identity_sync_router
 from asaa_notifications.api import router as notifications_router
 from asaa_registers.api import router as registers_router
+from asaa_reports.api import router as reports_router
 from asaa_notifications.provider import InMemoryNotificationProvider, register_notification_provider
 from asaa_identity.bootstrap import register_configured_providers
 
@@ -62,6 +63,7 @@ app.include_router(workforce_finance_router)
 app.include_router(identity_sync_router)
 app.include_router(notifications_router)
 app.include_router(registers_router)
+app.include_router(reports_router)
 if settings.notification_provider == "memory" and settings.environment != "production":
     register_notification_provider("memory", InMemoryNotificationProvider)
 register_configured_providers(settings)

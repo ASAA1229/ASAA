@@ -30,8 +30,8 @@ ADMIN_PERMISSIONS = [
 READER_PERMISSIONS = ["supplier:read"]
 REGISTER_TYPES = ["policy", "risk", "control", "obligation", "contract", "retention_rule", "article", "announcement", "integration",
                   "workflow_definition", "security_incident", "operational_incident"]
-ADMIN_PERMISSIONS += [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "write")] + ["notification:template:read", "notification:outbox:read", "notification:template:write", "notification:send"]
-REVIEWER_PERMISSIONS = [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "review")]
+ADMIN_PERMISSIONS += [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "write")] + ["governance:delegation:read", "governance:delegation:create", "governance:decision:read", "governance:decision:create", "notification:template:read", "notification:outbox:read", "notification:template:write", "notification:send"]
+REVIEWER_PERMISSIONS = [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "review")] + ["governance:delegation:read", "governance:delegation:approve", "governance:decision:read", "governance:decision:approve"]
 
 
 def main() -> int:

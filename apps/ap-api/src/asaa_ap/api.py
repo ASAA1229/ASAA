@@ -50,6 +50,17 @@ def change_status(supplier_id: str, payload: StatusChange, db: Db, principal: An
 
 
 @router.get("/audit-events", response_model=list[AuditRead])
-def list_audit(db: Db, principal: Annotated[Principal, Depends(require_permission("audit:read"))], limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0)):
-    stmt = select(AuditEvent).where(AuditEvent.organization_id == principal.organization_id).order_by(AuditEvent.created_at.desc()).offset(offset).limit(limit)
+def list_audit(db: Db, principal: Annotated[Principal, Depends(require_permission("audit:read"))], limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0),
+               action: str | None = Query(default=None, max_length=100, description="action prefix, e.g. supplier."), entity_type: str | None = Query(default=None, max_length=100),
+               actor_id: str | None = Query(default=None, max_length=128), outcome: str | None = Query(default=None, pattern="^(success|failure)$")):
+    stmt = select(AuditEvent).where(AuditEvent.organization_id == principal.organization_id)
+    if action:
+        stmt = stmt.where(AuditEvent.action.startswith(action, autoescape=True))
+    if entity_type:
+        stmt = stmt.where(AuditEvent.entity_type == entity_type)
+    if actor_id:
+        stmt = stmt.where(AuditEvent.actor_id == actor_id)
+    if outcome:
+        stmt = stmt.where(AuditEvent.outcome == outcome)
+    stmt = stmt.order_by(AuditEvent.created_at.desc()).offset(offset).limit(limit)
     return db.scalars(stmt).all()
