@@ -10,8 +10,13 @@ from asaa_ap.config import get_settings
 
 
 @lru_cache(maxsize=4)
-def jwks_client(url: str):
-    return jwt.PyJWKClient(url, cache_jwk_set=True, lifespan=300)
+def jwks_client(url: str, cooldown_seconds: float = 10):
+    """JWKS client. An unknown key id forces a refresh at most once per cooldown, so a provider key rotation is picked up within
+    that window while a flood of forged key ids cannot make the API hammer the provider."""
+    try:
+        return jwt.PyJWKClient(url, cache_jwk_set=True, lifespan=300, cooldown_duration=cooldown_seconds)
+    except TypeError:  # PyJWT releases before the refresh cooldown parameter
+        return jwt.PyJWKClient(url, cache_jwk_set=True, lifespan=300)
 
 
 @dataclass(frozen=True)
@@ -35,7 +40,7 @@ def get_principal(authorization: Annotated[str | None, Header()] = None) -> Prin
             parsed = urlparse(settings.jwt_jwks_url)
             if parsed.scheme != "https" and parsed.hostname not in {"localhost", "127.0.0.1"}:
                 raise HTTPException(status_code=503, detail="Identity JWKS URL must use HTTPS")
-            signing_key = jwks_client(settings.jwt_jwks_url).get_signing_key_from_jwt(token).key
+            signing_key = jwks_client(settings.jwt_jwks_url, getattr(settings, "jwks_refresh_cooldown_seconds", 10)).get_signing_key_from_jwt(token).key
         else:
             signing_key = settings.jwt_public_key
         if not signing_key:

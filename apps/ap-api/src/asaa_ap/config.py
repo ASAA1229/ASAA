@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     jwt_audience: str | None = None
     jwt_algorithm: str = "RS256"
     jwt_jwks_url: str | None = None
+    jwks_refresh_cooldown_seconds: float = Field(default=10, ge=0, le=300)
     required_acr: str | None = None
     required_amr: str | None = None
     jwt_leeway_seconds: int = Field(default=30, ge=0, le=300)
