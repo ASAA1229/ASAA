@@ -52,7 +52,7 @@ def main() -> int:
 
     def token(subject, permissions):
         return jwt.encode({"sub": subject, "name": subject, "org_id": "e2e-org", "iss": ISSUER, "aud": AUDIENCE, "iat": now,
-                           "exp": now + timedelta(minutes=30), "permissions": permissions}, key, algorithm="RS256")
+                           "exp": now + timedelta(hours=4), "permissions": permissions}, key, algorithm="RS256")
 
     args.token_file.parent.mkdir(parents=True, exist_ok=True)
     args.token_file.write_text(json.dumps({"admin": token("e2e-admin", ADMIN_PERMISSIONS), "reader": token("e2e-reader", READER_PERMISSIONS),

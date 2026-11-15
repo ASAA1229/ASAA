@@ -46,7 +46,7 @@ test.describe("shared platform workspaces (live API)", () => {
   test("reports show per-currency, permission-filtered sections with lineage", async ({ page }) => {
     await signIn(page, "admin");
     await openNav(page, "Reports & dashboards");
-    await expect(page.getByRole("region", { name: "Receivables" })).toContainText("ar_invoices");
+    await expect(page.getByRole("region", { name: "Receivables", exact: true })).toContainText("ar_invoices");
     await expect(page.getByText(/never converted/).first()).toBeVisible();
     await expect(page.getByText(/salary|gross/i)).toHaveCount(0);
     await expectAccessible(page, "reports");
@@ -80,9 +80,11 @@ test.describe("shared platform workspaces (live API)", () => {
     await bad.getByRole("button", { name: "Save template" }).click();
     await expect(page.getByRole("alert")).toContainText(/sensitive/);
     await page.getByRole("tab", { name: "My preferences" }).click();
+    // The API database is shared by every browser project in one run, so toggle relative to the current state.
+    const wasChecked = await page.getByLabel("sms").isChecked();
     await page.getByLabel("sms").click();
     await expect(page.getByRole("status").filter({ hasText: "Preference for sms saved" })).toBeVisible();
-    await expect(page.getByLabel("sms")).not.toBeChecked();
+    if (wasChecked) await expect(page.getByLabel("sms")).not.toBeChecked(); else await expect(page.getByLabel("sms")).toBeChecked();
     await page.getByRole("tab", { name: "Outbox" }).click();
     await expect(page.getByText("No messages")).toBeVisible();
   });
