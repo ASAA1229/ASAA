@@ -4,6 +4,7 @@ pipeline {
     timestamps()
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
+    skipDefaultCheckout(true)
   }
   environment {
     CI = 'true'
@@ -20,8 +21,27 @@ pipeline {
       steps {
         bat 'node --version'
         bat 'npm --version'
-        bat 'py -3 --version'
         bat 'git --version'
+        powershell '''
+          $ErrorActionPreference = "Stop"
+          if ($env:PYTHON) {
+            $python = $env:PYTHON
+            if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+              throw "PYTHON is set but does not point to an executable file: $python"
+            }
+            $version = & $python --version
+          } elseif (Get-Command py -ErrorAction SilentlyContinue) {
+            $version = & py -3 --version
+          } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+            $python = (Get-Command python).Source
+            $version = & $python --version
+          } else {
+            throw "Python 3.11+ is required. Install it for the Jenkins agent account and add it to PATH, or set the Jenkins agent environment variable PYTHON to its full executable path."
+          }
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch 'Python 3\.(1[1-9]|[2-9][0-9])') {
+            throw "Python 3.11 or newer is required; detected: $version"
+          }
+        '''
       }
     }
     stage('Install locked dependencies') {

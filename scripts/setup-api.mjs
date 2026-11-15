@@ -7,6 +7,7 @@ const venvDir = join(apiDir, ".venv");
 const windowsPython = join(venvDir, "Scripts", "python.exe");
 const unixPython = join(venvDir, "bin", "python");
 const pythonInVenv = process.platform === "win32" ? windowsPython : unixPython;
+const configuredPython = process.env.PYTHON?.trim();
 
 function run(command, args, cwd) {
   return new Promise((resolve, reject) => {
@@ -19,7 +20,9 @@ function run(command, args, cwd) {
 try {
   if (!existsSync(pythonInVenv)) {
     console.log("[API setup] Creating apps/ap-api/.venv");
-    if (process.platform === "win32") {
+    if (configuredPython) {
+      await run(configuredPython, ["-m", "venv", ".venv"], apiDir);
+    } else if (process.platform === "win32") {
       await run("py", ["-3", "-m", "venv", ".venv"], apiDir);
     } else {
       await run("python3", ["-m", "venv", ".venv"], apiDir);

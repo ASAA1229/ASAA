@@ -42,7 +42,7 @@ No force-push, branch deletion, history rewrite or merge to `main` is authorized
 
 ## 4. Jenkins and Nexus
 
-The repository root `Jenkinsfile` defines a Windows-agent CI pipeline for locked npm installation, API environment setup, dependency audit/SBOM, frontend and API lint/tests, and the production web build. It does not deploy. The Windows Jenkins agent needs Node.js/npm, Python via the `py` launcher, Git, and permission to install the API's Python test dependencies.
+The repository root `Jenkinsfile` defines a Windows-agent CI pipeline for locked npm installation, API environment setup, dependency audit/SBOM, frontend and API lint/tests, and the production web build. It does not deploy. The Windows Jenkins agent needs Node.js/npm, Python 3.11+, Git, and permission to install the API's Python test dependencies. Python may be available through the `py` launcher or `python` on `PATH`; alternatively configure the Jenkins agent environment variable `PYTHON` with the full path to `python.exe`. An agent without Python cannot run this pipeline.
 
 The pipeline definition has not been executed or verified on a Jenkins controller/agent. Configure a Jenkins Pipeline job to use this repository's root `Jenkinsfile`; confirm the agent has the required tools and access before treating any run as CI evidence. Nexus publishing/retrieval is not configured, and no Nexus artifact flow is claimed.
 
