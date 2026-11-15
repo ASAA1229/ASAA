@@ -29,7 +29,13 @@ try {
     }
   }
   console.log("[API setup] Installing API and test dependencies");
-  await run(pythonInVenv, ["-m", "pip", "install", "-e", ".[test]"], apiDir);
+  const constraints = join(apiDir, "constraints.txt");
+  const pipArgs = ["-m", "pip", "install", "-e", ".[test]"];
+  if (existsSync(constraints)) {
+    console.log("[API setup] Using pinned versions from apps/ap-api/constraints.txt");
+    pipArgs.push("-c", constraints);
+  }
+  await run(pythonInVenv, pipArgs, apiDir);
   console.log("[API setup] Complete. Start both services with: npm run dev");
 } catch (error) {
   console.error(`[API setup] ${error.message}`);

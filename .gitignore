@@ -27,3 +27,9 @@ backups/
 deploy/rehearsal-result.json
 .e2e-result.json
 *.log
+
+# Jenkins/CI scratch output
+.jenkins-temp/
+asaa-dependencies.cdx.json
+asaa-web-dist.tar.gz
+asaa-web-dist.tar.gz.sha256

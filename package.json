@@ -15,6 +15,7 @@
     "audit:high": "npm audit --audit-level=high",
     "test:ui": "vitest run",
     "test": "npm run test:web && npm run test:ui",
+    "test:ci": "node -e \"require('node:fs').mkdirSync('test-results',{recursive:true})\" && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results/junit-web.xml tests/web/identity-url-policy.test.js && vitest run --reporter=default --reporter=junit --outputFile.junit=test-results/junit-vitest.xml",
     "test:e2e": "playwright test"
   },
   "dependencies": {
