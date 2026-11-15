@@ -42,7 +42,9 @@ No force-push, branch deletion, history rewrite or merge to `main` is authorized
 
 ## 4. Jenkins and Nexus
 
-No Jenkinsfile or Nexus publishing/retrieval configuration was found in the inspected repository tree. Jenkins is known to exist locally in the user's Windows environment, but its agent execution, credentials, job configuration and repository pipeline behavior have not been verified in this assessment. No Nexus artifact publication or retrieval is claimed.
+The repository root `Jenkinsfile` defines a Windows-agent CI pipeline for locked npm installation, API environment setup, dependency audit/SBOM, frontend and API lint/tests, and the production web build. It does not deploy. The Windows Jenkins agent needs Node.js/npm, Python via the `py` launcher, Git, and permission to install the API's Python test dependencies.
+
+The pipeline definition has not been executed or verified on a Jenkins controller/agent. Configure a Jenkins Pipeline job to use this repository's root `Jenkinsfile`; confirm the agent has the required tools and access before treating any run as CI evidence. Nexus publishing/retrieval is not configured, and no Nexus artifact flow is claimed.
 
 If these tools are selected for this project, verify actual agent execution, credentials scope, artifact coordinates, checksums, retention and retrieval from the target repository before marking integration complete.
 
