@@ -177,3 +177,36 @@ export function BackupRecoveryWorkspace({ api, claims, connected }) {
   </section></div>
   <RegisterWorkspace name="Recovery plans" types={["recovery_plan"]} api={api} claims={claims} connected={connected} /></>;
 }
+
+/* ------------------------------------------------------------------ Leave policy panel (shown under Leave management) */
+export function LeavePolicyPanel({ api, claims, connected }) {
+  const perms = permissionsOf(claims);
+  const can = p => perms.includes(p);
+  const allowed = can("hr:leave:policy:read");
+  const [form, setForm] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
+  const { data, loading, error, reload } = useLoader(() => (connected && allowed ? api("/api/v1/hr/leave-policies") : Promise.resolve([])), [connected, allowed]);
+  const run = async (path, method, body, message) => {
+    setActionError(""); setNotice("");
+    try { await api(path, { method, ...(body ? { body: JSON.stringify(body) } : {}) }); setNotice(message); setForm(null); reload(); }
+    catch (e) { setActionError(e.message || "The change could not be saved."); }
+  };
+  if (!connected || !allowed) return null;
+  const rows = Array.isArray(data) ? data : [];
+  return <section className="panel list-panel" aria-label="Leave policy"><div className="list-heading"><div><h2>Leave policy</h2>
+    <p>Pending owner policy: until a policy is approved by a second person, days are counted as calendar days with no accrual or eligibility rules and balances are informational.</p></div>
+    {can("hr:leave:policy:write") && <button className="btn btn-primary" onClick={() => setForm({ category: "", annual: "", carry: "0", enforce: false })}>New or changed policy</button>}</div>
+    <Messages error={actionError || error} notice={notice} />
+    {form && <form className="admin-form" aria-label="Leave policy form" onSubmit={e => { e.preventDefault(); run(`/api/v1/hr/leave-policies/${encodeURIComponent(form.category)}`, "PUT", { annual_entitlement_days: form.annual, carry_over_days: form.carry, enforce_balance: form.enforce }, "Policy saved and awaiting approval."); }}>
+      <label>Leave category<input required value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} /></label>
+      <label>Annual entitlement (days)<input required type="number" min="0" max="366" step="0.5" value={form.annual} onChange={e => setForm({ ...form, annual: e.target.value })} /></label>
+      <label>Carry-over (days)<input type="number" min="0" max="366" step="0.5" value={form.carry} onChange={e => setForm({ ...form, carry: e.target.value })} /></label>
+      <label className="admin-checkbox"><input type="checkbox" checked={form.enforce} onChange={e => setForm({ ...form, enforce: e.target.checked })} />Refuse requests that exceed the balance (only once approved)</label>
+      <div className="modal-actions"><button type="button" className="btn btn-quiet" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-primary">Save policy</button></div></form>}
+    {loading && !rows.length ? <div className="admin-empty" role="status">Loading policies...</div> : !rows.length ? <div className="admin-empty"><b>No leave policy configured</b><span>Balances show no entitlement until a policy exists.</span></div>
+      : <div className="people-table-wrap" tabIndex={0} role="region" aria-label="Leave policies"><table className="people-table"><thead><tr><th>Category</th><th>Entitlement</th><th>Carry-over</th><th>Enforced</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        {rows.map(p => <tr key={p.leave_category}><td>{p.leave_category}</td><td>{p.annual_entitlement_days}</td><td>{p.carry_over_days}</td><td>{p.enforce_balance && p.owner_approved ? "Yes" : "No"}</td><td>{p.owner_approved ? "Approved" : "Pending owner policy"}</td>
+          <td>{!p.owner_approved && can("hr:leave:policy:approve") && <button className="btn btn-quiet" aria-label={`Approve policy ${p.leave_category}`} onClick={() => run(`/api/v1/hr/leave-policies/${encodeURIComponent(p.leave_category)}/approve`, "POST", null, "Policy approved.")}>Approve</button>}</td></tr>)}</tbody></table></div>}
+  </section>;
+}

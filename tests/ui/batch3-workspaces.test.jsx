@@ -7,7 +7,8 @@ import { axeViolations } from "./helpers.js";
 const router = routes => vi.fn(async (path, options = {}) => {
   const key = Object.keys(routes).find(k => `${options.method || "GET"} ${path}`.startsWith(k));
   if (!key) throw new Error(`unexpected ${options.method || "GET"} ${path}`);
-  return routes[key];
+  const r = routes[key];
+  return typeof r === "function" ? r(options) : r;
 });
 const zero = { Draft: 0, "In Review": 0, Approved: 0, Retired: 0 };
 
@@ -52,5 +53,34 @@ describe("renewals and report exceptions", () => {
       data: { exception_count: 1, exceptions: [{ type: "receipt_not_fully_allocated", reference: "r1", currency: "USD", difference: "40.00" }], note: "Not a bank reconciliation" } } } } });
     render(<ReportsWorkspace api={api} connected name="Accounting & reconciliation" only={["reconciliation"]} />);
     expect(await screen.findByText(/receipt_not_fully_allocated - r1 - USD - 40.00/)).toBeInTheDocument();
+  });
+});
+
+import userEvent from "@testing-library/user-event";
+import { waitFor } from "@testing-library/react";
+import { LeavePolicyPanel } from "../../src/PlatformWorkspaces.jsx";
+
+describe("LeavePolicyPanel", () => {
+  const policy = { leave_category: "Annual", annual_entitlement_days: "20.00", carry_over_days: "0.00", enforce_balance: true, owner_approved: false, status: "Pending Approval" };
+
+  it("labels an unapproved policy as pending owner policy and offers approval only with the permission", async () => {
+    let approved = false;
+    const api = router({ "GET /api/v1/hr/leave-policies": [policy], "POST /api/v1/hr/leave-policies/Annual/approve": () => { approved = true; return {}; } });
+    const { unmount, container } = render(<LeavePolicyPanel api={api} claims={{ permissions: ["hr:leave:policy:read"] }} connected />);
+    expect(await screen.findByText("Pending owner policy")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leave policies")).toHaveTextContent("No"); // enforcement is off until approved
+    expect(screen.queryByRole("button", { name: /Approve policy/ })).not.toBeInTheDocument();
+    expect(await axeViolations(container)).toEqual([]);
+    unmount();
+    render(<LeavePolicyPanel api={api} claims={{ permissions: ["hr:leave:policy:read", "hr:leave:policy:approve"] }} connected />);
+    await userEvent.click(await screen.findByRole("button", { name: "Approve policy Annual" }));
+    await waitFor(() => expect(approved).toBe(true));
+  });
+
+  it("renders nothing without read permission", () => {
+    const api = router({});
+    const { container } = render(<LeavePolicyPanel api={api} claims={{ permissions: [] }} connected />);
+    expect(container).toBeEmptyDOMElement();
+    expect(api).not.toHaveBeenCalled();
   });
 });

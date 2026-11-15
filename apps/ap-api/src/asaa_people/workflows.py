@@ -155,6 +155,8 @@ def create_leave_request(employee_id: str, payload: LeaveRequestCreate, db: Db,
     ))
     if overlap:
         raise HTTPException(status_code=409, detail={"code": "leave_request_overlap"})
+    from asaa_people.leave_policy import check_balance  # enforced only for an approved policy with enforce_balance
+    check_balance(db, principal.organization_id, employee_id, payload.leave_category, payload.start_date, payload.end_date)
     row = LeaveRequest(
         organization_id=principal.organization_id, employee_id=employee_id,
         created_by=principal.subject, **payload.model_dump(),

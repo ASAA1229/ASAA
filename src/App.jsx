@@ -7,7 +7,7 @@ import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { MODULE_GROUPS, REGISTER_WORKSPACES, ROUTED_WORKSPACES } from "./workspaces/registry.js";
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
-import { AuditTrailWorkspace, BackupRecoveryWorkspace, GovernanceWorkspace, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
+import { AuditTrailWorkspace, BackupRecoveryWorkspace, GovernanceWorkspace, LeavePolicyPanel, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -186,6 +186,7 @@ function App() {
           {section === "Timesheets" && (token ? <WorkforceFinanceWorkspace kind="timesheet" records={data.timesheets} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Expenses" && (token ? <WorkforceFinanceWorkspace kind="expense" records={data.expenses} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}
           {["People directory","Employment lifecycle","Onboarding","Offboarding","Leave management","Employee assets"].includes(section) && <PeopleWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
+          {section === "Leave management" && <LeavePolicyPanel api={api} claims={claims} connected={!!token}/>}
           {section === "Compensation & payroll" && <PayrollWorkspace api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
                     {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Reports & dashboards" && <ReportsWorkspace api={api} connected={!!token}/>}

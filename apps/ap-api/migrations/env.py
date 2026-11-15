@@ -14,6 +14,7 @@ from asaa_workforce_finance import models as workforce_finance_models  # noqa: F
 from asaa_identity import models as identity_models  # noqa: F401
 from asaa_notifications import models as notification_models  # noqa: F401
 from asaa_registers import models as register_models  # noqa: F401
+from asaa_people import leave_policy as leave_policy_models  # noqa: F401
 
 config = context.config
 if config.config_file_name:
