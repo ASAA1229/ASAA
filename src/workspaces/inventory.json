@@ -1,0 +1,919 @@
+{
+  "schema": 1,
+  "states": {
+    "functional": "wired to the API with permission checks and loading/empty/error states",
+    "partial": "backend exists but the portal shows the generic preview or an incomplete view",
+    "preview": "generic preview only; no backend capability"
+  },
+  "workspaces": [
+    {
+      "name": "Overview",
+      "category": "Workspace",
+      "requirement_refs": [
+        "REQUIREMENTS section 1 (product outcome), section 3J",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-17"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Organization & entities",
+      "category": "Governance & Organization",
+      "requirement_refs": [
+        "REQUIREMENTS section 3A",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-05",
+        "ASAA-P0-13"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Departments & teams",
+      "category": "Governance & Organization",
+      "requirement_refs": [
+        "REQUIREMENTS section 3A",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-05",
+        "ASAA-P0-13"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Governance",
+      "category": "Governance & Organization",
+      "requirement_refs": [
+        "REQUIREMENTS section 3A",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-05"
+      ],
+      "state": "partial",
+      "release_scope": "first_release_p0_p1",
+      "notes": "Authority-register API (delegations, decisions) exists; the portal shows the generic preview."
+    },
+    {
+      "name": "Policies & procedures",
+      "category": "Governance & Organization",
+      "requirement_refs": [
+        "REQUIREMENTS section 3A"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Risk & internal controls",
+      "category": "Governance & Organization",
+      "requirement_refs": [
+        "REQUIREMENTS section 3A"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Settings",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-03"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Identity & access",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-03",
+        "ASAA-P0-04",
+        "ASAA-P0-09",
+        "ASAA-P0-10"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Workflow & approvals",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-10",
+        "ASAA-P1-16"
+      ],
+      "state": "preview",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Master data",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-05"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Documents & records",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-06",
+        "ASAA-P1-15"
+      ],
+      "state": "partial",
+      "release_scope": "first_release_p0_p1",
+      "notes": "Employee document metadata API exists; no cross-domain records UI."
+    },
+    {
+      "name": "Notifications & reminders",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-10",
+        "ASAA-P1-15"
+      ],
+      "state": "partial",
+      "release_scope": "first_release_p0_p1",
+      "notes": "Notification outbox API exists (templates, preferences, outbox status); no UI."
+    },
+    {
+      "name": "Integrations & connectors",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-16",
+        "ASAA-P0-10"
+      ],
+      "state": "partial",
+      "release_scope": "first_release_p0_p1",
+      "notes": "Identity sync API (jobs, status, reconcile) exists; no UI."
+    },
+    {
+      "name": "Audit trail",
+      "category": "Shared Platform",
+      "requirement_refs": [
+        "REQUIREMENTS section 3B",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-06",
+        "ASAA-P0-11"
+      ],
+      "state": "partial",
+      "release_scope": "first_release_p0_p1",
+      "notes": "Audit events API exists (GET /api/v1/ap/audit-events); no dedicated view."
+    },
+    {
+      "name": "People directory",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-05",
+        "ASAA-P1-13"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Recruitment",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Onboarding",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-05"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Employment lifecycle",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-05"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Attendance & shifts",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Leave management",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-04"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Timesheets",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-07"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Compensation & payroll",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-01",
+        "ASAA-P1-02",
+        "ASAA-P1-03",
+        "ASAA-P1-14"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Performance & learning",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Employee relations",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Offboarding",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-05"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Employee assets",
+      "category": "People & Workforce",
+      "requirement_refs": [
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-13"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Portfolio & projects",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Requirements & roadmaps",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Products & lifecycle",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Repositories & engineering",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "QA & testing",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "CI/CD & pipelines",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Environments & architecture",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Releases & artifacts",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Technical knowledge",
+      "category": "Projects, Products & Technology",
+      "requirement_refs": [
+        "REQUIREMENTS section 3D"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Service catalogue",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Client delivery",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Work orders & scheduling",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Support & SLAs",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Procurement",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-08",
+        "ASAA-P1-11"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Inventory & stock",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Facilities, travel & logistics",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Operational incidents",
+      "category": "Services & Operations",
+      "requirement_refs": [
+        "REQUIREMENTS section 3E"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "CRM & customer accounts",
+      "category": "Sales & Customers",
+      "requirement_refs": [
+        "REQUIREMENTS section 3F"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Leads & sales pipeline",
+      "category": "Sales & Customers",
+      "requirement_refs": [
+        "REQUIREMENTS section 3F"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Proposals & quotations",
+      "category": "Sales & Customers",
+      "requirement_refs": [
+        "REQUIREMENTS section 3F"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Contracts & renewals",
+      "category": "Sales & Customers",
+      "requirement_refs": [
+        "REQUIREMENTS section 3F"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Orders & subscriptions",
+      "category": "Sales & Customers",
+      "requirement_refs": [
+        "REQUIREMENTS section 3F"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Customer onboarding & feedback",
+      "category": "Sales & Customers",
+      "requirement_refs": [
+        "REQUIREMENTS section 3F"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Marketing & campaigns",
+      "category": "Sales & Customers",
+      "requirement_refs": [
+        "REQUIREMENTS section 3F"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "AR · Receivables",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-09",
+        "ASAA-P1-12"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "AP · Payables",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-08",
+        "ASAA-P1-11"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Budgets & forecasting",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Expenses",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-07"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Cash flow & treasury",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Accounting & reconciliation",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Financial reporting",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Payroll accounting",
+      "category": "Finance & Accounting",
+      "requirement_refs": [
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-14"
+      ],
+      "state": "preview",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Legal contracts",
+      "category": "Legal, Security & Compliance",
+      "requirement_refs": [
+        "REQUIREMENTS section 3H"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Compliance & obligations",
+      "category": "Legal, Security & Compliance",
+      "requirement_refs": [
+        "REQUIREMENTS section 3H"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Privacy & data retention",
+      "category": "Legal, Security & Compliance",
+      "requirement_refs": [
+        "REQUIREMENTS section 3H"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p1_pending_scope_decision",
+      "notes": ""
+    },
+    {
+      "name": "Security operations",
+      "category": "Legal, Security & Compliance",
+      "requirement_refs": [
+        "REQUIREMENTS section 3H",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-06"
+      ],
+      "state": "preview",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Access reviews",
+      "category": "Legal, Security & Compliance",
+      "requirement_refs": [
+        "REQUIREMENTS section 3H",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-06"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Backup & recovery",
+      "category": "Legal, Security & Compliance",
+      "requirement_refs": [
+        "REQUIREMENTS section 3H",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P0-02",
+        "ASAA-P0-12"
+      ],
+      "state": "preview",
+      "release_scope": "first_release_p0_p1",
+      "notes": ""
+    },
+    {
+      "name": "Knowledge base",
+      "category": "Knowledge & Collaboration",
+      "requirement_refs": [
+        "REQUIREMENTS section 3I"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Announcements & communication",
+      "category": "Knowledge & Collaboration",
+      "requirement_refs": [
+        "REQUIREMENTS section 3I"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Team spaces & collaboration",
+      "category": "Knowledge & Collaboration",
+      "requirement_refs": [
+        "REQUIREMENTS section 3I"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Calendar & meetings",
+      "category": "Knowledge & Collaboration",
+      "requirement_refs": [
+        "REQUIREMENTS section 3I"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Forms & service requests",
+      "category": "Knowledge & Collaboration",
+      "requirement_refs": [
+        "REQUIREMENTS section 3I"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Reports & dashboards",
+      "category": "Analytics & Intelligence",
+      "requirement_refs": [
+        "REQUIREMENTS section 3J",
+        "REQUIREMENTS section 10 (first release scope)"
+      ],
+      "story_refs": [
+        "ASAA-P1-17"
+      ],
+      "state": "functional",
+      "release_scope": "first_release_p0_p1",
+      "notes": "Read-only aggregates over loaded AR/AP/people/expense data; no dedicated reporting API yet."
+    },
+    {
+      "name": "Forecasting & scenarios",
+      "category": "Analytics & Intelligence",
+      "requirement_refs": [
+        "REQUIREMENTS section 3J"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "AI intelligence",
+      "category": "Analytics & Intelligence",
+      "requirement_refs": [
+        "REQUIREMENTS section 3J"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    },
+    {
+      "name": "Automation & agents",
+      "category": "Analytics & Intelligence",
+      "requirement_refs": [
+        "REQUIREMENTS section 3J"
+      ],
+      "story_refs": [],
+      "state": "preview",
+      "release_scope": "p2_expansion",
+      "notes": ""
+    }
+  ]
+}
