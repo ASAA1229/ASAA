@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, RefreshCw, ShieldCheck } from "lucide-react";
+import RegisterWorkspace from "./RegisterWorkspace.jsx";
 
 const permissionsOf = claims => (Array.isArray(claims?.permissions) ? claims.permissions : []);
 const stamp = value => (value ? new Date(value).toLocaleString("en-IN") : "-");
@@ -150,6 +151,29 @@ export function ReportsWorkspace({ api, connected, name = "Reports & dashboards"
     {data && <small className="field-help">Generated {stamp(data.generated_at)}. {data.currency_note}</small>}
     {loading && !data ? <div className="admin-empty" role="status">Loading report...</div> : !sections.length ? <div className="admin-empty"><b>No report sections available</b><span>This session has no read permission for the underlying records.</span></div>
       : <div className="settings-grid">{sections.map(([key, section]) => <section className="panel info-panel" key={key} aria-label={section.label}><div className="panel-heading"><div><h2>{section.label}</h2><p>Source: {section.sources.join(", ")}</p></div></div>
-        {Object.entries(section.data).map(([metric, value]) => <div className="data-line" key={metric}><span>{label(metric)}</span><b>{typeof value === "object" ? (Object.keys(value).length ? Object.entries(value).map(([k, v]) => `${k}: ${typeof v === "object" ? Object.entries(v).map(([a, b]) => `${a} ${b}`).join(", ") : v}`).join(" · ") : "none") : String(value)}</b></div>)}</section>)}</div>}
+        {Object.entries(section.data).map(([metric, value]) => Array.isArray(value) ? <div className="data-line" key={metric}><span>{label(metric)}</span><b>{value.length ? <ul>{value.map((item, i) => <li key={i}>{Object.values(item).join(" - ")}</li>)}</ul> : "none"}</b></div>
+          : <div className="data-line" key={metric}><span>{label(metric)}</span><b>{typeof value === "object" ? (Object.keys(value).length ? Object.entries(value).map(([k, v]) => `${k}: ${typeof v === "object" ? Object.entries(v).map(([a, b]) => `${a} ${b}`).join(", ") : v}`).join(" · ") : "none") : String(value)}</b></div>)}</section>)}</div>}
   </section></div></Gate>;
+}
+
+/* ------------------------------------------------------------------ Backup & recovery */
+export function BackupRecoveryWorkspace({ api, claims, connected }) {
+  const allowed = permissionsOf(claims).includes("ops:backup:read");
+  const { data, loading, error, reload } = useLoader(() => (connected && allowed ? api("/api/v1/operations/backup-status") : Promise.resolve(null)), [connected, allowed]);
+  return <><div className="admin-workspace"><section className="panel list-panel">
+    <div className="list-heading"><div><h2>Backup &amp; recovery</h2><p>Freshness of the scheduled encrypted backup and the recovery plans. RPO and RTO values are pending owner approval; a backup counts only once a restore has been demonstrated.</p></div>
+      <button className="btn btn-quiet" onClick={reload} disabled={loading || !allowed}><RefreshCw size={14} />Refresh</button></div>
+    <Messages error={error} />
+    {!connected ? <div className="admin-empty"><ShieldCheck /><b>Connect an authorized identity session</b><span>Backup status is not available in unauthenticated preview mode.</span></div>
+      : !allowed ? <div className="admin-empty"><b>Backup status not granted</b><span>This session does not include ops:backup:read.</span></div>
+      : loading && !data ? <div className="admin-empty" role="status">Loading backup status...</div>
+      : data && <div className="settings-grid" aria-label="Backup status">
+        <section className="panel info-panel"><div className="panel-heading"><div><h2>Latest backup</h2><p>{data.configured ? "Read from the scheduler status file" : "Not configured"}</p></div></div>
+          <div className="data-line"><span>Healthy</span><b>{data.ok ? "Yes" : "No"}</b></div>
+          {data.reason && <div className="data-line"><span>Reason</span><b>{data.reason}</b></div>}
+          <div className="data-line"><span>Last success</span><b>{stamp(data.last_success_at)}</b></div>
+          <div className="data-line"><span>Age (hours)</span><b>{data.age_hours ?? "-"}{data.limit_hours ? ` of ${data.limit_hours} allowed` : ""}</b></div>
+          <div className="data-line"><span>Last artifact</span><b>{data.last_artifact || "-"}</b></div></section></div>}
+  </section></div>
+  <RegisterWorkspace name="Recovery plans" types={["recovery_plan"]} api={api} claims={claims} connected={connected} /></>;
 }

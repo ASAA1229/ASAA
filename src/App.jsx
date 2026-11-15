@@ -7,7 +7,7 @@ import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { MODULE_GROUPS, REGISTER_WORKSPACES, ROUTED_WORKSPACES } from "./workspaces/registry.js";
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
-import { AuditTrailWorkspace, GovernanceWorkspace, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
+import { AuditTrailWorkspace, BackupRecoveryWorkspace, GovernanceWorkspace, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -190,10 +190,14 @@ function App() {
                     {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Reports & dashboards" && <ReportsWorkspace api={api} connected={!!token}/>}
           {section === "Financial reporting" && <ReportsWorkspace name="Financial reporting" only={["receivables", "customers", "receipts", "suppliers", "procurement", "expenses"]} api={api} connected={!!token}/>}
+          {section === "Accounting & reconciliation" && <ReportsWorkspace name="Accounting & reconciliation" only={["reconciliation"]} api={api} connected={!!token}/>}
+          {section === "Cash flow & treasury" && <ReportsWorkspace name="Cash flow & treasury" only={["cash_outlook"]} api={api} connected={!!token}/>}
+          {section === "Payroll accounting" && <ReportsWorkspace name="Payroll accounting" only={["payroll_accounting"]} api={api} connected={!!token}/>}
+          {section === "Backup & recovery" && <BackupRecoveryWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Audit trail" && <AuditTrailWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Notifications & reminders" && <NotificationsWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Governance" && <GovernanceWorkspace api={api} claims={claims} connected={!!token}/>}
-          {REGISTER_WORKSPACES[section] && <RegisterWorkspace key={section} name={section} types={REGISTER_WORKSPACES[section]} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
+          {REGISTER_WORKSPACES[section] && <RegisterWorkspace key={section} name={section} types={REGISTER_WORKSPACES[section]} renewals={section === "Contracts & renewals"} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} claims={claims} openConnection={() => setModal("connection")}/>}
           {!ROUTED_WORKSPACES.includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>

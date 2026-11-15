@@ -100,6 +100,9 @@ export const MODULE_GROUPS = [
 
 // Workspaces rendered by a real, API-wired component (not the generic preview). Keep in sync with inventory.json.
 export const WIRED_WORKSPACES = [
+  "Contracts & renewals",
+  "Backup & recovery",
+  "Accounting & reconciliation",
   "Documents & records",
   "Financial reporting",
   "Governance",
@@ -254,8 +257,25 @@ export const REGISTER_WORKSPACES = {
   ],
   "Performance & learning": [
     "goal"
+  ],
+  "Budgets & forecasting": [
+    "budget"
+  ],
+  "Forecasting & scenarios": [
+    "scenario"
+  ],
+  "Automation & agents": [
+    "automation"
+  ],
+  "Attendance & shifts": [
+    "shift_roster"
+  ],
+  "Contracts & renewals": [
+    "contract"
   ]
 };
 
 // Every workspace that renders a real component instead of the generic preview (functional or partial).
-export const ROUTED_WORKSPACES = [...new Set([...WIRED_WORKSPACES, ...Object.keys(REGISTER_WORKSPACES)])];
+// Partially implemented workspaces that use a report view instead of a register.
+export const REPORT_PARTIAL_WORKSPACES = ["Cash flow & treasury", "Payroll accounting"];
+export const ROUTED_WORKSPACES = [...new Set([...WIRED_WORKSPACES, ...REPORT_PARTIAL_WORKSPACES, ...Object.keys(REGISTER_WORKSPACES)])];

@@ -267,12 +267,13 @@
       "name": "Attendance & shifts",
       "category": "People & Workforce",
       "requirement_refs": [
-        "REQUIREMENTS section 3C"
+        "REQUIREMENTS section 3C",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Shift/attendance record register (employee, date, times, arrangement). No overtime, holiday, roster or policy engine is implemented (pending owner policy). Everything else the workspace name implies is not implemented."
     },
     {
       "name": "Leave management",
@@ -617,12 +618,13 @@
       "name": "Contracts & renewals",
       "category": "Sales & Customers",
       "requirement_refs": [
-        "REQUIREMENTS section 3F"
+        "REQUIREMENTS section 3F",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Renewal tracking over the contract register: approved contracts renewing within 90 days (overdue first) via GET /api/v1/registers/contract/renewals. Contract drafting, e-signature and obligations workflow are not implemented."
     },
     {
       "name": "Orders & subscriptions",
@@ -694,12 +696,13 @@
       "name": "Budgets & forecasting",
       "category": "Finance & Accounting",
       "requirement_refs": [
-        "REQUIREMENTS section 3G"
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Budget-line register (period, currency, decimal planned amount, cost centre) with review and audit. No actuals comparison, forecasting or approval thresholds (pending owner policy) are implemented. Everything else the workspace name implies is not implemented."
     },
     {
       "name": "Expenses",
@@ -719,23 +722,25 @@
       "name": "Cash flow & treasury",
       "category": "Finance & Accounting",
       "requirement_refs": [
-        "REQUIREMENTS section 3G"
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Derived cash outlook per currency (receivables by due month, approved expenses awaiting reimbursement). NOT a bank balance; no bank feeds, treasury or forecasting are implemented. Everything else the workspace name implies is not implemented."
     },
     {
       "name": "Accounting & reconciliation",
       "category": "Finance & Accounting",
       "requirement_refs": [
-        "REQUIREMENTS section 3G"
+        "REQUIREMENTS section 3G",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Internal receivables reconciliation (receipts vs allocations vs invoice status) with an exceptions list from GET /api/v1/reports/summary. NOT a bank reconciliation, ledger or journal."
     },
     {
       "name": "Financial reporting",
@@ -761,9 +766,9 @@
       "story_refs": [
         "ASAA-P1-14"
       ],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "first_release_p0_p1",
-      "notes": ""
+      "notes": "Closed-run payroll totals per currency behind the separate payroll:accounting:read permission. No journals, tax or statutory calculation (pending owner accounting policy) and no export is implemented. Everything else the workspace name implies is not implemented."
     },
     {
       "name": "Legal contracts",
@@ -840,9 +845,9 @@
         "ASAA-P0-02",
         "ASAA-P0-12"
       ],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": ""
+      "notes": "Backup freshness from the scheduler status file (GET /api/v1/operations/backup-status, mirrors check-staleness) plus a recovery-plan register with RPO/RTO marked pending owner approval. Backups themselves are produced by scripts/backup_restore.py; scheduling and off-site storage are external."
     },
     {
       "name": "Knowledge base",
@@ -922,12 +927,13 @@
       "name": "Forecasting & scenarios",
       "category": "Analytics & Intelligence",
       "requirement_refs": [
-        "REQUIREMENTS section 3J"
+        "REQUIREMENTS section 3J",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Scenario register that forces explicit assumptions and an uncertainty statement. No forecasting model is implemented; nothing here is presented as a prediction. Everything else the workspace name implies is not implemented."
     },
     {
       "name": "AI intelligence",
@@ -944,12 +950,13 @@
       "name": "Automation & agents",
       "category": "Analytics & Intelligence",
       "requirement_refs": [
-        "REQUIREMENTS section 3J"
+        "REQUIREMENTS section 3J",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "partial",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Automation catalogue limited to Disabled or Dry-run execution modes with a stop procedure. Live execution is NOT implemented and cannot be recorded."
     }
   ]
 }

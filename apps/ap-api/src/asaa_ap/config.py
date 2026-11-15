@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     scim_base_url: str | None = None
     scim_bearer_token: str | None = None
     scim_group_prefix: str = "asaa:"
+    # Directory written by scripts/backup_restore.py scheduled (read-only status view). Unset = backup status not configured.
+    backup_dir: str | None = None
+    backup_max_age_hours: float = 26
     # Notification delivery adapter name. "none" = not configured; "memory" is a mock for dev/test only.
     notification_provider: str = "none"
     # When set, GET /metrics requires "Authorization: Bearer <token>". In production /metrics is disabled unless set.

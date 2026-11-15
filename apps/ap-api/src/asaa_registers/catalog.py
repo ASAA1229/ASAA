@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import date
+from decimal import Decimal, InvalidOperation
 
 REF_NAME = re.compile(r"^[A-Za-z0-9_.:/-]{1,100}$")
 STATE_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9 _-]{0,39}$")
@@ -139,7 +140,27 @@ _MORE = [
     RegisterType("goal", "Performance & learning", "Goal or development plan", "Goals and development plans", (
         Field("goal_owner", "str", "Goal owner", True), Field("due_date", "date", "Due date"))),
 ]
+_MORE2 = [
+    RegisterType("budget", "Budgets & forecasting", "Budget line", "Budget lines", (
+        Field("fiscal_period", "str", "Fiscal period (e.g. 2027-Q1)", True), Field("currency", "currency", "Currency (ISO code)", True),
+        Field("planned_amount", "money", "Planned amount", True), Field("cost_centre", "str", "Cost centre"))),
+    RegisterType("scenario", "Forecasting & scenarios", "Forecast scenario", "Forecast scenarios", (
+        Field("horizon", "str", "Horizon (e.g. 12 months)", True), Field("assumptions", "str", "Assumptions (stated explicitly)", True),
+        Field("uncertainty_note", "str", "Uncertainty and limits of this scenario", True), Field("method", "str", "Method used"))),
+    RegisterType("automation", "Automation & agents", "Automation definition", "Automation definitions", (
+        Field("trigger", "str", "Trigger", True), Field("action", "str", "Action", True), Field("scope", "str", "Scope of data and systems", True),
+        Field("execution_mode", "enum", "Execution mode (live execution is not available)", True, ("Disabled", "Dry-run only")),
+        Field("stop_procedure", "str", "How to stop it", True))),
+    RegisterType("shift_roster", "Attendance & shifts", "Shift or attendance record", "Shift and attendance records", (
+        Field("employee_subject", "str", "Employee (identity subject)", True), Field("shift_date", "date", "Date", True),
+        Field("start_time", "str", "Start (HH:MM)"), Field("end_time", "str", "End (HH:MM)"),
+        Field("arrangement", "enum", "Arrangement", True, ("Office", "Remote", "Hybrid", "Field")))),
+    RegisterType("recovery_plan", "Backup & recovery", "Recovery plan", "Recovery plans", (
+        Field("system", "str", "System", True), Field("rpo_minutes", "int", "RPO (minutes) - pending owner approval"),
+        Field("rto_minutes", "int", "RTO (minutes) - pending owner approval"), Field("runbook_reference", "str", "Runbook reference"))),
+]
 TYPES.update({t.key: t for t in _MORE})
+TYPES.update({t.key: t for t in _MORE2})
 
 
 class DataError(ValueError):
@@ -166,6 +187,17 @@ def validate_data(register_type: str, data: dict) -> dict:
         elif f.kind == "int":
             if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 1200:
                 raise DataError(f"{f.name} must be a whole number between 0 and 1200")
+        elif f.kind == "money":
+            try:
+                amount = Decimal(str(value))
+            except (InvalidOperation, ValueError):
+                raise DataError(f"{f.name} must be a decimal amount") from None
+            if not amount.is_finite() or amount < 0 or amount > Decimal("999999999999.99") or amount != amount.quantize(Decimal("0.01")):
+                raise DataError(f"{f.name} must be a non-negative amount with at most 2 decimal places")
+            value = str(amount.quantize(Decimal("0.01")))
+        elif f.kind == "currency":
+            if not isinstance(value, str) or not re.fullmatch(r"[A-Z]{3}", value):
+                raise DataError(f"{f.name} must be a 3-letter ISO currency code in capitals")
         elif f.kind == "bool":
             if not isinstance(value, bool):
                 raise DataError(f"{f.name} must be true or false")

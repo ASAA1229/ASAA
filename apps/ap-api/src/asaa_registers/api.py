@@ -111,6 +111,22 @@ def summary(rtype: str, db: Db, principal: Annotated[Principal, Depends(needs("r
     return {"register_type": rtype, "by_status": {s: counts.get(s, 0) for s in ("Draft", "In Review", "Approved", "Retired")}, "review_overdue": overdue}
 
 
+@router.get("/{rtype}/renewals")
+def renewals(rtype: str, db: Db, principal: Annotated[Principal, Depends(needs("read"))], within_days: int = Query(default=90, ge=1, le=730)):
+    """Approved records of a type with a renewal_date within the window (overdue ones first). Only the contract register has renewal dates."""
+    if rtype != "contract":
+        raise HTTPException(status_code=404, detail="This register has no renewal dates")
+    horizon = date.today().toordinal() + within_days
+    rows = db.scalars(select(GovernedRecord).where(GovernedRecord.organization_id == principal.organization_id, GovernedRecord.register_type == rtype,
+                                                   GovernedRecord.status == "Approved")).all()
+    due = []
+    for r in rows:
+        raw = (r.data or {}).get("renewal_date")
+        if raw and date.fromisoformat(raw).toordinal() <= horizon:
+            due.append({**dump(r), "renewal_date": raw, "days_until_renewal": date.fromisoformat(raw).toordinal() - date.today().toordinal()})
+    return sorted(due, key=lambda r: r["renewal_date"])
+
+
 @router.get("/{rtype}")
 def list_records(rtype: str, db: Db, principal: Annotated[Principal, Depends(needs("read"))],
                  status: str | None = Query(default=None, pattern="^(Draft|In Review|Approved|Retired)$"), q: str | None = Query(default=None, max_length=100),

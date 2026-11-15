@@ -17,7 +17,8 @@ function FieldInput({ field, value, onChange }) {
     return <label>{label}<textarea rows={5} required={field.required} value={value ?? ""} placeholder='[{"from":"Draft","to":"Review","action":"submit"}]' onChange={e => onChange(e.target.value)} /></label>;
   }
   const type = field.kind === "date" ? "date" : field.kind === "int" ? "number" : "text";
-  return <label>{label}<input type={type} required={field.required} value={value ?? ""} onChange={e => onChange(e.target.value)} /></label>;
+  const pattern = field.kind === "money" ? "[0-9]+(\\.[0-9]{1,2})?" : field.kind === "currency" ? "[A-Z]{3}" : undefined;
+  return <label>{label}<input type={type} pattern={pattern} inputMode={field.kind === "money" ? "decimal" : undefined} required={field.required} value={value ?? ""} onChange={e => onChange(e.target.value)} /></label>;
 }
 
 function toPayloadData(spec, values) {
@@ -42,7 +43,7 @@ function fromRecordData(spec, data) {
   return values;
 }
 
-export default function RegisterWorkspace({ name, types: typeKeys, api, claims = {}, connected, onChanged }) {
+export default function RegisterWorkspace({ name, types: typeKeys, api, claims = {}, connected, onChanged, renewals = false }) {
   const permissions = Array.isArray(claims.permissions) ? claims.permissions : [];
   const can = (type, action) => permissions.includes(`register:${type}:${action}`);
   const [catalogue, setCatalogue] = useState([]);
@@ -78,6 +79,13 @@ export default function RegisterWorkspace({ name, types: typeKeys, api, claims =
   }, [connected, active, statusFilter, query, readable.join("|")]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (!typeKeys.includes(active)) setActive(typeKeys[0]); }, [typeKeys, active]);
+
+  const [due, setDue] = useState([]);
+  useEffect(() => {
+    if (!renewals || !connected || !readable.includes("contract")) return;
+    api("/api/v1/registers/contract/renewals?within_days=90").then(rows => setDue(Array.isArray(rows) ? rows : [])).catch(e => setError(e.message || "Renewals could not be loaded."));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renewals, connected, records, readable.join("|")]);
 
   const run = async (path, method, body, message) => {
     setBusy(true); setError(""); setNotice("");
@@ -115,6 +123,8 @@ export default function RegisterWorkspace({ name, types: typeKeys, api, claims =
         <button className="btn btn-quiet" onClick={load} disabled={loading}><RefreshCw size={14} />Refresh</button>
         {spec && can(active, "write") && <button className="btn btn-primary" onClick={() => setForm({ mode: "create", base: {}, values: {} })}><FilePlus2 size={14} />New {spec.label.toLowerCase()}</button>}
       </div></div>
+    {renewals && <section className="admin-records" aria-label="Upcoming renewals"><h3>Renewals due within 90 days (approved contracts)</h3>
+      {!due.length ? <p className="field-help">No approved contract renews in the next 90 days.</p> : <ul>{due.map(r => <li key={r.id}><b>{r.code}</b> {r.title} - renews {r.renewal_date} ({r.days_until_renewal < 0 ? `${-r.days_until_renewal} days overdue` : `in ${r.days_until_renewal} days`})</li>)}</ul>}</section>}
     {typeKeys.length > 1 && <div className="module-tabbar" role="tablist" aria-label="Register type">{typeKeys.map(k => <button key={k} role="tab" aria-selected={active === k} className={active === k ? "selected" : ""} disabled={!can(k, "read")}
       onClick={() => { setActive(k); setSelectedId(""); setForm(null); setRecords([]); }}>{catalogue.find(t => t.key === k)?.plural || k}</button>)}</div>}
     {error && <div className="notice" role="alert">{error}</div>}

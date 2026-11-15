@@ -19,7 +19,7 @@ from asaa_ap.security import Principal, get_principal
 from asaa_governance.authority import AuthorityDelegation, GovernanceDecision
 from asaa_identity.models import IdentitySyncJob
 from asaa_notifications.models import NotificationMessage
-from asaa_people.models import Employee, LeaveRequest
+from asaa_people.models import Employee, LeaveRequest, PayrollEntry, PayrollRun
 from asaa_registers.catalog import TYPES
 from asaa_registers.models import GovernedRecord
 from asaa_workforce_finance.models import ExpenseClaim, Timesheet
@@ -54,6 +54,51 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         overdue = db.scalar(select(func.count()).where(ARInvoice.organization_id == org, issued, ARInvoice.due_date < datetime.now(timezone.utc).date())) or 0
         section("receivables", "Receivables", ["ar_invoices", "ar_receipt_allocations"],
                 {"invoices_by_status": by_status(db, ARInvoice, org), "outstanding_by_currency": outstanding, "overdue_invoices": overdue})
+    if "ar:invoice:read" in perms and "expense:claim:read:all" in perms:
+        issued = ARInvoice.status.in_(["Issued", "Partially Paid"])
+        paid_by_invoice = select(ARReceiptAllocation.invoice_id, func.sum(ARReceiptAllocation.amount).label("paid")).group_by(ARReceiptAllocation.invoice_id).subquery()
+        open_rows = db.execute(select(ARInvoice.currency, ARInvoice.due_date, ARInvoice.total - func.coalesce(paid_by_invoice.c.paid, 0))
+                               .outerjoin(paid_by_invoice, paid_by_invoice.c.invoice_id == ARInvoice.id).where(ARInvoice.organization_id == org, issued)).all()
+        inflow: dict = {}
+        for currency, due_date, amount in open_rows:  # grouped in Python so the report is identical on SQLite and PostgreSQL
+            month = due_date.strftime("%Y-%m")
+            bucket = inflow.setdefault(currency, {})
+            bucket[month] = str((Decimal(bucket.get(month, "0")) + Decimal(amount or 0)).quantize(Decimal("0.01")))
+        owed = money_by_currency(db.execute(select(ExpenseClaim.currency, func.sum(ExpenseClaim.amount)).where(ExpenseClaim.organization_id == org, ExpenseClaim.status == "Approved")
+                                            .group_by(ExpenseClaim.currency)).all())
+        section("cash_outlook", "Cash outlook (derived)", ["ar_invoices", "ar_receipt_allocations", "expense_claims"],
+                {"expected_receipts_by_currency_and_due_month": inflow, "approved_expenses_awaiting_reimbursement_by_currency": owed,
+                 "note": "Derived from receivable due dates and approved expense claims. This is NOT a bank balance and includes no supplier payments or payroll."})
+    if "ar:receipt:read" in perms and "ar:invoice:read" in perms:
+        allocated_by_receipt = select(ARReceiptAllocation.receipt_id, func.sum(ARReceiptAllocation.amount).label("allocated")).group_by(ARReceiptAllocation.receipt_id).subquery()
+        receipt_rows = db.execute(select(ARReceipt.id, ARReceipt.currency, ARReceipt.amount, func.coalesce(allocated_by_receipt.c.allocated, 0))
+                                  .outerjoin(allocated_by_receipt, allocated_by_receipt.c.receipt_id == ARReceipt.id).where(ARReceipt.organization_id == org)).all()
+        unallocated: dict = {}
+        exceptions = []
+        for rid, currency, amount, allocated in receipt_rows:
+            gap = Decimal(amount) - Decimal(allocated)
+            if gap != 0:
+                unallocated[currency] = unallocated.get(currency, Decimal(0)) + gap
+                exceptions.append({"type": "receipt_not_fully_allocated" if gap > 0 else "receipt_over_allocated", "reference": rid, "currency": currency, "difference": str(gap)})
+        paid_per_invoice = dict(db.execute(select(ARReceiptAllocation.invoice_id, func.sum(ARReceiptAllocation.amount)).join(ARInvoice, ARInvoice.id == ARReceiptAllocation.invoice_id)
+                                           .where(ARInvoice.organization_id == org).group_by(ARReceiptAllocation.invoice_id)).all())
+        for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.status.in_(["Issued", "Partially Paid", "Paid"]))).all():
+            paid = Decimal(paid_per_invoice.get(inv.id, 0))
+            if inv.status == "Paid" and paid != Decimal(inv.total):
+                exceptions.append({"type": "paid_invoice_allocation_mismatch", "reference": inv.id, "currency": inv.currency, "difference": str(Decimal(inv.total) - paid)})
+            if inv.status == "Issued" and paid != 0:
+                exceptions.append({"type": "issued_invoice_has_allocations", "reference": inv.id, "currency": inv.currency, "difference": str(paid)})
+            if paid > Decimal(inv.total):
+                exceptions.append({"type": "invoice_over_allocated", "reference": inv.id, "currency": inv.currency, "difference": str(paid - Decimal(inv.total))})
+        section("reconciliation", "Receivables reconciliation", ["ar_receipts", "ar_receipt_allocations", "ar_invoices"],
+                {"unallocated_receipts_by_currency": {c: str(v.quantize(Decimal("0.01"))) for c, v in unallocated.items()}, "exception_count": len(exceptions), "exceptions": exceptions[:100],
+                 "note": "Internal consistency checks between receipts, allocations and invoices. Not a bank reconciliation: no bank statement is compared."})
+    if "payroll:accounting:read" in perms:
+        closed = db.execute(select(PayrollRun.currency, func.count(func.distinct(PayrollRun.id)), func.sum(PayrollEntry.gross_amount), func.sum(PayrollEntry.deduction_total), func.sum(PayrollEntry.net_amount))
+                            .join(PayrollEntry, PayrollEntry.run_id == PayrollRun.id).where(PayrollRun.organization_id == org, PayrollRun.status == "Closed").group_by(PayrollRun.currency)).all()
+        section("payroll_accounting", "Payroll accounting totals (closed runs)", ["payroll_runs", "payroll_entries"],
+                {"closed_run_totals_by_currency": {c: {"runs": n, "gross": str(Decimal(g or 0)), "deductions": str(Decimal(d or 0)), "net": str(Decimal(nt or 0))} for c, n, g, d, nt in closed},
+                 "note": "Totals only, for approved finance exports. No journal posting, tax or statutory calculation is performed (pending owner accounting policy)."})
     if "ar:customer:read" in perms:
         section("customers", "Customers", ["ar_customers"], {"customers_by_status": by_status(db, ARCustomer, org)})
     if "ar:receipt:read" in perms:

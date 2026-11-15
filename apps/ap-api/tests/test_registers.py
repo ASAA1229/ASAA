@@ -198,7 +198,7 @@ def sample_data(spec):
     for f in spec.fields:
         if not f.required:
             continue
-        data[f.name] = {"enum": f.choices[0] if f.choices else "", "str": "sample", "int": 1, "bool": True, "date": "2026-12-01", "ref": "vault:sample/key",
+        data[f.name] = {"enum": f.choices[0] if f.choices else "", "str": "sample", "int": 1, "bool": True, "date": "2026-12-01", "ref": "vault:sample/key", "money": "10.00", "currency": "INR",
                         "strlist": ["Start", "End"], "transitions": [{"from": "Start", "to": "End", "action": "finish"}]}[f.kind]
         if f.name == "initial_state":
             data[f.name] = "Start"
