@@ -68,23 +68,25 @@
       "name": "Policies & procedures",
       "category": "Governance & Organization",
       "requirement_refs": [
-        "REQUIREMENTS section 3A"
+        "REQUIREMENTS section 3A",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Governed register(s) policy: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Risk & internal controls",
       "category": "Governance & Organization",
       "requirement_refs": [
-        "REQUIREMENTS section 3A"
+        "REQUIREMENTS section 3A",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Governed register(s) risk, control: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Settings",
@@ -128,9 +130,9 @@
         "ASAA-P1-10",
         "ASAA-P1-16"
       ],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": ""
+      "notes": "Governed register(s) workflow_definition: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Master data",
@@ -187,9 +189,9 @@
         "ASAA-P1-16",
         "ASAA-P0-10"
       ],
-      "state": "partial",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": "Identity sync API (jobs, status, reconcile) exists; no UI."
+      "notes": "Governed register(s) integration: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Audit trail",
@@ -550,12 +552,13 @@
       "name": "Operational incidents",
       "category": "Services & Operations",
       "requirement_refs": [
-        "REQUIREMENTS section 3E"
+        "REQUIREMENTS section 3E",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Governed register(s) operational_incident: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "CRM & customer accounts",
@@ -741,34 +744,37 @@
       "name": "Legal contracts",
       "category": "Legal, Security & Compliance",
       "requirement_refs": [
-        "REQUIREMENTS section 3H"
+        "REQUIREMENTS section 3H",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Governed register(s) contract: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Compliance & obligations",
       "category": "Legal, Security & Compliance",
       "requirement_refs": [
-        "REQUIREMENTS section 3H"
+        "REQUIREMENTS section 3H",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Governed register(s) obligation: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Privacy & data retention",
       "category": "Legal, Security & Compliance",
       "requirement_refs": [
-        "REQUIREMENTS section 3H"
+        "REQUIREMENTS section 3H",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p1_pending_scope_decision",
-      "notes": ""
+      "notes": "Governed register(s) retention_rule: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Security operations",
@@ -780,9 +786,9 @@
       "story_refs": [
         "ASAA-P0-06"
       ],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "first_release_p0_p1",
-      "notes": ""
+      "notes": "Governed register(s) security_incident: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Access reviews",
@@ -817,23 +823,25 @@
       "name": "Knowledge base",
       "category": "Knowledge & Collaboration",
       "requirement_refs": [
-        "REQUIREMENTS section 3I"
+        "REQUIREMENTS section 3I",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Governed register(s) article: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Announcements & communication",
       "category": "Knowledge & Collaboration",
       "requirement_refs": [
-        "REQUIREMENTS section 3I"
+        "REQUIREMENTS section 3I",
+        "REQUIREMENTS section 3B (versioned records, audit trail, maker-checker, shared services)"
       ],
       "story_refs": [],
-      "state": "preview",
+      "state": "functional",
       "release_scope": "p2_expansion",
-      "notes": ""
+      "notes": "Governed register(s) announcement: API /api/v1/registers, versioned records, maker-checker review, audit events, per-register permissions. Records govern information; they do not enforce it (for example no automatic deletion job)."
     },
     {
       "name": "Team spaces & collaboration",

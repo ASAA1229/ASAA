@@ -5,7 +5,8 @@ import WorkforceFinanceWorkspace from "./WorkforceFinanceWorkspace.jsx";
 import AdministrationWorkspace from "./AdministrationWorkspace.jsx";
 import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
-import { MODULE_GROUPS, WIRED_WORKSPACES } from "./workspaces/registry.js";
+import { MODULE_GROUPS, REGISTER_WORKSPACES, WIRED_WORKSPACES } from "./workspaces/registry.js";
+import RegisterWorkspace from "./RegisterWorkspace.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -187,6 +188,7 @@ function App() {
           {section === "Compensation & payroll" && <PayrollWorkspace api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
                     {["Organization & entities","Departments & teams","Master data","Identity & access","Access reviews"].includes(section) && <AdministrationWorkspace name={section} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Reports & dashboards" && (token ? <Reports data={data} stats={stats}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
+          {REGISTER_WORKSPACES[section] && <RegisterWorkspace key={section} name={section} types={REGISTER_WORKSPACES[section]} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} claims={claims} openConnection={() => setModal("connection")}/>}
           {!WIRED_WORKSPACES.includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>

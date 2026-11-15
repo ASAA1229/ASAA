@@ -28,6 +28,10 @@ ADMIN_PERMISSIONS = [
     "tms:timesheet:read", "tms:timesheet:write", "tms:timesheet:submit", "expense:claim:read", "expense:claim:write", "audit:read",
 ]
 READER_PERMISSIONS = ["supplier:read"]
+REGISTER_TYPES = ["policy", "risk", "control", "obligation", "contract", "retention_rule", "article", "announcement", "integration",
+                  "workflow_definition", "security_incident", "operational_incident"]
+ADMIN_PERMISSIONS += [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "write")] + ["notification:template:read", "notification:outbox:read", "notification:template:write", "notification:send"]
+REVIEWER_PERMISSIONS = [f"register:{t}:{a}" for t in REGISTER_TYPES for a in ("read", "review")]
 
 
 def main() -> int:
@@ -50,7 +54,8 @@ def main() -> int:
                            "exp": now + timedelta(minutes=30), "permissions": permissions}, key, algorithm="RS256")
 
     args.token_file.parent.mkdir(parents=True, exist_ok=True)
-    args.token_file.write_text(json.dumps({"admin": token("e2e-admin", ADMIN_PERMISSIONS), "reader": token("e2e-reader", READER_PERMISSIONS)}))
+    args.token_file.write_text(json.dumps({"admin": token("e2e-admin", ADMIN_PERMISSIONS), "reader": token("e2e-reader", READER_PERMISSIONS),
+                                           "reviewer": token("e2e-reviewer", REVIEWER_PERMISSIONS)}))
 
     tmp = tempfile.mkdtemp(prefix="asaa-e2e-")
     env = {**os.environ, "ASAA_AP_DATABASE_URL": f"sqlite:///{Path(tmp, 'e2e.db').as_posix()}", "ASAA_AP_ENVIRONMENT": "test",

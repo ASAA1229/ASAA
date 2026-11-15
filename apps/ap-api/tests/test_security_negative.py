@@ -25,7 +25,7 @@ def as_principal(client, subject, org, permissions):
 
 
 # Routes that require a valid token but deliberately no permission (session introspection).
-AUTH_ONLY_ROUTES = {"/api/v1/me", "/api/v1/notifications/preferences/me"}
+AUTH_ONLY_ROUTES = {"/api/v1/me", "/api/v1/notifications/preferences/me", "/api/v1/registers/types"}
 
 
 def api_routes():

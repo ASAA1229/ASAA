@@ -1,0 +1,154 @@
+"""Register catalogue: which register types exist, which portal workspace shows them and which extra fields they accept.
+
+Field kinds: str, int, bool, date (YYYY-MM-DD), enum (with choices), ref (a reference NAME such as a secret-store key, never a secret),
+strlist and transitions (workflow definitions only). Unknown fields are rejected so records cannot smuggle arbitrary data.
+These registers record governance information; they do not enforce it (for example a retention rule is not an automatic deletion job).
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from datetime import date
+
+REF_NAME = re.compile(r"^[A-Za-z0-9_.:/-]{1,100}$")
+STATE_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9 _-]{0,39}$")
+
+
+@dataclass(frozen=True)
+class Field:
+    name: str
+    kind: str
+    label: str
+    required: bool = False
+    choices: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class RegisterType:
+    key: str
+    workspace: str
+    label: str
+    plural: str
+    fields: tuple[Field, ...] = field(default_factory=tuple)
+
+
+SEVERITY = ("Low", "Medium", "High", "Critical")
+TYPES: dict[str, RegisterType] = {t.key: t for t in [
+    RegisterType("policy", "Policies & procedures", "Policy or procedure", "Policies and procedures", (
+        Field("document_type", "enum", "Document type", True, ("Policy", "Procedure", "Standard", "Guideline")),
+        Field("scope", "str", "Scope"), Field("acknowledgement_required", "bool", "Acknowledgement required"))),
+    RegisterType("risk", "Risk & internal controls", "Risk", "Risks", (
+        Field("category", "str", "Category"), Field("likelihood", "enum", "Likelihood", True, ("Low", "Medium", "High")),
+        Field("impact", "enum", "Impact", True, ("Low", "Medium", "High")), Field("mitigation", "str", "Mitigation"))),
+    RegisterType("control", "Risk & internal controls", "Internal control", "Internal controls", (
+        Field("control_type", "enum", "Control type", True, ("Preventive", "Detective", "Corrective")),
+        Field("frequency", "enum", "Frequency", True, ("Continuous", "Daily", "Weekly", "Monthly", "Quarterly", "Annual")),
+        Field("related_risk_code", "str", "Related risk code"))),
+    RegisterType("obligation", "Compliance & obligations", "Compliance obligation", "Compliance obligations", (
+        Field("source", "str", "Source (regulation, contract, standard)", True), Field("jurisdiction", "str", "Jurisdiction (only once confirmed)"),
+        Field("evidence_reference", "str", "Evidence reference"))),
+    RegisterType("contract", "Legal contracts", "Contract", "Contracts", (
+        Field("counterparty", "str", "Counterparty", True),
+        Field("contract_type", "enum", "Contract type", True, ("Customer", "Supplier", "Employment", "Partnership", "Other")),
+        Field("renewal_date", "date", "Renewal date"), Field("auto_renew", "bool", "Auto-renews"))),
+    RegisterType("retention_rule", "Privacy & data retention", "Retention rule", "Retention rules", (
+        Field("data_category", "str", "Data category", True), Field("retention_period_months", "int", "Retention period (months)", True),
+        Field("legal_basis", "str", "Legal basis (once confirmed)"),
+        Field("disposal_method", "enum", "Disposal method", True, ("Delete", "Anonymise", "Archive")))),
+    RegisterType("article", "Knowledge base", "Knowledge article", "Knowledge articles", (
+        Field("space", "str", "Space or collection"), Field("tags", "str", "Tags (comma separated)"))),
+    RegisterType("announcement", "Announcements & communication", "Announcement", "Announcements", (
+        Field("audience", "str", "Audience", True), Field("publish_on", "date", "Publish on"))),
+    RegisterType("integration", "Integrations & connectors", "Integration", "Integrations", (
+        Field("kind", "enum", "Kind", True, ("Identity", "Finance", "Payroll", "Messaging", "Storage", "Other")),
+        Field("credential_reference", "ref", "Credential reference (name in the secret store, never the secret)"),
+        Field("health_status", "enum", "Health", True, ("Unknown", "Healthy", "Degraded", "Failing")),
+        Field("last_sync_note", "str", "Last sync note"))),
+    RegisterType("workflow_definition", "Workflow & approvals", "Workflow definition", "Workflow definitions", (
+        Field("initial_state", "str", "Initial state", True), Field("states", "strlist", "States", True),
+        Field("transitions", "transitions", "Transitions (from, to, action, optional permission)", True))),
+    RegisterType("security_incident", "Security operations", "Security incident", "Security incidents", (
+        Field("severity", "enum", "Severity", True, SEVERITY), Field("detected_on", "date", "Detected on"), Field("containment", "str", "Containment"))),
+    RegisterType("operational_incident", "Operational incidents", "Operational incident", "Operational incidents", (
+        Field("severity", "enum", "Severity", True, SEVERITY), Field("service", "str", "Affected service"), Field("detected_on", "date", "Detected on"))),
+]}
+
+
+class DataError(ValueError):
+    pass
+
+
+def validate_data(register_type: str, data: dict) -> dict:
+    """Return the cleaned data dict or raise DataError."""
+    spec = TYPES[register_type]
+    known = {f.name: f for f in spec.fields}
+    unknown = set(data) - set(known)
+    if unknown:
+        raise DataError("unknown fields: " + ", ".join(sorted(unknown)))
+    cleaned: dict = {}
+    for f in spec.fields:
+        value = data.get(f.name)
+        if value in (None, ""):
+            if f.required:
+                raise DataError(f"{f.name} is required")
+            continue
+        if f.kind == "str":
+            if not isinstance(value, str) or len(value) > 500:
+                raise DataError(f"{f.name} must be text up to 500 characters")
+        elif f.kind == "int":
+            if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 1200:
+                raise DataError(f"{f.name} must be a whole number between 0 and 1200")
+        elif f.kind == "bool":
+            if not isinstance(value, bool):
+                raise DataError(f"{f.name} must be true or false")
+        elif f.kind == "date":
+            try:
+                date.fromisoformat(value)
+            except (TypeError, ValueError):
+                raise DataError(f"{f.name} must be a date (YYYY-MM-DD)") from None
+        elif f.kind == "enum":
+            if value not in f.choices:
+                raise DataError(f"{f.name} must be one of: " + ", ".join(f.choices))
+        elif f.kind == "ref":
+            if not isinstance(value, str) or not REF_NAME.match(value):
+                raise DataError(f"{f.name} must be a reference name (letters, digits, . _ : / -), not a secret value")
+        elif f.kind == "strlist":
+            if not isinstance(value, list) or not value or len(value) > 30 or not all(isinstance(v, str) and STATE_NAME.match(v) for v in value) or len(set(value)) != len(value):
+                raise DataError(f"{f.name} must be a list of 1-30 unique state names")
+        elif f.kind == "transitions":
+            if not isinstance(value, list) or not value or len(value) > 100:
+                raise DataError("transitions must be a list of 1-100 transitions")
+            for t in value:
+                if not isinstance(t, dict) or set(t) - {"from", "to", "action", "permission"} or not {"from", "to", "action"} <= set(t):
+                    raise DataError("each transition needs from, to, action (and optionally permission)")
+                if not all(isinstance(t[k], str) and t[k] for k in ("from", "to", "action")):
+                    raise DataError("transition fields must be non-empty text")
+        cleaned[f.name] = value
+    if register_type == "workflow_definition":
+        states = set(cleaned["states"])
+        if cleaned["initial_state"] not in states:
+            raise DataError("initial_state must be one of the states")
+        seen = set()
+        for t in cleaned["transitions"]:
+            if t["from"] not in states or t["to"] not in states:
+                raise DataError("transitions may only reference declared states")
+            key = (t["from"], t["action"])
+            if key in seen:
+                raise DataError(f"duplicate action {t['action']!r} from state {t['from']!r}")
+            seen.add(key)
+        reachable, frontier = {cleaned["initial_state"]}, [cleaned["initial_state"]]
+        while frontier:
+            node = frontier.pop()
+            for t in cleaned["transitions"]:
+                if t["from"] == node and t["to"] not in reachable:
+                    reachable.add(t["to"])
+                    frontier.append(t["to"])
+        if states - reachable:
+            raise DataError("unreachable states: " + ", ".join(sorted(states - reachable)))
+    return cleaned
+
+
+def describe() -> list[dict]:
+    return [{"key": t.key, "workspace": t.workspace, "label": t.label, "plural": t.plural,
+             "fields": [{"name": f.name, "kind": f.kind, "label": f.label, "required": f.required, "choices": list(f.choices)} for f in t.fields]}
+            for t in TYPES.values()]

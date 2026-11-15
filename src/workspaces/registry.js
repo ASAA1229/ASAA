@@ -100,6 +100,17 @@ export const MODULE_GROUPS = [
 
 // Workspaces rendered by a real, API-wired component (not the generic preview). Keep in sync with inventory.json.
 export const WIRED_WORKSPACES = [
+  "Policies & procedures",
+  "Risk & internal controls",
+  "Compliance & obligations",
+  "Legal contracts",
+  "Privacy & data retention",
+  "Knowledge base",
+  "Announcements & communication",
+  "Integrations & connectors",
+  "Workflow & approvals",
+  "Security operations",
+  "Operational incidents",
   "Overview",
   "AR · Receivables",
   "AP · Payables",
@@ -121,3 +132,41 @@ export const WIRED_WORKSPACES = [
   "Settings",
   "Reports & dashboards",
 ];
+
+// Workspaces backed by governed registers (GET /api/v1/registers/<type>); value = register types shown as tabs.
+export const REGISTER_WORKSPACES = {
+  "Policies & procedures": [
+    "policy"
+  ],
+  "Risk & internal controls": [
+    "risk",
+    "control"
+  ],
+  "Compliance & obligations": [
+    "obligation"
+  ],
+  "Legal contracts": [
+    "contract"
+  ],
+  "Privacy & data retention": [
+    "retention_rule"
+  ],
+  "Knowledge base": [
+    "article"
+  ],
+  "Announcements & communication": [
+    "announcement"
+  ],
+  "Integrations & connectors": [
+    "integration"
+  ],
+  "Workflow & approvals": [
+    "workflow_definition"
+  ],
+  "Security operations": [
+    "security_incident"
+  ],
+  "Operational incidents": [
+    "operational_incident"
+  ]
+};
