@@ -34,3 +34,6 @@ asaa-dependencies.cdx.json
 asaa-web-dist.tar.gz
 asaa-web-dist.tar.gz.sha256
 .local-prod/
+
+# npm dependency lockfile (repository policy)
+package-lock.json
