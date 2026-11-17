@@ -37,3 +37,20 @@ asaa-web-dist.tar.gz.sha256
 
 # npm dependency lockfile (repository policy)
 package-lock.json
+
+# Organization policy additions
+!.env.example
+build/
+dist-ssr/
+.output/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+secrets/
+credentials/
+*.zip
+*.tar.gz
+*.sha256
+*.cdx.json
+customer-release-report.json
