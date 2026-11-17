@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
+from asaa_integration.alerts import notify_critical
 from asaa_integration.models import IntegrationEvent
 
 router = APIRouter(prefix="/api/v1/integration", tags=["Ecosystem Integration"])
@@ -112,12 +113,16 @@ def ingest_event(envelope: EventEnvelope, response: Response, db: Db, principal:
     row = IntegrationEvent(id=event_id, organization_id=principal.organization_id, source=envelope.source, type=envelope.type,
                            project=envelope.project, subject=envelope.subject, correlation_id=envelope.correlationId,
                            severity=envelope.severity, occurred_at=envelope.time, data=envelope.data, received_by=principal.subject)
-    db.add(row)
-    db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action="integration_event.received",
-                      entity_type="integration_event", entity_id=event_id,
-                      details={"source": envelope.source, "type": envelope.type, "project": envelope.project, "severity": envelope.severity},
-                      correlation_id=x_correlation_id or envelope.correlationId))
+    correlation = x_correlation_id or envelope.correlationId
     try:
+        db.add(row)
+        db.flush()
+        queued = notify_critical(db, row, correlation)
+        db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action="integration_event.received",
+                          entity_type="integration_event", entity_id=event_id,
+                          details={"source": envelope.source, "type": envelope.type, "project": envelope.project, "severity": envelope.severity,
+                                   "notifications_queued": queued},
+                          correlation_id=correlation))
         db.commit()
     except IntegrityError:
         db.rollback()

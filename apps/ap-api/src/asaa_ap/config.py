@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     ecosystem_registry_path: str | None = None
     # Sibling services are only contacted on loopback unless their host is listed here (JSON list of host names).
     ecosystem_allowed_hosts: list[str] = []
+    # Critical ecosystem events notify holders of integration:event:read / ops:ecosystem:read (approved role assignments) plus these
+    # subjects (JSON list). Delivery goes through the notification outbox using the channel below.
+    integration_critical_recipients: list[str] = []
+    integration_critical_channel: str = "email"
 
 
     @model_validator(mode="after")
