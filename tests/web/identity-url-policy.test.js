@@ -32,3 +32,16 @@ test("allows the local Keycloak realm over loopback HTTP but not the same path o
   assert.throws(() => assertHttps("http://keycloak.example:8280/realms/asaa", "OIDC authority"), /must use HTTPS/);
   assert.throws(() => assertHttps("http://127.0.0.1.evil.example/realms/asaa", "OIDC authority"), /must use HTTPS/);
 });
+
+test("allows IPv6 loopback over HTTP, including the Keycloak realm paths", () => {
+  assert.doesNotThrow(() => assertHttps("http://[::1]:8280/realms/asaa", "OIDC authority"));
+  assert.doesNotThrow(() => assertHttps("http://[::1]/keys", "OIDC JWKS endpoint"));
+  assert.doesNotThrow(() => assertHttps("http://[0:0:0:0:0:0:0:1]:8280/keys", "OIDC JWKS endpoint"));
+});
+
+test("rejects other IPv6 addresses and loopback lookalikes over HTTP", () => {
+  for (const url of ["http://[::2]/keys", "http://[2001:db8::1]/keys", "http://[::ffff:8.8.8.8]/keys", "http://::1.evil.example/keys",
+    "http://localhost.evil.example/keys", "http://127.0.0.1.evil.example/keys", "http://127.0.0.2/keys", "http://user@evil.example/keys"]) {
+    assert.throws(() => assertHttps(url, "OIDC authority"), /must use HTTPS|Invalid URL/, url);
+  }
+});
