@@ -422,54 +422,6 @@ def assign_onboarding_task(task_id: str, payload: OnboardingTaskAssignment, db: 
     return serialize(row)
 
 
-@router.post("/api/v1/payroll/compensation/{record_id}/decision", operation_id="decide_compensation_workflow")
-def decide_compensation(record_id: str, payload: CompensationDecision, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("payroll:compensation:approve"))],
-    x_correlation_id: Annotated[str | None, Header()] = None):
-    row = db.scalar(select(CompensationRecord).where(
-        CompensationRecord.id == record_id,
-        CompensationRecord.organization_id == principal.organization_id,
-    ))
-    if not row:
-        raise HTTPException(status_code=404, detail="Compensation record not found")
-    if row.status != "Pending Approval":
-        raise HTTPException(status_code=409, detail={"code": "compensation_not_pending"})
-    if row.created_by == principal.subject:
-        raise HTTPException(status_code=403, detail={"code": "maker_cannot_approve_own_compensation"})
-    if payload.decision == "Approved":
-        overlap = db.scalar(select(CompensationRecord.id).where(
-            CompensationRecord.organization_id == principal.organization_id,
-            CompensationRecord.employee_id == row.employee_id,
-            CompensationRecord.id != row.id,
-            CompensationRecord.status == "Approved",
-            CompensationRecord.effective_from <= (row.effective_to or date.max),
-            (CompensationRecord.effective_to >= row.effective_from) | (
-                CompensationRecord.effective_to.is_(None)
-                & (CompensationRecord.effective_from >= row.effective_from)
-            ),
-        ))
-        if overlap:
-            raise HTTPException(status_code=409, detail={"code": "approved_compensation_period_overlap"})
-        previous = db.scalars(select(CompensationRecord).where(
-            CompensationRecord.organization_id == principal.organization_id,
-            CompensationRecord.employee_id == row.employee_id,
-            CompensationRecord.status == "Approved",
-            CompensationRecord.effective_from < row.effective_from,
-            CompensationRecord.effective_to.is_(None),
-        )).all()
-        for item in previous:
-            item.effective_to = row.effective_from - timedelta(days=1)
-    row.status = payload.decision
-    row.approved_by = principal.subject
-    row.approved_at = now()
-    row.approval_note = payload.approval_note
-    audit(db, principal, "compensation.decided", "pay_compensation_record", row.id,
-          {"decision": row.status}, x_correlation_id)
-    db.commit()
-    db.refresh(row)
-    return serialize(row)
-
-
 @router.get("/api/v1/payroll/runs/{run_id}/summary")
 def payroll_run_summary(run_id: str, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:read"))]):
