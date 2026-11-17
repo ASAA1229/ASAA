@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     notification_provider: str = "none"
     # When set, GET /metrics requires "Authorization: Bearer <token>". In production /metrics is disabled unless set.
     metrics_token: str | None = None
+    # Build commit SHA shown in the service manifest (set by the release pipeline); anything that is not 7-40 hex digits is ignored.
+    build_commit: str | None = None
+    # Ecosystem registry (contracts/ecosystem/v1/ecosystem-registry.json). Unset = auto-discover relative to the repository.
+    ecosystem_registry_path: str | None = None
+    # Sibling services are only contacted on loopback unless their host is listed here (JSON list of host names).
+    ecosystem_allowed_hosts: list[str] = []
 
 
     @model_validator(mode="after")
