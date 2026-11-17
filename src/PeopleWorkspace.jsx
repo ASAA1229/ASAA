@@ -166,7 +166,7 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
           status: form.record_status || "Active", effective_from: form.record_effective_from || today(),
           effective_to: form.record_effective_to || null, reason: form.record_reason || null
         }, "Employment record added to history.")}>
-          <h3>Add employment record</h3>{field("department_id", "Department reference", "text", false)}{field("position_title", "Position title", "text", false)}
+          <h3>Add employment record</h3>{field("department_id", "Department (organization unit ID)", "text", false)}{field("position_title", "Position title", "text", false)}
           {field("manager_employee_id", "Manager employee ID", "text", false)}{field("work_location", "Work location", "text", false)}
           <label className="people-field">Employment type<select value={form.record_employment_type || employee.employment_type} onChange={e => setForm(current => ({ ...current, record_employment_type: e.target.value }))}>{["Employee","Contractor","Intern","Consultant"].map(v=><option key={v}>{v}</option>)}</select></label>
           <label className="people-field">Record status<select value={form.record_status || "Active"} onChange={e => setForm(current => ({ ...current, record_status: e.target.value }))}>{["Preboarding","Active","On Leave","Suspended"].map(v=><option key={v}>{v}</option>)}</select></label>

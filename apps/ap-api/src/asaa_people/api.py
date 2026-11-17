@@ -14,6 +14,7 @@ from asaa_people.models import (
     OnboardingAssignment, OnboardingTask, CompensationRecord, PayrollPeriod,
     PayrollRun, PayrollEntry,
 )
+from asaa_people.validation import require_department
 from asaa_people.schemas import (
     EmployeeCreate, EmploymentRecordCreate, OnboardingTemplateCreate,
     OnboardingAssignmentCreate, OnboardingTaskUpdate, CompensationCreate,
@@ -95,6 +96,7 @@ def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db:
     principal: Annotated[Principal, Depends(require_permission("hr:employment:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     employee = employee_or_404(db, employee_id, principal.organization_id)
+    require_department(db, principal.organization_id, payload.department_id)
     if payload.manager_employee_id:
         if payload.manager_employee_id == employee_id:
             raise HTTPException(status_code=422, detail={"code": "employee_cannot_manage_self"})
