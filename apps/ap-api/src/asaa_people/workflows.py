@@ -422,7 +422,7 @@ def assign_onboarding_task(task_id: str, payload: OnboardingTaskAssignment, db: 
     return serialize(row)
 
 
-@router.post("/api/v1/payroll/compensation/{record_id}/decision")
+@router.post("/api/v1/payroll/compensation/{record_id}/decision", operation_id="decide_compensation_workflow")
 def decide_compensation(record_id: str, payload: CompensationDecision, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:compensation:approve"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
