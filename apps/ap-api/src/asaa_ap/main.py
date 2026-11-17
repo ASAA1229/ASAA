@@ -29,6 +29,7 @@ from asaa_reports.api import router as reports_router
 from asaa_ap.operations import router as operations_router
 from asaa_integration.manifest import router as manifest_router
 from asaa_integration.events import router as integration_events_router
+from asaa_integration.ecosystem import router as ecosystem_router
 from asaa_people.leave_policy import router as leave_policy_router
 from asaa_notifications.provider import InMemoryNotificationProvider, register_notification_provider
 from asaa_identity.bootstrap import register_configured_providers
@@ -72,6 +73,7 @@ app.include_router(operations_router)
 app.include_router(leave_policy_router)
 app.include_router(manifest_router)
 app.include_router(integration_events_router)
+app.include_router(ecosystem_router)
 if settings.notification_provider == "memory" and settings.environment != "production":
     register_notification_provider("memory", InMemoryNotificationProvider)
 register_configured_providers(settings)
