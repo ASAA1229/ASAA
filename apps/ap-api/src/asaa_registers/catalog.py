@@ -86,7 +86,9 @@ _MORE = [
         Field("retention_until", "date", "Retain until"), Field("legal_hold", "bool", "Legal hold"))),
     RegisterType("project", "Portfolio & projects", "Project", "Projects", (
         Field("project_status", "enum", "Project status", True, STATUS3), Field("sponsor", "str", "Sponsor"),
-        Field("start_date", "date", "Start date"), Field("end_date", "date", "End date"))),
+        Field("start_date", "date", "Start date"), Field("end_date", "date", "End date"),
+        Field("classification", "enum", "Classification", False, ("Personal", "Professional")),
+        Field("repository_url", "str", "Repository URL"))),
     RegisterType("requirement", "Requirements & roadmaps", "Requirement", "Requirements", (
         Field("priority", "enum", "Priority", True, ("P0", "P1", "P2")), Field("acceptance_criteria", "str", "Acceptance criteria"),
         Field("target_release", "str", "Target release"))),
