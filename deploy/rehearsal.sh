@@ -7,8 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${REHEARSAL_PYTHON:-python3}"
-# Host ports are configurable: some Windows hosts reserve ranges (e.g. 8080) for Hyper-V/WSL.
-export API_PORT="${API_PORT:-8000}" PORTAL_PORT="${PORTAL_PORT:-8080}"
+# Host ports are configurable: some Windows hosts reserve ranges (e.g. 8080) for Hyper-V/WSL; defaults are API 8001 / portal 8180 so they never collide with the local dev stack (Portfolio 8080).
+export API_PORT="${API_PORT:-8001}" PORTAL_PORT="${PORTAL_PORT:-8180}"
 COMPOSE=(docker compose -f deploy/docker-compose.yml)
 RESULT=deploy/rehearsal-result.json
 STEPS=()

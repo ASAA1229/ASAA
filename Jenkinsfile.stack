@@ -44,7 +44,7 @@ pipeline {
             [directory: 'ASAA', url: 'https://github.com/ASAA1229/ASAA.git'],
             [directory: 'JARVIS', url: 'https://github.com/ASAA1229/JARVIS.git'],
             [directory: 'Templates', url: 'https://github.com/ASAA1229/Templates.git'],
-            [directory: 'Portfolio', url: 'https://github.com/ASAA1229/pixel-perfect-pixel.git']
+            [directory: 'Portfolio', url: 'https://github.com/ASAA1229/Portfolio.git']
           ]
           for (repository in repositories) {
             dir("projects/${repository.directory}") {

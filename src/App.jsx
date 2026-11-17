@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 const EMPTY_DATA = { suppliers: [], customers: [], invoices: [], receipts: [], timesheets: [], expenses: [], purchaseRequests: [] };
-const API_DEFAULT = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_DEFAULT = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8001";
 const MODULE_ICONS = {
   "Overview": LayoutDashboard, "Organization & entities": Building2, "Departments & teams": Users,
   "Governance": ShieldCheck, "Policies & procedures": FileCheck2, "Risk & internal controls": ShieldCheck,

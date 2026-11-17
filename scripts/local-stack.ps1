@@ -23,7 +23,7 @@ $services = @(
       WEB_PORT = '5173'
       API_PORT = '8001'
     }
-    HealthUrls = @('http://127.0.0.1:5173/', 'http://127.0.0.1:8001/health')
+    HealthUrls = @('http://127.0.0.1:5173/', 'http://127.0.0.1:8001/ready')
   },
   @{
     Name = 'JARVIS'
@@ -42,13 +42,14 @@ $services = @(
       WEB_ORIGIN = 'http://localhost:5000'
       API_PROXY_TARGET = 'http://127.0.0.1:4000'
     }
-    HealthUrls = @('http://127.0.0.1:5000/', 'http://127.0.0.1:4000/api/health')
+    HealthUrls = @('http://127.0.0.1:5000/', 'http://127.0.0.1:4000/api/health/ready')
   },
   @{
     Name = 'Portfolio'
     Directory = 'Portfolio'
     Command = 'call npm.cmd run dev -- --host 127.0.0.1 --port 8080'
     Environment = @{}
+    # Portfolio exposes no health endpoint yet; this only checks that the dev server answers on / until one exists.
     HealthUrls = @('http://127.0.0.1:8080/')
   }
 )
