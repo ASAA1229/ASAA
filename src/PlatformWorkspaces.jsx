@@ -210,3 +210,51 @@ export function LeavePolicyPanel({ api, claims, connected }) {
           <td>{!p.owner_approved && can("hr:leave:policy:approve") && <button className="btn btn-quiet" aria-label={`Approve policy ${p.leave_category}`} onClick={() => run(`/api/v1/hr/leave-policies/${encodeURIComponent(p.leave_category)}/approve`, "POST", null, "Policy approved.")}>Approve</button>}</td></tr>)}</tbody></table></div>}
   </section>;
 }
+
+/* ------------------------------------------------------------------ Ecosystem status and integration events (shown under Backup & recovery) */
+const STATUS_LABEL = { ok: "OK", degraded: "Degraded", down: "Down", unreachable: "Unreachable", invalid: "Invalid manifest", "not-probed": "Not monitored" };
+
+export function EcosystemStatusPanel({ api, claims, connected }) {
+  const allowed = permissionsOf(claims).includes("ops:ecosystem:read");
+  const { data, loading, error, reload } = useLoader(() => (connected && allowed ? api("/api/v1/operations/ecosystem") : Promise.resolve(null)), [connected, allowed]);
+  if (!connected || !allowed) return null;
+  const services = Array.isArray(data?.services) ? data.services : [];
+  return <section className="panel list-panel" aria-label="Ecosystem status"><div className="list-heading"><div><h2>Ecosystem status</h2>
+    <p>Live self-reported status of the connected ASAA projects. An offline project never affects ASAA; it simply shows as unreachable.</p></div>
+    <button className="btn btn-quiet" onClick={reload} disabled={loading}><RefreshCw size={14} />Refresh</button></div>
+    <Messages error={error} />
+    {loading && !data ? <div className="admin-empty" role="status">Checking ecosystem services...</div>
+      : data && data.registry && data.registry.loaded === false ? <div className="admin-empty"><b>Ecosystem registry not available</b><span>{data.registry.reason}</span></div>
+      : !services.length ? <div className="admin-empty"><b>No ecosystem services registered</b></div>
+      : <div className="people-table-wrap" tabIndex={0} role="region" aria-label="Ecosystem services"><table className="people-table"><thead><tr><th>Service</th><th>Project</th><th>Status</th><th>Version</th><th>Commit</th><th>Checked</th></tr></thead><tbody>
+        {services.map(s => <tr key={s.service}><td>{s.service}</td><td>{s.project}</td><td><b>{STATUS_LABEL[s.status] || s.status}</b>{s.detail ? ` (${s.detail})` : ""}</td><td>{s.version || "-"}</td><td>{s.commit || "-"}</td><td>{stamp(s.checkedAt)}</td></tr>)}
+      </tbody></table></div>}
+  </section>;
+}
+
+export function IntegrationEventsPanel({ api, claims, connected }) {
+  const allowed = permissionsOf(claims).includes("integration:event:read");
+  const [filters, setFilters] = useState({ source: "", type: "", project: "", severity: "" });
+  const [page, setPage] = useState(0);
+  const size = 25;
+  const qs = useMemo(() => new URLSearchParams({ limit: String(size), offset: String(page * size), ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) }).toString(), [filters, page]);
+  const { data, loading, error, reload } = useLoader(() => (connected && allowed ? api(`/api/v1/integration/events?${qs}`) : Promise.resolve([])), [connected, allowed, qs]);
+  if (!connected || !allowed) return null;
+  const rows = Array.isArray(data) ? data : [];
+  const set = key => e => { setFilters(f => ({ ...f, [key]: e.target.value })); setPage(0); };
+  return <section className="panel list-panel" aria-label="Integration events"><div className="list-heading"><div><h2>Integration events</h2>
+    <p>Events received from connected projects (read-only). Payloads are never shown here.</p></div>
+    <button className="btn btn-quiet" onClick={reload} disabled={loading}><RefreshCw size={14} />Refresh</button></div>
+    <Messages error={error} />
+    <div className="list-tools"><label>Source<input value={filters.source} onChange={set("source")} placeholder="templates-api" /></label>
+      <label>Type<input value={filters.type} onChange={set("type")} placeholder="templates.generation.completed" /></label>
+      <label>Project<select value={filters.project} onChange={set("project")}><option value="">Any</option><option>ASAA</option><option>JARVIS</option><option>TEMPLATES</option><option>PORTFOLIO</option></select></label>
+      <label>Severity<select value={filters.severity} onChange={set("severity")}><option value="">Any</option><option>info</option><option>warning</option><option>critical</option></select></label></div>
+    {loading && !rows.length ? <div className="admin-empty" role="status">Loading integration events...</div> : !rows.length ? <div className="admin-empty"><b>No integration events match</b><span>Connected projects have not sent matching events yet.</span></div>
+      : <div className="people-table-wrap" tabIndex={0} role="region" aria-label="Integration events table"><table className="people-table"><thead><tr><th>Occurred</th><th>Source</th><th>Type</th><th>Project</th><th>Severity</th><th>Subject</th></tr></thead><tbody>
+        {rows.map(r => <tr key={r.id}><td>{stamp(r.occurred_at)}</td><td>{r.source}</td><td>{r.type}</td><td>{r.project}</td><td>{r.severity}</td><td>{r.subject || "-"}</td></tr>)}
+      </tbody></table></div>}
+    <div className="modal-actions"><button className="btn btn-quiet" disabled={page === 0 || loading} onClick={() => setPage(p => p - 1)}>Previous</button>
+      <span>Page {page + 1}</span><button className="btn btn-quiet" disabled={rows.length < size || loading} onClick={() => setPage(p => p + 1)}>Next</button></div>
+  </section>;
+}

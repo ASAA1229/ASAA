@@ -7,7 +7,7 @@ import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { MODULE_GROUPS, REGISTER_WORKSPACES, ROUTED_WORKSPACES } from "./workspaces/registry.js";
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
-import { AuditTrailWorkspace, BackupRecoveryWorkspace, GovernanceWorkspace, LeavePolicyPanel, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
+import { AuditTrailWorkspace, BackupRecoveryWorkspace, EcosystemStatusPanel, GovernanceWorkspace, IntegrationEventsPanel, LeavePolicyPanel, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -195,7 +195,7 @@ function App() {
           {section === "Accounting & reconciliation" && <ReportsWorkspace name="Accounting & reconciliation" only={["reconciliation"]} api={api} connected={!!token}/>}
           {section === "Cash flow & treasury" && <ReportsWorkspace name="Cash flow & treasury" only={["cash_outlook"]} api={api} connected={!!token}/>}
           {section === "Payroll accounting" && <ReportsWorkspace name="Payroll accounting" only={["payroll_accounting"]} api={api} connected={!!token}/>}
-          {section === "Backup & recovery" && <BackupRecoveryWorkspace api={api} claims={claims} connected={!!token}/>}
+          {section === "Backup & recovery" && <><BackupRecoveryWorkspace api={api} claims={claims} connected={!!token}/><EcosystemStatusPanel api={api} claims={claims} connected={!!token}/><IntegrationEventsPanel api={api} claims={claims} connected={!!token}/></>}
           {section === "Audit trail" && <AuditTrailWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Notifications & reminders" && <NotificationsWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Governance" && <GovernanceWorkspace api={api} claims={claims} connected={!!token}/>}
