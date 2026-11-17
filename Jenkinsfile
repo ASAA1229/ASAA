@@ -1,6 +1,6 @@
 // ASAA (React/Vite web + FastAPI API) CI pipeline for a Windows Jenkins agent.
 // Helpers live in ci/jenkins (Windows PowerShell 5.1 and PowerShell 7 compatible).
-// Standard stage order: checkout + source verification, agent prerequisites (explicit Python resolution), locked install,
+// Standard stage order: checkout + source verification, agent prerequisites (explicit Python resolution), npm install (no committed lockfile),
 // SBOM + dependency audit, static analysis, tests (JUnit), build, package + checksum, archive.
 // This pipeline never publishes or deploys anything unless TRIGGER_LOCAL_STACK_DEPLOY is explicitly enabled on branch new.
 pipeline {
@@ -45,22 +45,23 @@ pipeline {
       steps {
         // Python is resolved explicitly: ASAA_PYTHON, then PYTHON (Jenkins global properties), then python3/python on PATH,
         // then "py -3". The interpreter is executed and must report >= 3.11, otherwise the build fails with remediation steps.
-        bat 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ci\\jenkins\\agent-prereqs.ps1 -Require "node,npm,git,tar,python,lockfile,workspace" -NodeRange ">=22" -PythonMin 3.11 -PythonExportFile .jenkins-temp\\python.path -ReportFile .jenkins-temp\\agent-prereqs.json'
+        bat 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ci\\jenkins\\agent-prereqs.ps1 -Require "node,npm,git,tar,python,manifest,workspace" -NodeRange ">=22" -PythonMin 3.11 -PythonExportFile .jenkins-temp\\python.path -ReportFile .jenkins-temp\\agent-prereqs.json'
         script {
           env.PYTHON = readFile('.jenkins-temp/python.path').trim()
           echo "Using Python interpreter: ${env.PYTHON}"
         }
       }
     }
-    stage('Install locked dependencies') {
+    stage('Install dependencies') {
       steps {
-        bat 'npm ci'
+        bat 'npm install --no-audit --no-fund'
         bat 'npm run setup:api'
       }
     }
     stage('SBOM and dependency audit') {
       steps {
         bat 'npm audit --audit-level=high'
+        // package-lock.json is not committed (repo policy); npm install above generates it in this disposable workspace, and the SBOM is cross-checked against it.
         // npm sbom has no --output-file option (it prints to stdout), so redirect it and verify the written file.
         bat 'npm sbom --sbom-format=cyclonedx > asaa-dependencies.cdx.json'
         bat 'node scripts\\sbom-verify.mjs asaa-dependencies.cdx.json package-lock.json'

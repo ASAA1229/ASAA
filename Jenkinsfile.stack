@@ -68,7 +68,7 @@ pipeline {
       }
       steps {
         dir('projects/ASAA') {
-          bat 'npm ci'
+          bat 'npm install --no-audit --no-fund'
           bat 'npm run setup:api'
           bat 'npm run lint'
           bat 'npm test'
@@ -77,7 +77,7 @@ pipeline {
           bat 'npm run build'
         }
         dir('projects/JARVIS') {
-          bat 'npm ci'
+          bat 'npm install --no-audit --no-fund'
           bat 'npm run lint'
           bat 'npm run build'
           bat 'npm test'
@@ -95,7 +95,7 @@ pipeline {
         }
         dir('projects/Templates') {
           withEnv(['TEMPLATES_PG_PORT=54339']) {
-            bat 'npm ci'
+            bat 'npm install --no-audit --no-fund'
             bat 'npm run check:pm'
             bat 'npm run db:local -- init'
             bat 'npm run db:deploy'
@@ -123,7 +123,7 @@ pipeline {
           }
         }
         dir('projects/Portfolio') {
-          bat 'npm ci'
+          bat 'npm install --no-audit --no-fund'
           bat 'npm run check:pm'
           bat 'npm run audit:deps'
           bat 'npm run verify'

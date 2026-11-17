@@ -12,7 +12,7 @@
     bat 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ci\jenkins\agent-prereqs.ps1 -Require node,npm,git'
 
 .PARAMETER Require
-  Comma-separated list of checks: node, npm, git, tar, python, browser, docker, postgres, workspace, lockfile.
+  Comma-separated list of checks: node, npm, git, tar, python, browser, docker, postgres, workspace, manifest, lockfile (manifest = package.json present; lockfile is optional because package-lock.json is not committed by policy).
   ("-File" passes the list as one string, so both "node,npm" and an array are accepted.)
 
 .PARAMETER NodeRange / NpmRange
@@ -354,6 +354,11 @@ if ($requireSet -contains 'lockfile') {
   $lock = Join-Path $repoRoot 'package-lock.json'
   if (Test-Path -LiteralPath $lock -PathType Leaf) { Add-Row 'package-lock.json' 'committed lockfile' 'present' $lock 'OK' }
   else { Add-Row 'package-lock.json' 'committed lockfile' '(missing)' $lock 'FAIL' 'Commit package-lock.json; npm ci requires it.' }
+}
+if ($requireSet -contains 'manifest') {
+  $manifest = Join-Path $repoRoot 'package.json'
+  if (Test-Path -LiteralPath $manifest -PathType Leaf) { Add-Row 'package.json' 'npm manifest (no lockfile is committed; npm install is used)' 'present' $manifest 'OK' }
+  else { Add-Row 'package.json' 'npm manifest' '(missing)' $manifest 'FAIL' 'package.json is required for npm install.' }
 }
 if ($requireSet -contains 'workspace') {
   $targets = @($repoRoot)

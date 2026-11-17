@@ -11,7 +11,6 @@ on:
       - "apps/ap-api/**"
       - "index.html"
       - "package.json"
-      - "package-lock.json"
       - "vite.config.js"
       - "vitest.config.js"
       - "eslint.config.js"
@@ -26,7 +25,6 @@ on:
       - "apps/ap-api/**"
       - "index.html"
       - "package.json"
-      - "package-lock.json"
       - "vite.config.js"
       - "vitest.config.js"
       - "eslint.config.js"
@@ -44,8 +42,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install exactly from the lockfile
-        run: npm ci
+          cache-dependency-path: package.json
+      - name: Install dependencies (no lockfile is committed by policy)
+        run: npm install --no-audit --no-fund
       - name: Lint
         run: npm run lint
       - name: Identity transport policy tests
@@ -62,7 +61,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: npm audit (fail on high or critical)
         run: npm audit --audit-level=high
 
@@ -74,6 +73,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package.json
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -81,7 +81,7 @@ jobs:
           cache-dependency-path: apps/ap-api/pyproject.toml
       - name: Install API dependencies
         run: python -m pip install -e "apps/ap-api[test]"
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Install Chromium, Firefox and WebKit
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Real-browser E2E and axe (production build via vite preview, live local API)
