@@ -72,7 +72,11 @@ def test_aggregates_states_and_never_fails_when_siblings_are_offline(client, mon
     assert rows["jarvis-ai-gateway"]["status"] == "ok" and rows["jarvis-ai-gateway"]["version"] is None
     assert rows["templates-api"]["status"] == "down"
     assert rows["portfolio"]["status"] == "unreachable"
-    assert set(rows) == {"asaa-api", "jarvis", "jarvis-ai-gateway", "templates-api", "portfolio"}
+    assert set(rows) == {"asaa-api", "asaa-portal", "jarvis", "jarvis-ai-gateway", "templates-api", "templates-web", "portfolio"}
+    # Services with neither manifestPath nor healthPath are listed but never probed.
+    for portal in ("asaa-portal", "templates-web"):
+        assert rows[portal]["status"] == "not-probed" and rows[portal]["version"] is None and rows[portal]["commit"] is None
+    assert not any(any(port in url for port in (":5173", ":5000", ":8100", ":8200")) for url, _ in fake.calls)
     assert all("checkedAt" in row for row in rows.values())
     assert all(timeout <= 2 for _, timeout in fake.calls)
     assert not any(url.startswith("http://127.0.0.1:8001") for url, _ in fake.calls)  # self is not probed over HTTP
@@ -83,7 +87,7 @@ def test_everything_offline_still_returns_200(client, monkeypatch):
     monkeypatch.setattr(ecosystem, "transport", FakeTransport({}))
     response = client.get(URL)
     assert response.status_code == 200
-    assert {r["status"] for r in response.json()["services"] if r["service"] != "asaa-api"} == {"unreachable"}
+    assert {r["status"] for r in response.json()["services"] if r["service"] != "asaa-api" and r["status"] != "not-probed"} == {"unreachable"}
 
 
 def test_timeouts_and_garbage_are_mapped_not_raised(client, monkeypatch):
@@ -203,3 +207,57 @@ def test_validate_manifest_accepts_the_contract_example_and_rejects_bad_shapes()
                 manifest("asaa-api", "ASAA", checks={"db": "maybe"}), manifest("asaa-api", "ASAA", capabilities=["a.b", "a.b"]),
                 manifest("asaa-api", "ASAA", checkedAt="soon"), manifest("asaa-api", "ASAA", commit="XYZ")):
         assert ecosystem.validate_manifest(bad) is not None
+
+
+def test_health_path_is_liveness_only_and_reports_no_version_or_commit(client, monkeypatch):
+    as_p(client)
+    url = "http://127.0.0.1:3100/v1/health"
+    cases = [
+        ((200, {"status": "ok", "version": "9.9.9", "commit": "abcdef1"}), "ok"),
+        ((200, {"status": "degraded"}), "down"),
+        ((200, {"healthy": True}), "down"),
+        ((200, b"OK"), "down"),
+        ((503, {"status": "ok"}), "down"),
+        ((404, b""), "down"),
+        (ConnectionRefusedError("refused"), "unreachable"),
+        (TimeoutError("slow"), "unreachable"),
+    ]
+    for response, expected in cases:
+        ecosystem.reset_cache()
+        monkeypatch.setattr(ecosystem, "transport", FakeTransport({url: response}))
+        row = by_service(client.get(URL).json())["jarvis-ai-gateway"]
+        assert row["status"] == expected, (response, row)
+        assert row["version"] is None and row["commit"] is None
+
+
+def test_manifest_path_is_validated_while_health_path_is_not(client, monkeypatch):
+    as_p(client)
+    # The same JSON body is a valid health answer but an invalid manifest.
+    body = {"status": "ok"}
+    monkeypatch.setattr(ecosystem, "transport", FakeTransport({
+        "http://127.0.0.1:3000/.well-known/asaa-service": (200, body),
+        "http://127.0.0.1:3100/v1/health": (200, body),
+    }))
+    rows = by_service(client.get(URL).json())
+    assert rows["jarvis"]["status"] == "invalid"
+    assert rows["jarvis-ai-gateway"]["status"] == "ok"
+
+
+def test_registry_contract_has_the_amended_gateway_entry():
+    registry = json.loads(REGISTRY.read_text())
+    gateway = next(s for p in registry["projects"] for s in p["services"] if s["service"] == "jarvis-ai-gateway")
+    assert gateway["healthPath"] == "/v1/health" and "manifestPath" not in gateway
+    assert all(("manifestPath" in s) + ("healthPath" in s) <= 1 for p in registry["projects"] for s in p["services"])
+
+
+def test_service_with_neither_path_is_not_probed_even_with_a_url(client, monkeypatch, tmp_path):
+    as_p(client)
+    reg = tmp_path / "registry.json"
+    reg.write_text(json.dumps({"schema": "asaa.ecosystem-registry.v1", "orgId": "asaa", "projects": [
+        {"code": "PORTFOLIO", "services": [{"service": "portfolio-web", "devBaseUrl": "http://127.0.0.1:8300"}]}]}))
+    monkeypatch.setattr(ecosystem, "get_settings", lambda: type("S", (), {
+        "ecosystem_registry_path": str(reg), "ecosystem_allowed_hosts": [], "environment": "development"})())
+    fake = FakeTransport({})
+    monkeypatch.setattr(ecosystem, "transport", fake)
+    rows = client.get(URL).json()["services"]
+    assert [(r["service"], r["status"]) for r in rows] == [("portfolio-web", "not-probed")] and fake.calls == []

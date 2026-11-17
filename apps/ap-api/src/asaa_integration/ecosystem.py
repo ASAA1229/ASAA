@@ -30,7 +30,6 @@ PROBE_TIMEOUT_SECONDS = 2.0
 CACHE_TTL_SECONDS = 15.0
 MAX_BODY_BYTES = 64 * 1024
 REGISTRY_RELATIVE = Path("contracts") / "ecosystem" / "v1" / "ecosystem-registry.json"
-WELL_KNOWN = "/.well-known/asaa-service"
 PROJECTS = {"ASAA", "JARVIS", "TEMPLATES", "PORTFOLIO"}
 STATES = {"ok", "degraded", "down"}
 _SERVICE = re.compile(r"^[a-z][a-z0-9-]{1,39}$")
@@ -194,7 +193,8 @@ def probe(project: str, service: dict, allowed_hosts: list[str]) -> dict:
         base = base_url_for(service)
         if not base:
             return _result(service, project, "invalid", "no base URL configured")
-        url = base.rstrip("/") + service["manifestPath"]
+        manifest_mode = bool(service.get("manifestPath"))
+        url = base.rstrip("/") + (service["manifestPath"] if manifest_mode else service["healthPath"])
         if not url_allowed(url, allowed_hosts):
             return _result(service, project, "invalid", "base URL is not loopback or allowlisted")
         try:
@@ -207,7 +207,7 @@ def probe(project: str, service: dict, allowed_hosts: list[str]) -> dict:
             doc = json.loads(body.decode("utf-8")) if body else None
         except ValueError:
             doc = None
-        if service["manifestPath"] == WELL_KNOWN:
+        if manifest_mode:
             if doc is None and not (200 <= code < 300):
                 return _result(service, project, "down", f"HTTP {code}")
             problem = validate_manifest(doc)
@@ -216,11 +216,10 @@ def probe(project: str, service: dict, allowed_hosts: list[str]) -> dict:
             if doc["service"] != service["service"] or doc["project"] != project:
                 return _result(service, project, "invalid", "manifest identity does not match the registry")
             return _result(service, project, doc["status"], None, doc["version"], doc.get("commit"))
-        # Health-style endpoint (for example an AI gateway): 2xx means up; a JSON "status" of ok/degraded/down is honoured.
-        if not 200 <= code < 300:
-            return _result(service, project, "down", f"HTTP {code}")
-        status = doc.get("status") if isinstance(doc, dict) and doc.get("status") in STATES else "ok"
-        return _result(service, project, status)
+        # healthPath: liveness only. HTTP 2xx with a JSON status of "ok" is up; anything else is down. No version or commit is reported.
+        if 200 <= code < 300 and isinstance(doc, dict) and doc.get("status") == "ok":
+            return _result(service, project, "ok")
+        return _result(service, project, "down", f"HTTP {code}" if not 200 <= code < 300 else "health status is not ok")
     except Exception:  # noqa: BLE001 - standalone rule: a broken probe must not break the endpoint
         return _result(service, project, "invalid", "probe error")
 
@@ -232,15 +231,21 @@ def collect() -> dict:
         return {"checkedAt": _stamp(), "registry": {"loaded": False, "reason": reason}, "services": []}
     allowed = list(get_settings().ecosystem_allowed_hosts)
     targets = []
+    skipped = []
     for project in registry["projects"]:
         code = project.get("code") if isinstance(project, dict) else None
         if code not in PROJECTS:
             continue
         for service in project.get("services", []):
-            if isinstance(service, dict) and isinstance(service.get("service"), str) and service.get("manifestPath"):
+            if not (isinstance(service, dict) and isinstance(service.get("service"), str)):
+                continue
+            if service.get("manifestPath") or service.get("healthPath"):
                 targets.append((code, service))
+            else:  # portals and web UIs: listed, never probed
+                skipped.append((code, service))
     with ThreadPoolExecutor(max_workers=max(1, min(8, len(targets)))) as pool:
         services = list(pool.map(lambda item: probe(item[0], item[1], allowed), targets))
+    services += [_result(service, code, "not-probed") for code, service in skipped]
     return {"checkedAt": _stamp(), "registry": {"loaded": True, "orgId": registry.get("orgId"), "contracts": registry.get("contracts", {})},
             "services": services}
 
