@@ -211,7 +211,7 @@ export function LeavePolicyPanel({ api, claims, connected }) {
   </section>;
 }
 
-/* ------------------------------------------------------------------ Ecosystem status and integration events (shown under Backup & recovery) */
+/* ------------------------------------------------------------------ Ecosystem status and integration events (shown under Integrations & connectors) */
 const STATUS_LABEL = { ok: "OK", degraded: "Degraded", down: "Down", unreachable: "Unreachable", invalid: "Invalid manifest", "not-probed": "Not monitored" };
 
 export function EcosystemStatusPanel({ api, claims, connected }) {

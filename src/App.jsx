@@ -195,11 +195,12 @@ function App() {
           {section === "Accounting & reconciliation" && <ReportsWorkspace name="Accounting & reconciliation" only={["reconciliation"]} api={api} connected={!!token}/>}
           {section === "Cash flow & treasury" && <ReportsWorkspace name="Cash flow & treasury" only={["cash_outlook"]} api={api} connected={!!token}/>}
           {section === "Payroll accounting" && <ReportsWorkspace name="Payroll accounting" only={["payroll_accounting"]} api={api} connected={!!token}/>}
-          {section === "Backup & recovery" && <><BackupRecoveryWorkspace api={api} claims={claims} connected={!!token}/><EcosystemStatusPanel api={api} claims={claims} connected={!!token}/><IntegrationEventsPanel api={api} claims={claims} connected={!!token}/></>}
+          {section === "Backup & recovery" && <BackupRecoveryWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Audit trail" && <AuditTrailWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Notifications & reminders" && <NotificationsWorkspace api={api} claims={claims} connected={!!token}/>}
           {section === "Governance" && <GovernanceWorkspace api={api} claims={claims} connected={!!token}/>}
           {REGISTER_WORKSPACES[section] && <RegisterWorkspace key={section} name={section} types={REGISTER_WORKSPACES[section]} renewals={section === "Contracts & renewals"} api={api} claims={claims} connected={!!token} onChanged={refresh}/>}
+          {section === "Integrations & connectors" && <><EcosystemStatusPanel api={api} claims={claims} connected={!!token}/><IntegrationEventsPanel api={api} claims={claims} connected={!!token}/></>}
           {section === "Settings" && <SettingsPanel apiBase={apiBase} claims={claims} openConnection={() => setModal("connection")}/>}
           {!ROUTED_WORKSPACES.includes(section) && <ModuleWorkspace name={section} connected={!!token} setSection={setSection} claims={claims}/>}
           <footer className="page-footer"><span>ASAA · Enterprise Operating Platform</span><span>Secure by design <ShieldCheck size={13}/></span></footer>
