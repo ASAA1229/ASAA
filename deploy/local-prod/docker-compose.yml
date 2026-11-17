@@ -29,8 +29,16 @@ services:
     environment:
       <<: *api-env
       ASAA_AP_DATABASE_URL: postgresql+psycopg://${ASAA_DB_RUNTIME_ROLE:-asaa_runtime}:${ASAA_DB_RUNTIME_PASSWORD}@host.docker.internal:${ASAA_PG_PORT:-5432}/${ASAA_DB_NAME:-asaa}
+      ASAA_AP_ECOSYSTEM_REGISTRY_PATH: /app/contracts/ecosystem/v1/ecosystem-registry.json
+      # Siblings run on the host's loopback; from inside the container they are reached through host.docker.internal (allowlisted).
+      ASAA_AP_ECOSYSTEM_ALLOWED_HOSTS: '["host.docker.internal"]'
+      ASAA_AP_ECOSYSTEM_JARVIS_URL: http://host.docker.internal:3000
+      ASAA_AP_ECOSYSTEM_JARVIS_AI_GATEWAY_URL: http://host.docker.internal:3100
+      ASAA_AP_ECOSYSTEM_TEMPLATES_API_URL: http://host.docker.internal:8201
+      ASAA_AP_ECOSYSTEM_PORTFOLIO_URL: http://host.docker.internal:8300
     volumes:
       - ${ASAA_KEYS_DIR:-../../.local-prod/keys}/jwt_public.pem:/run/keys/jwt_public.pem:ro
+      - ../../contracts/ecosystem/v1:/app/contracts/ecosystem/v1:ro
     extra_hosts: ["host.docker.internal:host-gateway"]
     ports:
       - "127.0.0.1:${API_PORT:-8101}:8000"

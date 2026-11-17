@@ -16,6 +16,11 @@ RUN if [ "$BAD_RELEASE" = "1" ]; then echo "raise RuntimeError('simulated bad re
 RUN useradd --system --uid 10001 --no-create-home asaa
 USER 10001
 
+# The ecosystem registry lives outside this build context (contracts/ecosystem at the repository root). Deployments mount it
+# read-only at this fixed path (see deploy/local-prod/docker-compose.yml); when it is absent the ecosystem status endpoint
+# reports "registry not available" and everything else is unaffected.
+ENV ASAA_AP_ECOSYSTEM_REGISTRY_PATH=/app/contracts/ecosystem/v1/ecosystem-registry.json
+
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).status == 200 else 1)"

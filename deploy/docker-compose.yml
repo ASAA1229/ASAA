@@ -38,6 +38,9 @@ services:
       ASAA_AP_JWT_AUDIENCE: asaa-rehearsal
       ASAA_AP_CORS_ORIGINS: '["http://127.0.0.1:${PORTAL_PORT:-8180}"]'
       ASAA_AP_LOG_LEVEL: INFO
+      ASAA_AP_ECOSYSTEM_REGISTRY_PATH: /app/contracts/ecosystem/v1/ecosystem-registry.json
+    volumes:
+      - ../contracts/ecosystem/v1:/app/contracts/ecosystem/v1:ro
     ports:
       - "127.0.0.1:${API_PORT:-8001}:8000"
     depends_on:
