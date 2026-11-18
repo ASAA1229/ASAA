@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     keycloak_client_id: str = Field(default="asaa-identity-sync", validation_alias="ASAA_IDENTITY_KEYCLOAK_CLIENT_ID")
     keycloak_client_secret: SecretStr | None = Field(default=None, validation_alias="ASAA_IDENTITY_KEYCLOAK_CLIENT_SECRET")
     keycloak_base_group: str = Field(default="employees", validation_alias="ASAA_IDENTITY_KEYCLOAK_BASE_GROUP")
+    # Groups are never created by identity sync unless this is set; entitlement groups must exist (and carry no role mappings).
+    keycloak_create_groups: bool = Field(default=False, validation_alias="ASAA_IDENTITY_KEYCLOAK_CREATE_GROUPS")
     # Directory written by scripts/backup_restore.py scheduled (read-only status view). Unset = backup status not configured.
     backup_dir: str | None = None
     backup_max_age_hours: float = 26

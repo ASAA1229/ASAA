@@ -7,8 +7,10 @@ import uuid
 
 
 class FakeKeycloak:
-    def __init__(self, secret="test-client-secret", token_lifetime=300):
+    def __init__(self, secret="test-client-secret", token_lifetime=300, honor_client_id=True):
         self.secret, self.token_lifetime = secret, token_lifetime
+        self.honor_client_id = honor_client_id  # real Keycloak versions differ: False simulates one that ignores a supplied id
+        self.group_roles: dict[str, dict] = {}   # group id -> role mappings document
         self.users: dict[str, dict] = {}
         self.groups: dict[str, dict] = {}
         self.memberships: dict[str, set] = {}
@@ -25,8 +27,8 @@ class FakeKeycloak:
         self.groups[gid] = {"id": gid, "name": name, "path": "/" + name}
         return gid
 
-    def fail(self, method, path_regex, status, times=1, headers=None):
-        self.faults.append([method, re.compile(path_regex), status, times, headers or {}])
+    def fail(self, method, path_regex, status, times=1, headers=None, body=b"{}"):
+        self.faults.append([method, re.compile(path_regex), status, times, headers or {}, body])
 
     def expire_tokens(self):
         self.valid_tokens.clear()
@@ -47,7 +49,7 @@ class FakeKeycloak:
         for fault in self.faults:
             if fault[0] == method and fault[1].search(parsed.path) and fault[3] > 0:
                 fault[3] -= 1
-                return fault[2], dict(fault[4]), b"{}"
+                return fault[2], dict(fault[4]), fault[5]
         path = parsed.path.split("/admin/realms/asaa", 1)[1]
         query = dict(urllib.parse.parse_qsl(parsed.query))
         payload = json.loads(body) if body else None
@@ -72,13 +74,17 @@ class FakeKeycloak:
             if "username" in query:
                 found = [u for u in self.users.values() if u["username"] == query["username"]]
                 return self._json(200, found)
+            if "q" in query:
+                name, _, value = query["q"].partition(":")
+                found = [u for u in self.users.values() if value in (u.get("attributes") or {}).get(name, [])]
+                return self._json(200, found)
             first, count = int(query.get("first", 0)), int(query.get("max", 100))
             return self._json(200, list(self.users.values())[first:first + count])
         if path == "/users" and method == "POST":
             username = payload["username"]
             if self.user_by_name(username) or any(u.get("email") and u.get("email") == payload.get("email") for u in self.users.values()):
                 return self._json(409, {"errorMessage": "User exists with same username"})
-            user = {**payload, "id": payload.get("id") or str(uuid.uuid4())}
+            user = {**payload, "id": (payload.get("id") if self.honor_client_id else None) or str(uuid.uuid4())}
             self.users[user["id"]] = user
             self.memberships[user["id"]] = set()
             return self._json(201, None, {"Location": f".../users/{user['id']}"})
@@ -88,7 +94,8 @@ class FakeKeycloak:
             if not user:
                 return self._json(404, {"error": "User not found"})
             if method == "PUT":
-                self.users[user["id"]] = {**payload, "id": user["id"]}
+                merged = {**user, **payload, "id": user["id"]}  # Keycloak applies the supplied fields and keeps the others
+                self.users[user["id"]] = merged
                 return self._json(204)
             if method == "GET":
                 return self._json(200, user)
@@ -103,8 +110,12 @@ class FakeKeycloak:
             return self._json(200, [self.groups[g] for g in sorted(self.memberships.get(m.group(1), set()))])
         m = re.fullmatch(r"/users/([^/]+)/groups/([^/]+)", path)
         if m and method in {"PUT", "DELETE"}:
-            (self.memberships[m.group(1)].add if method == "PUT" else self.memberships[m.group(1)].discard)(m.group(2))
+            members = self.memberships.setdefault(m.group(1), set())
+            (members.add if method == "PUT" else members.discard)(m.group(2))
             return self._json(204)
+        m = re.fullmatch(r"/groups/([^/]+)/role-mappings", path)
+        if m and method == "GET":
+            return self._json(200, self.group_roles.get(m.group(1), {}))
         if path == "/groups" and method == "GET":
             return self._json(200, [g for g in self.groups.values() if query.get("search", "") in g["name"]])
         if path == "/groups" and method == "POST":
