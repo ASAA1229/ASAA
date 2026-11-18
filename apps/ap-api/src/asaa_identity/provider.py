@@ -23,11 +23,22 @@ class PermanentProviderError(ProviderError):
     """Validation/authorization/conflict failure that retrying will not fix: dead-letter for a human."""
 
 
+class AuthenticationProviderError(TransientProviderError):
+    """The adapter's own credentials were refused (token request, 401 or 403 from the admin API). It is an operator problem, not a
+    property of the job: jobs are retried with a long backoff, an alert is raised and leaver jobs are never dead-lettered for it."""
+
+
+class ProviderUserNotFound(ProviderError):
+    """A leaver refers to an account the provider does not have. Adapters that cannot tell a missing account from a revoked one
+    must not silently succeed: the job gets the distinct NotFound outcome and an alert."""
+
+
 @dataclass(frozen=True)
 class ProviderUser:
     subject: str
     active: bool
     entitlements: frozenset[str] = field(default_factory=frozenset)
+    provider_id: str | None = None  # the provider's own immutable id, when it has one (for reconciliation)
 
 
 @dataclass(frozen=True)
@@ -38,11 +49,14 @@ class UserAttributes:
     employee_reference: str | None = None
     first_name: str | None = None
     last_name: str | None = None
+    # True only for an explicit (re-)hire (joiner job): lets an adapter re-enable an account that was disabled outside ASAA.
+    allow_reenable: bool = False
 
 
 class IdentityProvider(ABC):
     @abstractmethod
-    def upsert_user(self, subject: str, attributes: UserAttributes, active: bool) -> None: ...
+    def upsert_user(self, subject: str, attributes: UserAttributes, active: bool) -> "str | None":
+        """Create or update the user. May return the provider's own id for the user (audit and reconciliation)."""
 
     @abstractmethod
     def disable_user(self, subject: str) -> None:
@@ -61,6 +75,10 @@ class IdentityProvider(ABC):
 
     @abstractmethod
     def list_users(self) -> list[ProviderUser]: ...
+
+    def drain_audit(self) -> list[dict]:
+        """Provisioning steps taken since the last call (subject, provider id, action, group changes; no personal data)."""
+        return []
 
 
 _FACTORIES: dict[str, Callable[[], IdentityProvider]] = {}
