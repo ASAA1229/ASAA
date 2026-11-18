@@ -1,5 +1,7 @@
 """GET /.well-known/asaa-service: unauthenticated, secret-free self-description (asaa.service-manifest.v1)."""
 import re
+import threading
+import time
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -16,9 +18,19 @@ PROJECT = "ASAA"
 API_VERSION = "0.4.0"  # keep equal to the FastAPI app version in asaa_ap.main
 CAPABILITIES = ["organization", "governance", "events.ingest", "ecosystem.status"]
 CONTRACTS = {"serviceManifest": "v1", "eventEnvelope": "v1"}
-_COMMIT = re.compile(r"^[0-9a-f]{7,40}$")
+_COMMIT = re.compile(r"^[0-9a-f]{7,40}\Z")
+
+CHECK_CACHE_SECONDS = 10.0  # dependency checks are cached so an unauthenticated endpoint cannot be used to hammer the database
+_checks_lock = threading.Lock()
+_checks_cache: dict = {}
+_now = time.monotonic
 
 router = APIRouter(tags=["Operations"])
+
+
+def reset_cache() -> None:
+    with _checks_lock:
+        _checks_cache.clear()
 
 
 @lru_cache(maxsize=1)
@@ -61,10 +73,21 @@ def check_migrations() -> str:
     return "ok" if row[0] == head else "degraded"
 
 
-def build_manifest() -> dict:
-    settings = get_settings()
+def current_checks() -> dict:
+    with _checks_lock:
+        hit = _checks_cache.get("checks")
+        if hit and _now() - hit[0] < CHECK_CACHE_SECONDS:
+            return dict(hit[1])
     checks = {"database": check_database()}
     checks["migrations"] = check_migrations() if checks["database"] == "ok" else "down"
+    with _checks_lock:
+        _checks_cache["checks"] = (_now(), checks)
+    return dict(checks)
+
+
+def build_manifest() -> dict:
+    settings = get_settings()
+    checks = current_checks()
     if "down" in checks.values():
         status = "down" if checks["database"] == "down" else "degraded"
     elif "degraded" in checks.values():
