@@ -43,9 +43,11 @@ def test_missing_free_text_other_org_and_rejected_units_are_refused(client):
     assert client.get(BASE.format(employee["id"])).json() == []
 
 
-def test_proposed_units_are_accepted_and_department_stays_optional(client):
+def test_only_active_units_are_accepted_and_department_stays_optional(client):
     employee = create_employee(client)
-    assert record(client, employee["id"], make_unit(client, status="Proposed")).status_code == 201
+    proposed = record(client, employee["id"], make_unit(client, code="prop", status="Proposed"))
+    assert proposed.status_code == 422 and proposed.json()["detail"]["code"] == "employment_department_not_found"
+    assert record(client, employee["id"], make_unit(client, code="act", status="Active"), day=1).status_code == 201
     assert record(client, employee["id"], None, day=5).status_code == 201
 
 
