@@ -322,10 +322,15 @@ def patch_unit(unit_id: str, payload: UnitUpdate, db: Session = Depends(get_db),
     if not changes: raise HTTPException(status_code=422, detail={"code": "no_organization_unit_changes"})
     if changes.get("parent_id"):
         check_parent(db, principal.organization_id, row.unit_type, changes["parent_id"], unit_id=row.id)
+    reparented = "parent_id" in changes and changes["parent_id"] != row.parent_id
     for key, value in changes.items(): setattr(row, key, value)
+    status_reset = reparented and row.status == "Active"
+    if status_reset:  # a changed hierarchy position needs a fresh independent review (maker-checker)
+        row.status = "Proposed"
+        row.reviewed_by = row.reviewed_at = row.review_reason = None
     row.updated_by = principal.subject; db.flush()
     audit(db, principal, "organization_unit.updated", "organization_unit", row.id,
-          {"changed_fields": sorted(changes), "status": row.status}, x_correlation_id)
+          {"changed_fields": sorted(changes), "status": row.status, "status_reset_for_review": status_reset}, x_correlation_id)
     db.commit(); db.refresh(row)
     return dump(row)
 
@@ -339,7 +344,7 @@ def review_unit(unit_id: str, payload: UnitReview, db: Session = Depends(get_db)
         raise HTTPException(status_code=409, detail={"code": "organization_unit_not_proposed"})
     if row.version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"code": "stale_organization_unit_version"})
-    if row.created_by == principal.subject:
+    if principal.subject in {row.created_by, row.updated_by}:
         raise HTTPException(status_code=403, detail={"code": "organization_unit_self_approval_forbidden"})
     if payload.decision == "Approve" and row.parent_id:
         parent = get_unit(db, row.parent_id, principal.organization_id)

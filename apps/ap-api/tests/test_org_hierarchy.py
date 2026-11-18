@@ -104,3 +104,46 @@ def test_parent_change_requires_structure_write_permission(client):
     entity, division, department, team = chain(client)
     as_p(client, perms={"organization:structure:read"})
     assert move(client, team, division["id"]).status_code == 403
+
+
+def approve(client, row, reviewer="independent-reviewer"):
+    as_p(client)
+    client.app.dependency_overrides[get_principal] = lambda: Principal(reviewer, "org-a", frozenset(ADMIN))
+    response = client.post(f"{BASE}/{row['id']}/review", json={"expected_version": row["version"], "decision": "Approve", "reason": "Reviewed"})
+    assert response.status_code == 200, response.text
+    as_p(client)
+    return response.json()
+
+
+def test_reparenting_an_active_unit_returns_it_to_proposed_for_independent_review(client):
+    as_p(client)
+    entity = approve(client, unit(client, "entity", "Legal Entity"))
+    division = approve(client, unit(client, "division", "Division", entity["id"]))
+    other = approve(client, unit(client, "dept-a", "Department", entity["id"]))
+    moved = move(client, other, division["id"])
+    assert moved.status_code == 200 and moved.json()["status"] == "Proposed"
+    assert moved.json()["reviewed_by"] is None and moved.json()["review_reason"] is None
+    audit = client.get("/api/v1/ap/audit-events", params={"action": "organization_unit.updated"}).json()
+    assert audit[0]["details"]["status_reset_for_review"] is True
+    # The person who moved the unit (admin) cannot approve it again; an independent reviewer can.
+    assert client.post(f"{BASE}/{other['id']}/review", json={"expected_version": moved.json()["version"], "decision": "Approve", "reason": "Self"}).status_code == 403
+    assert approve(client, moved.json())["status"] == "Active"
+
+
+def test_edits_that_do_not_change_the_parent_keep_an_active_unit_active(client):
+    as_p(client)
+    entity = approve(client, unit(client, "entity", "Legal Entity"))
+    division = approve(client, unit(client, "division", "Division", entity["id"]))
+    renamed = client.patch(f"{BASE}/{division['id']}", json={"expected_version": division["version"], "name": "Renamed"})
+    assert renamed.status_code == 200 and renamed.json()["status"] == "Active"
+    same_parent = client.patch(f"{BASE}/{division['id']}", json={"expected_version": renamed.json()["version"], "parent_id": entity["id"]})
+    assert same_parent.status_code == 200 and same_parent.json()["status"] == "Active"
+
+
+def test_reparenting_a_proposed_unit_stays_proposed(client):
+    as_p(client)
+    entity = unit(client, "entity", "Legal Entity")
+    division = unit(client, "division", "Division", entity["id"])
+    other = unit(client, "dept-b", "Department", entity["id"])
+    moved = move(client, other, division["id"])
+    assert moved.status_code == 200 and moved.json()["status"] == "Proposed"
