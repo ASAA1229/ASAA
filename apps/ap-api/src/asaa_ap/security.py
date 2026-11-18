@@ -24,6 +24,7 @@ class Principal:
     subject: str
     organization_id: str
     permissions: frozenset[str]
+    client_id: str | None = None  # the token's azp (authorized party); identifies service-account producers
 
 
 def get_principal(authorization: Annotated[str | None, Header()] = None) -> Principal:
@@ -63,7 +64,8 @@ def get_principal(authorization: Annotated[str | None, Header()] = None) -> Prin
     permissions = claims.get("permissions", [])
     if not isinstance(permissions, list) or not all(isinstance(p, str) for p in permissions):
         raise HTTPException(status_code=401, detail="Invalid permission claims")
-    return Principal(str(claims["sub"]), str(claims["org_id"]), frozenset(permissions))
+    azp = claims.get("azp")
+    return Principal(str(claims["sub"]), str(claims["org_id"]), frozenset(permissions), azp if isinstance(azp, str) and azp else None)
 
 
 def require_permission(permission: str):

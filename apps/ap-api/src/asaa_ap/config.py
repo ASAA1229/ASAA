@@ -1,10 +1,18 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ProducerMapping(BaseModel):
+    """An ecosystem event producer: the token `azp` (client id) it authenticates with may only emit this source/project/type prefix."""
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    source: str
+    project: Literal["ASAA", "JARVIS", "TEMPLATES", "PORTFOLIO"]
+    typePrefix: str
 
 
 class Settings(BaseSettings):
@@ -54,10 +62,24 @@ class Settings(BaseSettings):
     ecosystem_registry_path: str | None = None
     # Sibling services are only contacted on loopback unless their host is listed here (JSON list of host names).
     ecosystem_allowed_hosts: list[str] = []
+    # Allowlisted non-loopback hosts must use https unless listed here too (for example host.docker.internal on a developer machine).
+    ecosystem_insecure_http_hosts: list[str] = []
     # Critical ecosystem events notify holders of integration:event:read / ops:ecosystem:read (approved role assignments) plus these
     # subjects (JSON list). Delivery goes through the notification outbox using the channel below.
     integration_critical_recipients: list[str] = []
     integration_critical_channel: str = "email"
+    # Event producers keyed by token azp (client id), JSON, e.g.
+    # {"jarvis-events":{"source":"jarvis","project":"JARVIS","typePrefix":"jarvis."}}. A token whose azp is not listed cannot write events.
+    integration_producers: dict[str, ProducerMapping] = {}
+    # Per-principal ingest rate limit (token bucket, per process).
+    integration_rate_per_minute: int = Field(default=120, ge=1, le=100000)
+    integration_rate_burst: int = Field(default=30, ge=1, le=100000)
+    # A critical alert for the same (source, type) is not repeated within this window.
+    integration_critical_dedupe_minutes: int = Field(default=15, ge=0, le=1440)
+    # Retention for ingested events, used by scripts/purge_integration_events.py. PENDING OWNER APPROVAL: engineering default only.
+    integration_event_retention_days: int = Field(default=180, ge=1, le=3650)
+    # Event `time` must be within this many seconds of now (past or future).
+    integration_clock_skew_seconds: int = Field(default=86400, ge=0, le=31536000)
 
 
     @model_validator(mode="after")
