@@ -17,6 +17,8 @@ import json
 import sys
 from pathlib import Path
 
+from urllib.parse import urlparse
+
 from sqlalchemy import select
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -73,6 +75,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--owner-subject", default=DEFAULT_OWNER)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
+    if args.database_url and urlparse(args.database_url.replace("postgresql+psycopg://", "postgresql://", 1)).password:
+        print("Refusing a database URL that embeds a password (it would land in shell history and process lists): "
+              "use PGPASSWORD or the ASAA_AP_DATABASE_URL environment variable.", file=sys.stderr)
+        return 2
     try:
         registry = json.loads(args.registry.read_text(encoding="utf-8"))
         if registry.get("schema") != "asaa.ecosystem-registry.v1":

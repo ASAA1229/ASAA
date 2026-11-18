@@ -89,3 +89,9 @@ def test_seeded_projects_are_visible_through_the_register_api_with_the_new_field
     assert all(r["data"]["classification"] == "Professional" for r in listed)
     client.app.dependency_overrides[get_principal] = lambda: Principal("reader", "org-b", frozenset({"register:project:read"}))
     assert client.get("/api/v1/registers/project").json() == []
+
+
+def test_cli_refuses_a_database_url_with_an_embedded_password(capsys):
+    assert seed_script.main(["--org-id", "asaa", "--database-url", "postgresql+psycopg://asaa:s3cret@db/asaa"]) == 2
+    captured = capsys.readouterr()
+    assert "s3cret" not in captured.out + captured.err and "password" in captured.err.lower()
