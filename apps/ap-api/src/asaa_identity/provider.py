@@ -36,6 +36,8 @@ class UserAttributes:
     display_name: str | None = None
     email: str | None = None
     employee_reference: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
 
 
 class IdentityProvider(ABC):

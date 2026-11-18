@@ -115,7 +115,7 @@ def _attributes(db: Session, organization_id: str, employee_id: str) -> UserAttr
     if not employee:
         return UserAttributes()
     return UserAttributes(display_name=f"{employee.first_name} {employee.last_name}", email=employee.work_email,
-                          employee_reference=employee.employee_code)
+                          employee_reference=employee.employee_code, first_name=employee.first_name, last_name=employee.last_name)
 
 
 def apply_state(db: Session, provider: IdentityProvider, organization_id: str, subject: str, desired: Desired | None) -> None:

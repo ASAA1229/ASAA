@@ -3,12 +3,12 @@ from typing import Literal
 
 from pydantic import model_validator
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="ASAA_AP_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="ASAA_AP_", env_file=".env", extra="ignore", populate_by_name=True)
 
     database_url: str = "sqlite:///./asaa_ap.db"
     environment: Literal["development", "test", "staging", "production"] = "development"
@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     scim_base_url: str | None = None
     scim_bearer_token: str | None = None
     scim_group_prefix: str = "asaa:"
+    # Keycloak adapter (ASAA_AP_IDENTITY_PROVIDER=keycloak). These use the ASAA_IDENTITY_KEYCLOAK_* names, not the ASAA_AP_ prefix.
+    keycloak_url: str | None = Field(default=None, validation_alias="ASAA_IDENTITY_KEYCLOAK_URL")
+    keycloak_realm: str = Field(default="asaa", validation_alias="ASAA_IDENTITY_KEYCLOAK_REALM")
+    keycloak_client_id: str = Field(default="asaa-identity-sync", validation_alias="ASAA_IDENTITY_KEYCLOAK_CLIENT_ID")
+    keycloak_client_secret: SecretStr | None = Field(default=None, validation_alias="ASAA_IDENTITY_KEYCLOAK_CLIENT_SECRET")
+    keycloak_base_group: str = Field(default="employees", validation_alias="ASAA_IDENTITY_KEYCLOAK_BASE_GROUP")
     # Directory written by scripts/backup_restore.py scheduled (read-only status view). Unset = backup status not configured.
     backup_dir: str | None = None
     backup_max_age_hours: float = 26
