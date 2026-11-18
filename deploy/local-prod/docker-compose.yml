@@ -32,6 +32,8 @@ services:
       ASAA_AP_ECOSYSTEM_REGISTRY_PATH: /app/contracts/ecosystem/v1/ecosystem-registry.json
       # Siblings run on the host's loopback; from inside the container they are reached through host.docker.internal (allowlisted).
       ASAA_AP_ECOSYSTEM_ALLOWED_HOSTS: '["host.docker.internal"]'
+      # host.docker.internal is plain http on the developer machine; any other allowlisted host must use https.
+      ASAA_AP_ECOSYSTEM_INSECURE_HTTP_HOSTS: '["host.docker.internal"]'
       ASAA_AP_ECOSYSTEM_JARVIS_URL: http://host.docker.internal:3000
       ASAA_AP_ECOSYSTEM_JARVIS_AI_GATEWAY_URL: http://host.docker.internal:3100
       ASAA_AP_ECOSYSTEM_TEMPLATES_API_URL: http://host.docker.internal:8201

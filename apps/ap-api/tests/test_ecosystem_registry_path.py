@@ -61,5 +61,7 @@ def test_local_prod_reaches_host_siblings_through_an_allowlisted_host():
     assert env["ASAA_AP_ECOSYSTEM_ALLOWED_HOSTS"] == '["host.docker.internal"]'
     overrides = {k: v for k, v in env.items() if k.startswith("ASAA_AP_ECOSYSTEM_") and k.endswith("_URL")}
     assert overrides and all(v.startswith("http://host.docker.internal:") for v in overrides.values())
-    assert ecosystem.url_allowed("http://host.docker.internal:3000/x", ["host.docker.internal"])
+    assert env["ASAA_AP_ECOSYSTEM_INSECURE_HTTP_HOSTS"] == '["host.docker.internal"]'
+    assert ecosystem.url_allowed("http://host.docker.internal:3000/x", ["host.docker.internal"], ["host.docker.internal"])
+    assert not ecosystem.url_allowed("http://host.docker.internal:3000/x", ["host.docker.internal"])
     assert not ecosystem.url_allowed("http://host.docker.internal:3000/x", [])

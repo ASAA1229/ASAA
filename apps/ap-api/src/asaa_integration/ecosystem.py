@@ -12,7 +12,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
@@ -32,20 +32,31 @@ MAX_BODY_BYTES = 64 * 1024
 REGISTRY_RELATIVE = Path("contracts") / "ecosystem" / "v1" / "ecosystem-registry.json"
 PROJECTS = {"ASAA", "JARVIS", "TEMPLATES", "PORTFOLIO"}
 STATES = {"ok", "degraded", "down"}
-_SERVICE = re.compile(r"^[a-z][a-z0-9-]{1,39}$")
-_CAPABILITY = re.compile(r"^[a-z][a-z0-9.-]{1,63}$")
-_COMMIT = re.compile(r"^[0-9a-f]{7,40}$")
-_CONTRACT_VERSION = re.compile(r"^v[0-9]+$")
+_SERVICE = re.compile(r"^[a-z][a-z0-9-]{1,39}\Z")
+_CAPABILITY = re.compile(r"^[a-z][a-z0-9.-]{1,63}\Z")
+_COMMIT = re.compile(r"^[0-9a-f]{7,40}\Z")
+_CONTRACT_VERSION = re.compile(r"^v[0-9]+\Z")
 _MANIFEST_KEYS = {"schema", "service", "project", "version", "commit", "environment", "status", "checkedAt", "checks", "capabilities", "contracts"}
 _MANIFEST_REQUIRED = {"schema", "service", "project", "version", "status", "checkedAt", "checks", "capabilities"}
 
 _cache_lock = threading.Lock()
 _cache: dict = {}
+_refreshing: threading.Event | None = None
+STALE_MAX_SECONDS = 600.0
+_VERSION_CHARS = re.compile(r"[^A-Za-z0-9._+~-]")
 
 
 def reset_cache() -> None:
+    global _refreshing
     with _cache_lock:
         _cache.clear()
+        _refreshing = None
+
+
+def sanitize_version(value) -> str | None:
+    """Versions are echoed to the portal: keep a conservative character set and length, drop anything else."""
+    cleaned = _VERSION_CHARS.sub("", str(value))[:64]
+    return cleaned or None
 
 
 def _now() -> float:
@@ -95,7 +106,9 @@ def base_url_for(service: dict) -> str | None:
     return None
 
 
-def url_allowed(url: str, allowed_hosts: list[str]) -> bool:
+def url_allowed(url: str, allowed_hosts: list[str], insecure_http_hosts: list[str] | tuple = ()) -> bool:
+    """http(s) to loopback, or to an allowlisted host. A non-loopback host must use https unless it is also listed in
+    insecure_http_hosts. Credentials in the URL are never accepted."""
     try:
         parts = urlsplit(url)
         host = parts.hostname
@@ -103,14 +116,16 @@ def url_allowed(url: str, allowed_hosts: list[str]) -> bool:
         return False
     if parts.scheme not in {"http", "https"} or not host or parts.username or parts.password:
         return False
-    if host in {h.lower() for h in allowed_hosts}:
-        return True
     if host == "localhost":
         return True
     try:
-        return ipaddress.ip_address(host).is_loopback
+        if ipaddress.ip_address(host).is_loopback:
+            return True
     except ValueError:
+        pass
+    if host not in {h.lower() for h in allowed_hosts}:
         return False
+    return parts.scheme == "https" or host in {h.lower() for h in insecure_http_hosts}
 
 
 # ---------------------------------------------------------------- transport (replaced by a fake in tests)
@@ -121,13 +136,33 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def default_transport(url: str, timeout: float) -> tuple[int, bytes]:
-    opener = urllib.request.build_opener(_NoRedirect)
+    """GET with a single monotonic deadline covering connect, headers and every body chunk; no proxies, no redirects."""
+    deadline = time.monotonic() + timeout
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect)
     request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "asaa-ecosystem-status/1"})
+
+    def read_all(response) -> bytes:
+        chunks, size = [], 0
+        while size <= MAX_BODY_BYTES:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("probe deadline exceeded")
+            try:  # tighten the socket timeout to what is left of the deadline (best effort; the loop re-checks every chunk)
+                response.fp.raw._sock.settimeout(remaining)  # noqa: SLF001
+            except AttributeError:
+                pass
+            chunk = response.read(4096)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            size += len(chunk)
+        return b"".join(chunks)
+
     try:
         with opener.open(request, timeout=timeout) as response:  # noqa: S310 - scheme and host are validated by url_allowed
-            return response.status, response.read(MAX_BODY_BYTES + 1)
+            return response.status, read_all(response)
     except urllib.error.HTTPError as exc:
-        return exc.code, exc.read(MAX_BODY_BYTES + 1)
+        return exc.code, read_all(exc)
 
 
 transport = default_transport
@@ -184,18 +219,18 @@ def _result(service: dict, project: str, status: str, detail: str | None = None,
     return row
 
 
-def probe(project: str, service: dict, allowed_hosts: list[str]) -> dict:
+def probe(project: str, service: dict, allowed_hosts: list[str], insecure_hosts: list[str] | tuple = ()) -> dict:
     """Never raises: every failure mode maps to a status."""
     try:
         if service["service"] == SERVICE_ID:  # this process: no HTTP round-trip to ourselves
             manifest = build_manifest()
-            return _result(service, project, manifest["status"], None, manifest["version"], manifest["commit"])
+            return _result(service, project, manifest["status"], None, sanitize_version(manifest["version"]), manifest["commit"])
         base = base_url_for(service)
         if not base:
             return _result(service, project, "invalid", "no base URL configured")
         manifest_mode = bool(service.get("manifestPath"))
         url = base.rstrip("/") + (service["manifestPath"] if manifest_mode else service["healthPath"])
-        if not url_allowed(url, allowed_hosts):
+        if not url_allowed(url, allowed_hosts, insecure_hosts):
             return _result(service, project, "invalid", "base URL is not loopback or allowlisted")
         try:
             code, body = transport(url, PROBE_TIMEOUT_SECONDS)
@@ -215,7 +250,7 @@ def probe(project: str, service: dict, allowed_hosts: list[str]) -> dict:
                 return _result(service, project, "invalid", problem)
             if doc["service"] != service["service"] or doc["project"] != project:
                 return _result(service, project, "invalid", "manifest identity does not match the registry")
-            return _result(service, project, doc["status"], None, doc["version"], doc.get("commit"))
+            return _result(service, project, doc["status"], None, sanitize_version(doc["version"]), doc.get("commit"))
         # healthPath: liveness only. HTTP 2xx with a JSON status of "ok" is up; anything else is down. No version or commit is reported.
         if 200 <= code < 300 and isinstance(doc, dict) and doc.get("status") == "ok":
             return _result(service, project, "ok")
@@ -229,9 +264,10 @@ def collect() -> dict:
     registry, reason = load_registry()
     if registry is None:
         return {"checkedAt": _stamp(), "registry": {"loaded": False, "reason": reason}, "services": []}
-    allowed = list(get_settings().ecosystem_allowed_hosts)
-    targets = []
-    skipped = []
+    settings = get_settings()
+    allowed = list(settings.ecosystem_allowed_hosts)
+    insecure = list(getattr(settings, "ecosystem_insecure_http_hosts", []))
+    targets, skipped = [], []
     for project in registry["projects"]:
         code = project.get("code") if isinstance(project, dict) else None
         if code not in PROJECTS:
@@ -243,22 +279,64 @@ def collect() -> dict:
                 targets.append((code, service))
             else:  # portals and web UIs: listed, never probed
                 skipped.append((code, service))
-    with ThreadPoolExecutor(max_workers=max(1, min(8, len(targets)))) as pool:
-        services = list(pool.map(lambda item: probe(item[0], item[1], allowed), targets))
+    services = []
+    if targets:
+        pool = ThreadPoolExecutor(max_workers=min(8, len(targets)), thread_name_prefix="ecosystem-probe")
+        try:
+            futures = [pool.submit(probe, code, service, allowed, insecure) for code, service in targets]
+            wait(futures, timeout=PROBE_TIMEOUT_SECONDS + 1.0)  # hard wall-clock bound for the whole fan-out
+            for (code, service), future in zip(targets, futures):
+                services.append(future.result() if future.done() and future.exception() is None
+                                else _result(service, code, "unreachable", "timeout"))
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
     services += [_result(service, code, "not-probed") for code, service in skipped]
     return {"checkedAt": _stamp(), "registry": {"loaded": True, "orgId": registry.get("orgId"), "contracts": registry.get("contracts", {})},
             "services": services}
 
 
+def _spawn(target) -> None:
+    threading.Thread(target=target, name="ecosystem-refresh", daemon=True).start()
+
+
+def _refresh(event: threading.Event) -> dict:
+    global _refreshing
+    try:
+        result = collect()
+        with _cache_lock:
+            _cache["status"] = (_now(), result)
+        return result
+    finally:
+        with _cache_lock:
+            _refreshing = None
+        event.set()
+
+
 def cached_collect() -> dict:
+    """Single-flight with stale-while-revalidate: at most one collect runs at a time. A fresh entry is returned as is; a stale one
+    (up to STALE_MAX_SECONDS old) is returned immediately while one background refresh runs; with no usable entry the first caller
+    collects and concurrent callers wait for that result instead of probing again."""
+    global _refreshing
     with _cache_lock:
         hit = _cache.get("status")
-        if hit and _now() - hit[0] < CACHE_TTL_SECONDS:
+        age = _now() - hit[0] if hit else None
+        if hit and age < CACHE_TTL_SECONDS:
             return hit[1]
-    result = collect()
+        leader = _refreshing is None
+        if leader:
+            _refreshing = threading.Event()
+        event = _refreshing
+        usable_stale = hit is not None and age < STALE_MAX_SECONDS
+    if usable_stale:
+        if leader:
+            _spawn(lambda: _refresh(event))
+        return hit[1]
+    if leader:
+        return _refresh(event)
+    event.wait(timeout=PROBE_TIMEOUT_SECONDS + 3.0)
     with _cache_lock:
-        _cache["status"] = (_now(), result)
-    return result
+        latest = _cache.get("status")
+    return latest[1] if latest else {"checkedAt": _stamp(), "registry": {"loaded": False, "reason": "status refresh in progress"}, "services": []}
 
 
 @router.get("/api/v1/operations/ecosystem")
