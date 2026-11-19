@@ -60,6 +60,10 @@ def sqlite_path(url: str) -> Path:
         raise BackupError("Only sqlite:///path URLs are supported for SQLite")
     return Path(unquote(url.removeprefix("sqlite:///")))
 
+def quote_identifier(identifier: str) -> str:
+    """Quote a database identifier safely for SQLite and PostgreSQL."""
+    return '"' + identifier.replace('"', '""') + '"'
+
 
 def pg_parts(url: str) -> dict:
     parsed = urlparse(url.replace("postgresql+psycopg://", "postgresql://", 1))
@@ -106,7 +110,7 @@ def sqlite_stats(path: Path) -> dict:
             raise BackupError("SQLite integrity_check failed")
         tables = [r[0] for r in connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
-        counts = {t: connection.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0] for t in tables}
+        counts = {t: connection.execute(f"SELECT COUNT(*) FROM {quote_identifier(t)}").fetchone()[0] for t in tables}
         revision = None
         if "alembic_version" in tables:
             row = connection.execute("SELECT version_num FROM alembic_version").fetchone()
@@ -125,7 +129,7 @@ def pg_stats(url: str) -> dict:
             "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")]
         counts = {}
         for table in tables:
-            counts[table] = connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
+            counts[table] = connection.execute(f"SELECT COUNT(*) FROM {quote_identifier(table)}").fetchone()[0]
         revision = None
         if "alembic_version" in tables:
             row = connection.execute("SELECT version_num FROM alembic_version").fetchone()
