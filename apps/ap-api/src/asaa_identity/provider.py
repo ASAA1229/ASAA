@@ -76,6 +76,11 @@ class IdentityProvider(ABC):
     @abstractmethod
     def list_users(self) -> list[ProviderUser]: ...
 
+    def adopt_account(self, subject: str, username: str, employee_reference: str | None, employee_email: str | None) -> str:
+        """One-time, explicitly approved adoption of a pre-existing account for an employee. Returns the provider's id.
+        Adapters that cannot prove the account belongs to the employee must refuse (PermanentProviderError)."""
+        raise PermanentProviderError("This identity provider does not support adopting existing accounts")
+
     def drain_audit(self) -> list[dict]:
         """Provisioning steps taken since the last call (subject, provider id, action, group changes; no personal data)."""
         return []

@@ -397,6 +397,35 @@ class KeycloakIdentityProvider(IdentityProvider):
         self._step(subject, existing["id"], "enabled" if reenabled else "updated")
         return existing["id"]
 
+    def adopt_account(self, subject: str, username: str, employee_reference: str | None, employee_email: str | None) -> str:
+        """Mark a pre-existing account as ASAA-managed. Only called after an independent approval. The account must exist under the
+        given username, must not already be managed (by anyone), and must prove it belongs to this employee: its
+        asaa_employee_reference attribute equals the HR employee code, or (when it has none) its email equals the HR work email."""
+        _, _, users = self.client.request("GET", "/users", query={"username": username.lower(), "exact": "true"})
+        account = next((u for u in users or [] if str(u.get("username", "")).lower() == username.lower()), None)
+        if account is None:
+            raise PermanentProviderError("No Keycloak account has that username")
+        attributes = dict(account.get("attributes") or {})
+        if _first(attributes, MANAGED_ATTRIBUTE) == "true" or _first(attributes, SUBJECT_ATTRIBUTE) is not None:
+            raise PermanentProviderError("That Keycloak account is already managed by ASAA")
+        recorded = _first(attributes, REFERENCE_ATTRIBUTE)
+        if recorded is not None:
+            proven = bool(employee_reference) and recorded == employee_reference
+        else:
+            proven = bool(employee_email) and str(account.get("email", "")).lower() == employee_email.lower()
+        if not proven:
+            raise PermanentProviderError("The account does not match the employee (employee reference or email)")
+        attributes.update({MANAGED_ATTRIBUTE: ["true"], SUBJECT_ATTRIBUTE: [subject]})
+        if employee_reference:
+            attributes[REFERENCE_ATTRIBUTE] = [employee_reference]
+        status, _, _ = self.client.request("PUT", f"/users/{_quote(account['id'])}", {"attributes": attributes})
+        if status == 404:
+            raise TransientProviderError("Keycloak user disappeared during adoption")
+        if status not in (200, 204):
+            raise PermanentProviderError(f"Keycloak refused the adoption (HTTP {status})")
+        self._step(subject, account["id"], "adopted")
+        return account["id"]
+
     def disable_user(self, subject: str) -> None:
         user, owned = self._resolve(subject)
         if user is None:
