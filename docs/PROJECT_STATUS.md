@@ -58,11 +58,11 @@ Scores are repository maturity judgements (not the organization-wide score). The
 
 ### Branches and pull requests
 - Default branch: `main`.
-- Branches observed: `main`, `new`, `docs/organization-preservation-baseline`.
-- Required ASAA branches `dev`, `fix` and `test`: absent at the first assessment; observed on origin on 2026-11-14 (see ASAA-012). The `docs/organization-preservation-baseline` branch was the only extra branch at that time.
-- `main` and `new` are reported as unprotected by the branch metadata inspected. Required-check/ruleset configuration could not be fully inspected due GitHub integration permission limits.
-- `new` is 408 commits ahead of `main` in GitHub compare output. Review history and scope before any merge.
-- PR #1 is open from `docs/organization-preservation-baseline` to `main`; it is unrelated to the current application delivery. No merge is authorized by this status record.
+- Branches observed in the 2026-11-19 organization audit: `main`, `dev`, `new`, `fix`, `test`, and `docs/2026-11-14-master-baseline-refresh`.
+- The five required ASAA branches now exist. This supersedes the earlier first-assessment note that `dev`, `fix` and `test` were absent.
+- Branch protection and required-check/ruleset configuration have not been fully verified for every branch; do not infer protection from branch existence.
+- GitHub compare on 2026-11-19 showed `new` and `main` had diverged (90 commits ahead, 1 behind at that snapshot). Re-run compare and review the complete diff before integration; do not merge solely on this historical count.
+- No open pull requests were returned by the repository's open-PR listing during the 2026-11-19 audit. Recheck before any integration decision.
 
 ### Application and data
 - Frontend: React 18, Vite 6, JavaScript/JSX.
