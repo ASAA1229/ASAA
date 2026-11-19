@@ -69,6 +69,20 @@ def pg_parts(url: str) -> dict:
             "user": unquote(parsed.username or ""), "dbname": parsed.path.lstrip("/")}
 
 
+def strip_newer_pg_restore_settings(source: Path, target: Path) -> None:
+    """Remove session settings emitted by newer pg_dump clients but unknown to older servers.
+
+    PostgreSQL 17+ clients emit SET transaction_timeout = 0; PostgreSQL 16 rejects it.
+    Keep the archive itself intact and filter only this nonessential session setting from
+    the generated restore SQL before executing it with psql.
+    """
+    with source.open("r", encoding="utf-8") as input_file, target.open("w", encoding="utf-8", newline="") as output_file:
+        for line in input_file:
+            if line.strip().lower() == "set transaction_timeout = 0;":
+                continue
+            output_file.write(line)
+
+
 def find_tool(name: str) -> str:
     override = os.environ.get(f"ASAA_{name.upper()}_BIN")
     if override:
@@ -392,12 +406,20 @@ def restore(artifact: Path, url: str, encrypt_key_file: str | None = None, verif
             if not is_postgres(url):
                 raise BackupError("PostgreSQL backup requires a PostgreSQL target URL")
             parts = pg_parts(url)
-            command = [find_tool("pg_restore"), "--no-owner", "--no-privileges", "--exit-on-error", "-h", parts["host"],
-                       "-p", parts["port"], "-U", parts["user"], "-d", parts["dbname"]]
-            if force:
-                command.insert(1, "--clean")
-                command.insert(2, "--if-exists")
-            subprocess.run([*command, str(plain)], check=True, capture_output=True, text=True)
+            # Render the archive to SQL first so a newer pg_dump/pg_restore client can
+            # target an older PostgreSQL server (e.g. PG18 client -> PG16 target).
+            with tempfile.TemporaryDirectory(prefix="asaa-pg-restore-") as work_dir:
+                raw_sql = Path(work_dir) / "restore.sql"
+                compatible_sql = Path(work_dir) / "restore-compatible.sql"
+                command = [find_tool("pg_restore"), "--no-owner", "--no-privileges", "--file", str(raw_sql)]
+                if force:
+                    command[1:1] = ["--clean", "--if-exists"]
+                subprocess.run([*command, str(plain)], check=True, capture_output=True, text=True)
+                strip_newer_pg_restore_settings(raw_sql, compatible_sql)
+                psql = [find_tool("psql"), "--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--single-transaction",
+                        "-h", parts["host"], "-p", parts["port"], "-U", parts["user"], "-d", parts["dbname"],
+                        "--file", str(compatible_sql)]
+                subprocess.run(psql, check=True, capture_output=True, text=True)
         else:
             if is_postgres(url):
                 raise BackupError("SQLite backup requires a sqlite:/// target URL")
