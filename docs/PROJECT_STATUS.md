@@ -58,11 +58,11 @@ Scores are repository maturity judgements (not the organization-wide score). The
 
 ### Branches and pull requests
 - Default branch: `main`.
-- Branches observed: `main`, `new`, `docs/organization-preservation-baseline`.
-- Required ASAA branches `dev`, `fix` and `test`: absent at the first assessment; observed on origin on 2026-11-14 (see ASAA-012). The `docs/organization-preservation-baseline` branch was the only extra branch at that time.
-- `main` and `new` are reported as unprotected by the branch metadata inspected. Required-check/ruleset configuration could not be fully inspected due GitHub integration permission limits.
-- `new` is 408 commits ahead of `main` in GitHub compare output. Review history and scope before any merge.
-- PR #1 is open from `docs/organization-preservation-baseline` to `main`; it is unrelated to the current application delivery. No merge is authorized by this status record.
+- Branches observed in the 2026-11-19 organization audit: `main`, `dev`, `new`, `fix`, `test`, and `docs/2026-11-14-master-baseline-refresh`.
+- The five required ASAA branches now exist. This supersedes the earlier first-assessment note that `dev`, `fix` and `test` were absent.
+- Branch protection and required-check/ruleset configuration have not been fully verified for every branch; do not infer protection from branch existence.
+- GitHub compare on 2026-11-19 showed `new` and `main` had diverged (90 commits ahead, 1 behind at that snapshot). Re-run compare and review the complete diff before integration; do not merge solely on this historical count.
+- No open pull requests were returned by the repository's open-PR listing during the 2026-11-19 audit. Recheck before any integration decision.
 
 ### Application and data
 - Frontend: React 18, Vite 6, JavaScript/JSX.
@@ -241,3 +241,14 @@ Gap tally is unchanged (13: 2 complete and verified, 8 partial, 3 blocked). ASAA
 **Current phase: DEVELOPMENT** (owner direction: DEVELOPMENT, then TESTING, then DEPLOYMENT). Features added in this phase carry the status **IMPLEMENTED — NOT FULLY TESTED** until the testing phase runs. Test-phase and deployment-phase items that are not yet due (full-suite reruns, CI runs, hosted or staging verification, hosting, live providers, production rehearsal) are **deferred to test phase** or **deferred to deployment phase**; they are not failures. Evidence classes used in these documents: coordinator-verified, agent-reported, in progress, CI not observed.
 
 Tracker note: the workbooks add ASAA-014 (governed registers and workspace inventory) as a tracked row with status IMPLEMENTED — NOT FULLY TESTED; verification is deferred to the test phase, so the tracked gap count is 14 (2 complete and verified, 8 partial, 3 blocked, 1 implemented not fully tested).
+
+
+## 2026-11-19 CI follow-up
+
+The organization audit inspected PostgreSQL integration run **44501324951** on `new`, SHA `2c6e39a2`: **623 passed, 1 failed**. The failure was `test_postgresql_round_trip_backup_restore_verify`. The archive was produced by a newer PostgreSQL client that emitted `SET transaction_timeout = 0;`, which PostgreSQL 16 does not recognize.
+
+A compatibility fix was committed on `new`:
+- `apps/ap-api/scripts/backup_restore.py` now renders the custom archive to SQL, removes only the unsupported newer-client session setting, then executes the compatible SQL with `psql` in a single transaction (commit `71fb683d76892e9be5477199adb462fc5555e721`).
+- `apps/ap-api/tests/test_backup_restore.py` adds a focused regression test proving the filter removes that setting and preserves other SQL (commit `cd22a4cf718cd35dbcb4ff80e01018ffcb7e1694`).
+
+Post-fix PostgreSQL integration run **44524049465** completed successfully on exact application commit `71fb683d76892e9be5477199adb462fc5555e721` (**CI VERIFIED**). The regression test and full PostgreSQL integration job passed. Run **44524049350** also completed successfully on that commit for local-load/smoke, Python dependency audit and people/finance API quality. In run **44524049436**, the web production build and dependency audit passed; the browser E2E job was still in progress at the time of this update. The earlier PostgreSQL integration failure remains historical evidence; the corrected restore path is now CI-verified for the named exact application commit. This does not change the overall **NO-GO** release decision or establish production acceptance.

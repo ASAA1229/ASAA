@@ -28,3 +28,14 @@
 **Reconciled 2026-11-14 (documentation owner):** development, testing, integration and acceptance columns updated to the verified evidence in PROJECT_STATUS.md. Local evidence is not CI evidence (no GitHub Actions run observed; `gh` unauthenticated) and nothing here is CI VERIFIED.
 
 **Reconciled 2026-11-15 (documentation owner):** development, testing, integration and acceptance columns updated to the verified evidence in PROJECT_STATUS.md. Local evidence is not CI evidence (no GitHub Actions run observed; `gh` unauthenticated) and nothing here is CI VERIFIED.
+
+
+---
+
+## 2026-11-19 discovery reconciliation note
+
+Sets 1–12 are complete; all questions were answered “all of the above.” These are candidate requirements only. Existing status rows and evidence remain authoritative and are not upgraded by questionnaire answers. New cross-cutting domains to map: architecture/integration; data governance; security/privacy; CI/CD/infrastructure; quality engineering and acceptance. Requirement-to-epic/story/task/evidence mapping, ownership, dependencies, prioritization and acceptance criteria remain pending.
+
+
+## Project-specific pending work carried forward (not a status promotion)
+Verify and close external identity-provider activation; complete workforce, payroll/leave/expense policy E2E and business UAT; supplier/procurement/AP and AR/billing integrations; project/product/service-delivery requirements and implementation; reporting freshness/lineage and coordinator verification; independent security review; CI evidence on exact SHA; approved hosting/topology; production backup/restore exercise and owner-approved RPO/RTO; cross-project data authority and integration contracts.
