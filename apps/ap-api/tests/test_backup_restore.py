@@ -126,6 +126,16 @@ def test_password_in_url_is_refused():
         br.pg_parts("postgresql://user:secret@host/db")
 
 
+def test_pg_restore_compat_strips_only_newer_server_session_setting(tmp_path):
+    source = tmp_path / "restore.sql"
+    target = tmp_path / "compatible.sql"
+    source.write_text("SET statement_timeout = 0;\\nSET transaction_timeout = 0;\\nSELECT 1;\\n", encoding="utf-8")
+
+    br.strip_newer_pg_restore_settings(source, target)
+
+    assert target.read_text(encoding="utf-8") == "SET statement_timeout = 0;\\nSELECT 1;\\n"
+
+
 PG_URL = os.getenv("ASAA_AP_POSTGRES_TEST_URL")
 
 
