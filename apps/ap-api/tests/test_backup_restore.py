@@ -126,6 +126,19 @@ def test_password_in_url_is_refused():
         br.pg_parts("postgresql://user:secret@host/db")
 
 
+def test_sqlite_stats_quotes_unusual_table_identifiers(tmp_path):
+    db = tmp_path / "quoted-identifiers.db"
+    connection = sqlite3.connect(db)
+    connection.execute('CREATE TABLE "odd""table name" (id INTEGER)')
+    connection.executemany('INSERT INTO "odd""table name" (id) VALUES (?)', [(1,), (2,), (3,)])
+    connection.commit()
+    connection.close()
+
+    result = br.sqlite_stats(db)
+
+    assert result["tables"]['odd"table name'] == 3
+
+
 def test_pg_restore_compat_strips_only_newer_server_session_setting(tmp_path):
     source = tmp_path / "restore.sql"
     target = tmp_path / "compatible.sql"
