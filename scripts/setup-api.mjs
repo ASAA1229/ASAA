@@ -23,7 +23,7 @@ try {
     if (configuredPython) {
       await run(configuredPython, ["-m", "venv", ".venv"], apiDir);
     } else if (process.platform === "win32") {
-      await run("py", ["-3", "-m", "venv", ".venv"], apiDir);
+      await run("py", ["-3.12", "-m", "venv", ".venv"], apiDir); // the API targets Python 3.12 (CI and Docker); never the newest "py -3"
     } else {
       await run("python3", ["-m", "venv", ".venv"], apiDir);
     }

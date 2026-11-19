@@ -53,7 +53,7 @@ if (-not (Test-Path $venvPy)) {
   $made = $false
   $candidates = @()
   if ($env:ASAA_PYTHON) { $candidates += ,@($env:ASAA_PYTHON) }
-  foreach ($v in '3.12', '3.13', '3.11', '3.14', '3') { $candidates += ,@('py', "-$v") }
+  foreach ($v in '3.12') { $candidates += ,@('py', "-$v") }  # the API targets Python 3.12; set ASAA_PYTHON to use another interpreter explicitly
   foreach ($c in $candidates) {
     $exe = $c[0]; $extra = @($c | Select-Object -Skip 1)
     try {
