@@ -84,10 +84,12 @@ def test_purge_cli_uses_the_configured_default_and_the_given_database(tmp_path, 
     assert "removed 1 event(s) older than 30 day(s)" in capsys.readouterr().out
 
 
-def test_default_retention_is_a_documented_placeholder_pending_owner_approval():
+def test_default_retention_is_the_owner_approved_180_days_and_stays_configurable(monkeypatch):
     from asaa_ap.config import Settings
     assert Settings().integration_event_retention_days == 180
-    assert "PENDING OWNER APPROVAL" in (ROOT / "src" / "asaa_ap" / "config.py").read_text()
+    assert "PENDING OWNER APPROVAL" not in (ROOT / "src" / "asaa_ap" / "config.py").read_text()
+    monkeypatch.setenv("ASAA_AP_INTEGRATION_EVENT_RETENTION_DAYS", "90")
+    assert Settings().integration_event_retention_days == 90
 
 
 @pytest.mark.parametrize("script", [purge_script, seed_script])

@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     integration_rate_burst: int = Field(default=30, ge=1, le=100000)
     # A critical alert for the same (source, type) is not repeated within this window.
     integration_critical_dedupe_minutes: int = Field(default=15, ge=0, le=1440)
-    # Retention for ingested events, used by scripts/purge_integration_events.py. PENDING OWNER APPROVAL: engineering default only.
+    # Retention for ingested events, used by scripts/purge_integration_events.py. Default 180 days, approved by the owner (2026-11-18); keep it configurable.
     integration_event_retention_days: int = Field(default=180, ge=1, le=3650)
     # Event `time` must be within this many seconds of now (past or future).
     integration_clock_skew_seconds: int = Field(default=86400, ge=0, le=31536000)

@@ -5,7 +5,7 @@
   python scripts/purge_integration_events.py --days 90 --dry-run
   python scripts/purge_integration_events.py --interval 3600  # worker mode: repeat every hour
 
-The default retention period is an engineering placeholder and is PENDING OWNER APPROVAL; nothing schedules this script.
+The default retention period (180 days) is owner-approved and configurable; nothing schedules this script.
 A purge writes one audit event per organization with the number of rows removed (never their content). The database comes from
 ASAA_AP_DATABASE_URL or --database-url (a URL that embeds a password is refused: use the environment).
 """
