@@ -66,7 +66,9 @@ jobs:
         run: npm audit --audit-level=high
 
   web-e2e:
-    runs-on: ubuntu-latest
+    # Pin the browser-test runner to the supported LTS image; ubuntu-latest moved to 26.04,
+    # whose apt mirrors failed while Playwright installed browser system dependencies.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
