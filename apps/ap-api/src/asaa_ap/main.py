@@ -23,8 +23,16 @@ from asaa_governance.administration import router as administration_router
 from asaa_governance.authorization import router as authorization_router
 from asaa_workforce_finance.api import router as workforce_finance_router
 from asaa_identity.api import router as identity_sync_router
-from asaa_identity.memory import InMemoryIdentityProvider
-from asaa_identity.provider import register_provider
+from asaa_notifications.api import router as notifications_router
+from asaa_registers.api import router as registers_router
+from asaa_reports.api import router as reports_router
+from asaa_ap.operations import router as operations_router
+from asaa_integration.manifest import router as manifest_router
+from asaa_integration.events import router as integration_events_router
+from asaa_integration.ecosystem import router as ecosystem_router
+from asaa_people.leave_policy import router as leave_policy_router
+from asaa_notifications.provider import InMemoryNotificationProvider, register_notification_provider
+from asaa_identity.bootstrap import register_configured_providers
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -58,8 +66,17 @@ app.include_router(administration_router)
 app.include_router(authorization_router)
 app.include_router(workforce_finance_router)
 app.include_router(identity_sync_router)
-if settings.identity_provider == "memory" and settings.environment != "production":
-    register_provider("memory", InMemoryIdentityProvider)
+app.include_router(notifications_router)
+app.include_router(registers_router)
+app.include_router(reports_router)
+app.include_router(operations_router)
+app.include_router(leave_policy_router)
+app.include_router(manifest_router)
+app.include_router(integration_events_router)
+app.include_router(ecosystem_router)
+if settings.notification_provider == "memory" and settings.environment != "production":
+    register_notification_provider("memory", InMemoryNotificationProvider)
+register_configured_providers(settings)
 
 
 @app.get("/api/v1/me", tags=["Identity"])

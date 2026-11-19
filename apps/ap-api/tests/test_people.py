@@ -13,12 +13,24 @@ def create_employee(client):
     return response.json()
 
 
+def make_unit(client, code="engineering", org="org-a", status="Active", unit_type="Department"):
+    from asaa_ap.database import get_db
+    from asaa_governance.administration import OrganizationUnit
+    session = next(client.app.dependency_overrides[get_db]())
+    unit = OrganizationUnit(organization_id=org, unit_type=unit_type, unit_code=code, name=code.title(), status=status,
+                            created_by="seed", updated_by="seed")
+    session.add(unit)
+    session.commit()
+    return unit.id
+
+
 def test_hr_employee_and_effective_dated_employment_history(client):
     employee = create_employee(client)
+    department_id = make_unit(client)
     record = client.post(
         f"/api/v1/hr/employees/{employee['id']}/employment-records",
         json={
-            "department_id": "dept-engineering", "position_title": "Software Engineer",
+            "department_id": department_id, "position_title": "Software Engineer",
             "employment_type": "Employee", "status": "Active",
             "effective_from": date.today().isoformat(), "reason": "Initial appointment"
         },

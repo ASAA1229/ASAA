@@ -1,0 +1,36 @@
+name: ASAA deployment rehearsal
+
+# Local container rehearsal on the runner: migrate -> smoke -> simulated bad release -> rollback -> smoke.
+# Deploys nowhere. Manual, plus whenever the rehearsal assets change.
+on:
+  workflow_dispatch:
+  push:
+    branches: [new]
+    paths:
+      - "deploy/**"
+      - "apps/ap-api/Dockerfile"
+      - "Dockerfile.portal"
+      - ".github/workflows/deploy-rehearsal.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "PyJWT[crypto]"
+      - name: Run rehearsal
+        env:
+          REHEARSAL_PYTHON: python
+        run: bash deploy/rehearsal.sh
+      - name: Upload rehearsal result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rehearsal-result
+          path: deploy/rehearsal-result.json

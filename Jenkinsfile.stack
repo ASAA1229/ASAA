@@ -1,0 +1,185 @@
+pipeline {
+  agent any
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '20'))
+    skipDefaultCheckout(true)
+  }
+  parameters {
+    choice(name: 'ACTION', choices: ['DEPLOY', 'START', 'STOP', 'RESTART', 'STATUS'], description: 'Manage the localhost development stack.')
+    string(name: 'SOURCE_BRANCH', defaultValue: 'new', trim: true, description: 'Git branch to validate and run for all four repositories.')
+    string(name: 'GITHUB_READ_CREDENTIALS_ID', defaultValue: 'github-read-token', trim: true, description: 'Jenkins username/password credential with read access to all four GitHub repositories.')
+  }
+  stages {
+    stage('Checkout stack controller') {
+      steps {
+        dir('control') {
+          checkout scm
+        }
+      }
+    }
+    stage('Stop stack before deployment') {
+      when {
+        anyOf {
+          expression { params.ACTION == 'DEPLOY' }
+          expression { params.ACTION == 'STOP' }
+          expression { params.ACTION == 'RESTART' }
+        }
+      }
+      steps {
+        powershell '''
+          $ErrorActionPreference = "Stop"
+          & "$env:WORKSPACE\\control\\scripts\\local-stack.ps1" -Action Stop -Root $env:WORKSPACE
+        '''
+      }
+    }
+    stage('Checkout four projects') {
+      when {
+        expression { params.ACTION == 'DEPLOY' }
+      }
+      steps {
+        script {
+          def repositories = [
+            [directory: 'ASAA', url: 'https://github.com/ASAA1229/ASAA.git'],
+            [directory: 'JARVIS', url: 'https://github.com/ASAA1229/JARVIS.git'],
+            [directory: 'Templates', url: 'https://github.com/ASAA1229/Templates.git'],
+            [directory: 'Portfolio', url: 'https://github.com/ASAA1229/Portfolio.git']
+          ]
+          for (repository in repositories) {
+            dir("projects/${repository.directory}") {
+              checkout([
+                $class: 'GitSCM',
+                branches: [[name: "*/${params.SOURCE_BRANCH}"]],
+                extensions: [],
+                userRemoteConfigs: [[
+                  credentialsId: params.GITHUB_READ_CREDENTIALS_ID,
+                  url: repository.url
+                ]]
+              ])
+            }
+          }
+        }
+      }
+    }
+    stage('Install dependencies and validate') {
+      when {
+        expression { params.ACTION == 'DEPLOY' }
+      }
+      steps {
+        dir('projects/ASAA') {
+          bat 'npm install --no-audit --no-fund'
+          bat 'npm run setup:api'
+          bat 'npm run lint'
+          bat 'npm test'
+          bat 'apps\\ap-api\\.venv\\Scripts\\python.exe -m compileall -q apps\\ap-api\\src apps\\ap-api\\tests'
+          bat 'apps\\ap-api\\.venv\\Scripts\\python.exe -m pytest -q apps\\ap-api\\tests'
+          bat 'npm run build'
+        }
+        dir('projects/JARVIS') {
+          bat 'npm install --no-audit --no-fund'
+          bat 'npm run lint'
+          bat 'npm run build'
+          bat 'npm test'
+          powershell '''
+            $ErrorActionPreference = "Stop"
+            $browserTemp = Join-Path $env:WORKSPACE ".jenkins-temp"
+            New-Item -ItemType Directory -Force -Path $browserTemp | Out-Null
+            $env:TEMP = $browserTemp
+            $env:TMP = $browserTemp
+            npm run test:browser
+            if ($LASTEXITCODE -ne 0) {
+              throw "JARVIS browser smoke failed. Check headless Edge access for the Jenkins service account."
+            }
+          '''
+        }
+        dir('projects/Templates') {
+          withEnv(['TEMPLATES_PG_PORT=54339']) {
+            bat 'npm install --no-audit --no-fund'
+            bat 'npm run check:pm'
+            bat 'npm run db:local -- init'
+            bat 'npm run db:deploy'
+            powershell '''
+              $ErrorActionPreference = "Stop"
+              $testDatabaseLine = Get-Content "apps/api/.env" |
+                Where-Object { $_ -match "^TEST_DATABASE_URL=" } |
+                Select-Object -First 1
+              if (-not $testDatabaseLine) {
+                throw "TEST_DATABASE_URL was not created by the local PostgreSQL initializer."
+              }
+              $match = [regex]::Match($testDatabaseLine, '^TEST_DATABASE_URL="?([^"]+)"?$')
+              if (-not $match.Success) {
+                throw "TEST_DATABASE_URL in apps/api/.env has an unexpected format."
+              }
+              $env:DATABASE_URL = $match.Groups[1].Value
+              npm run db:deploy -w @asaa/api
+              if ($LASTEXITCODE -ne 0) {
+                throw "Applying migrations to the Templates test database failed."
+              }
+              Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+            '''
+            bat 'npm run validate'
+            bat 'npm run validate:generated'
+          }
+        }
+        dir('projects/Portfolio') {
+          bat 'npm install --no-audit --no-fund'
+          bat 'npm run check:pm'
+          bat 'npm run audit:deps'
+          bat 'npm run verify'
+        }
+      }
+    }
+    stage('Prepare Templates database') {
+      when {
+        anyOf {
+          expression { params.ACTION == 'DEPLOY' }
+          expression { params.ACTION == 'START' }
+          expression { params.ACTION == 'RESTART' }
+        }
+      }
+      steps {
+        dir('projects/Templates') {
+          withEnv(['TEMPLATES_PG_PORT=54339']) {
+            bat 'npm run db:local -- init'
+            bat 'npm run db:deploy'
+          }
+        }
+      }
+    }
+    stage('Start applications') {
+      when {
+        anyOf {
+          expression { params.ACTION == 'DEPLOY' }
+          expression { params.ACTION == 'START' }
+          expression { params.ACTION == 'RESTART' }
+        }
+      }
+      steps {
+        powershell '''
+          $ErrorActionPreference = "Stop"
+          & "$env:WORKSPACE\\control\\scripts\\local-stack.ps1" -Action Start -Root $env:WORKSPACE
+        '''
+      }
+    }
+    stage('Show stack status') {
+      when {
+        expression { params.ACTION == 'STATUS' }
+      }
+      steps {
+        powershell '''
+          $ErrorActionPreference = "Stop"
+          & "$env:WORKSPACE\\control\\scripts\\local-stack.ps1" -Action Status -Root $env:WORKSPACE
+        '''
+      }
+    }
+  }
+  post {
+    success {
+      echo "Local stack action ${params.ACTION} completed. Applications are bound to 127.0.0.1 only."
+    }
+    failure {
+      echo "Local stack action ${params.ACTION} failed. If this was DEPLOY, applications may remain stopped; review the failing stage before running START."
+    }
+  }
+}

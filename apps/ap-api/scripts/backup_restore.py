@@ -13,8 +13,10 @@ Examples
   python scripts/backup_restore.py backup  --database-url postgresql://user@host/db --out backups/   (PGPASSWORD from env)
   python scripts/backup_restore.py restore --backup backups/asaa-....dump --database-url postgresql://user@host/restore_db --verify
 
-Optional encryption at rest: --encrypt-key-file points to a file holding a Fernet key
-(`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`).
+Encryption at rest (AES-256-GCM, authenticated chunks): --encrypt-key-file takes a file path or `env:VARIABLE` holding a
+base64 32-byte key (`python scripts/backup_restore.py keygen`). Scheduled operation:
+  python scripts/backup_restore.py scheduled --database-url ... --out backups/ --encrypt-key-file env:ASAA_BACKUP_KEY
+  python scripts/backup_restore.py check-staleness --out backups/ --max-age-hours 26     # exit 2 = stale/failed (alert)
 Key custody, off-site storage, retention and RPO/RTO values are owner decisions and are NOT
 configured here. Passwords are never accepted on the command line; use PGPASSWORD/.pgpass.
 """
@@ -58,6 +60,10 @@ def sqlite_path(url: str) -> Path:
         raise BackupError("Only sqlite:///path URLs are supported for SQLite")
     return Path(unquote(url.removeprefix("sqlite:///")))
 
+def quote_identifier(identifier: str) -> str:
+    """Quote a database identifier safely for SQLite and PostgreSQL."""
+    return '"' + identifier.replace('"', '""') + '"'
+
 
 def pg_parts(url: str) -> dict:
     parsed = urlparse(url.replace("postgresql+psycopg://", "postgresql://", 1))
@@ -65,6 +71,20 @@ def pg_parts(url: str) -> dict:
         raise BackupError("Do not embed a password in the database URL; set PGPASSWORD or use .pgpass")
     return {"host": parsed.hostname or "localhost", "port": str(parsed.port or 5432),
             "user": unquote(parsed.username or ""), "dbname": parsed.path.lstrip("/")}
+
+
+def strip_newer_pg_restore_settings(source: Path, target: Path) -> None:
+    """Remove session settings emitted by newer pg_dump clients but unknown to older servers.
+
+    PostgreSQL 17+ clients emit SET transaction_timeout = 0; PostgreSQL 16 rejects it.
+    Keep the archive itself intact and filter only this nonessential session setting from
+    the generated restore SQL before executing it with psql.
+    """
+    with source.open("r", encoding="utf-8") as input_file, target.open("w", encoding="utf-8", newline="") as output_file:
+        for line in input_file:
+            if line.strip().lower() == "set transaction_timeout = 0;":
+                continue
+            output_file.write(line)
 
 
 def find_tool(name: str) -> str:
@@ -90,7 +110,7 @@ def sqlite_stats(path: Path) -> dict:
             raise BackupError("SQLite integrity_check failed")
         tables = [r[0] for r in connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
-        counts = {t: connection.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0] for t in tables}
+        counts = {t: connection.execute(f"SELECT COUNT(*) FROM {quote_identifier(t)}").fetchone()[0] for t in tables}
         revision = None
         if "alembic_version" in tables:
             row = connection.execute("SELECT version_num FROM alembic_version").fetchone()
@@ -109,7 +129,7 @@ def pg_stats(url: str) -> dict:
             "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")]
         counts = {}
         for table in tables:
-            counts[table] = connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
+            counts[table] = connection.execute(f"SELECT COUNT(*) FROM {quote_identifier(table)}").fetchone()[0]
         revision = None
         if "alembic_version" in tables:
             row = connection.execute("SELECT version_num FROM alembic_version").fetchone()
@@ -123,30 +143,178 @@ def stats_for(url: str) -> dict:
 
 # ---------- encryption -------------------------------------------------------
 
-def _fernet(key_file: str):
-    from cryptography.fernet import Fernet
-    return Fernet(Path(key_file).read_bytes().strip())
+MAGIC = b"ASAAGCM1"
+FRAME = 1024 * 1024
 
 
-def encrypt_file(path: Path, key_file: str) -> Path:
+def _load_key(source: str) -> bytes:
+    """Key material: 32 random bytes, base64 encoded, from a file path or `env:VARIABLE`."""
+    import base64
+    raw = os.environ.get(source[4:]) if source.startswith("env:") else Path(source).read_text()
+    if not raw or not raw.strip():
+        raise BackupError("Backup encryption key not found (empty environment variable or file)")
+    text = raw.strip()
+    try:
+        key = base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+    except Exception as exc:
+        raise BackupError("Backup encryption key must be base64") from exc
+    if len(key) != 32:
+        raise BackupError("Backup encryption key must decode to exactly 32 bytes (AES-256)")
+    return key
+
+
+def generate_key() -> str:
+    import base64
+    return base64.urlsafe_b64encode(os.urandom(32)).decode()
+
+
+def _aad(index: int, final: bool) -> bytes:
+    return index.to_bytes(8, "big") + (b"\x01" if final else b"\x00")
+
+
+def _crypt(src: Path, dst: Path, key_source: str, encrypt: bool) -> None:
+    """AES-256-GCM in 1 MiB frames with a random nonce each. Frame index and a final-frame flag are authenticated, so
+    frames cannot be reordered or dropped and the file cannot be truncated without detection."""
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    aes = AESGCM(_load_key(key_source))
+    with src.open("rb") as fin, dst.open("wb") as fout:
+        if encrypt:
+            fout.write(MAGIC)
+            block, index = fin.read(FRAME), 0
+            while True:
+                following = fin.read(FRAME)
+                final = not following
+                nonce = os.urandom(12)
+                sealed = aes.encrypt(nonce, block, _aad(index, final))
+                fout.write(len(sealed).to_bytes(4, "big") + nonce + sealed)
+                if final:
+                    return
+                block, index = following, index + 1
+        if fin.read(len(MAGIC)) != MAGIC:
+            raise BackupError("Not an encrypted ASAA backup (bad header)")
+        index = 0
+        while True:
+            header = fin.read(4)
+            if not header:
+                raise BackupError("Encrypted backup is truncated")
+            size = int.from_bytes(header, "big")
+            nonce, sealed = fin.read(12), fin.read(size)
+            if len(nonce) != 12 or len(sealed) != size:
+                raise BackupError("Encrypted backup is truncated")
+            final = not fin.peek(1)[:1]
+            try:
+                fout.write(aes.decrypt(nonce, sealed, _aad(index, final)))
+            except InvalidTag as exc:
+                raise BackupError("Backup could not be decrypted (wrong key, tampering or truncation)") from exc
+            if final:
+                return
+            index += 1
+
+
+def encrypt_file(path: Path, key_source: str) -> Path:
     target = path.with_name(path.name + ".enc")
-    target.write_bytes(_fernet(key_file).encrypt(path.read_bytes()))
+    _crypt(path, target, key_source, True)
     path.unlink()
     return target
 
 
-def decrypt_to_temp(path: Path, key_file: str) -> Path:
+def decrypt_to_temp(path: Path, key_source: str) -> Path:
     handle, name = tempfile.mkstemp(suffix=".plain")
     os.close(handle)
     try:
-        Path(name).write_bytes(_fernet(key_file).decrypt(path.read_bytes()))
-    except Exception as exc:  # InvalidToken etc.
+        _crypt(path, Path(name), key_source, False)
+    except BackupError:
         Path(name).unlink(missing_ok=True)
-        raise BackupError("Backup could not be decrypted (wrong key or corrupted file)") from exc
+        raise
     return Path(name)
 
 
-# ---------- operations -------------------------------------------------------
+# ---------- retention, scheduling, staleness ---------------------------------
+
+def _manifests(out_dir: Path) -> list[tuple[datetime, Path, dict]]:
+    found = []
+    for manifest_path in out_dir.glob("asaa-*.manifest.json"):
+        try:
+            manifest = json.loads(manifest_path.read_text())
+            found.append((datetime.fromisoformat(manifest["created_at"]), out_dir / manifest["artifact"], manifest))
+        except (ValueError, KeyError, OSError):
+            continue
+    return sorted(found, key=lambda item: item[0], reverse=True)
+
+
+def rotate(out_dir: Path, keep_daily: int = 7, keep_weekly: int = 4, keep_monthly: int = 6) -> dict:
+    """Grandfather-father-son retention: newest backup per day (last N days), per ISO week and per month.
+    The newest backup is always kept."""
+    entries = _manifests(out_dir)
+    keep: set[Path] = set()
+    seen: dict[str, set] = {"d": set(), "w": set(), "m": set()}
+    limits = {"d": keep_daily, "w": keep_weekly, "m": keep_monthly}
+    for created, artifact, _ in entries:  # newest first
+        keys = {"d": created.strftime("%Y-%m-%d"), "w": "%d-W%02d" % created.isocalendar()[:2], "m": created.strftime("%Y-%m")}
+        for kind, key in keys.items():
+            if key not in seen[kind] and len(seen[kind]) < limits[kind]:
+                seen[kind].add(key)
+                keep.add(artifact)
+    if entries:
+        keep.add(entries[0][1])
+    deleted = []
+    for _, artifact, _ in entries:
+        if artifact not in keep:
+            artifact.unlink(missing_ok=True)
+            artifact.with_name(artifact.name + ".manifest.json").unlink(missing_ok=True)
+            deleted.append(artifact.name)
+    return {"kept": sorted(a.name for a in keep), "deleted": sorted(deleted)}
+
+
+STATUS_FILE = "backup-status.json"
+
+
+def scheduled(url: str, out_dir: Path, key_source: str | None, keep: tuple[int, int, int] = (7, 4, 6)) -> dict:
+    """One scheduled run: backup -> verify -> rotate -> record status. Old backups are only pruned after the new one verified."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    status_path = out_dir / STATUS_FILE
+    previous = json.loads(status_path.read_text()) if status_path.exists() else {}
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        artifact = backup(url, out_dir, key_source)
+        manifest = verify_backup(artifact, key_source)
+        retention = rotate(out_dir, *keep)
+        status = {**previous, "last_success_at": now, "last_artifact": artifact.name, "last_error": None,
+                  "sha256": manifest["sha256"], "retention": retention}
+    except (BackupError, subprocess.CalledProcessError, OSError) as exc:
+        status = {**previous, "last_failure_at": now, "last_error": str(exc)[:300]}
+        status_path.write_text(json.dumps(status, indent=2))
+        raise
+    status_path.write_text(json.dumps(status, indent=2))
+    return status
+
+
+def check_staleness(out_dir: Path, max_age_hours: float, now: datetime | None = None) -> dict:
+    """Monitoring check: not ok when no verified backup exists, the last run failed after the last success,
+    the newest backup is older than max_age_hours, or the recorded artifact is missing."""
+    now = now or datetime.now(timezone.utc)
+    status_path = out_dir / STATUS_FILE
+    result = {"ok": False, "reason": None, "age_hours": None}
+    if not status_path.exists():
+        result["reason"] = "no backup status recorded"
+        return result
+    status = json.loads(status_path.read_text())
+    if not status.get("last_success_at"):
+        result["reason"] = "no successful backup recorded"
+        return result
+    age = (now - datetime.fromisoformat(status["last_success_at"])).total_seconds() / 3600
+    result["age_hours"] = round(age, 2)
+    if status.get("last_failure_at") and status["last_failure_at"] > status["last_success_at"]:
+        result["reason"] = "last backup run failed: " + str(status.get("last_error"))
+    elif age > max_age_hours:
+        result["reason"] = f"newest backup is {age:.1f}h old (limit {max_age_hours}h)"
+    elif not (out_dir / status.get("last_artifact", "")).exists():
+        result["reason"] = "recorded backup artifact is missing"
+    else:
+        result["ok"] = True
+    return result
+
 
 def backup(url: str, out_dir: Path, encrypt_key_file: str | None = None) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -242,12 +410,20 @@ def restore(artifact: Path, url: str, encrypt_key_file: str | None = None, verif
             if not is_postgres(url):
                 raise BackupError("PostgreSQL backup requires a PostgreSQL target URL")
             parts = pg_parts(url)
-            command = [find_tool("pg_restore"), "--no-owner", "--no-privileges", "--exit-on-error", "-h", parts["host"],
-                       "-p", parts["port"], "-U", parts["user"], "-d", parts["dbname"]]
-            if force:
-                command.insert(1, "--clean")
-                command.insert(2, "--if-exists")
-            subprocess.run([*command, str(plain)], check=True, capture_output=True, text=True)
+            # Render the archive to SQL first so a newer pg_dump/pg_restore client can
+            # target an older PostgreSQL server (e.g. PG18 client -> PG16 target).
+            with tempfile.TemporaryDirectory(prefix="asaa-pg-restore-") as work_dir:
+                raw_sql = Path(work_dir) / "restore.sql"
+                compatible_sql = Path(work_dir) / "restore-compatible.sql"
+                command = [find_tool("pg_restore"), "--no-owner", "--no-privileges", "--file", str(raw_sql)]
+                if force:
+                    command[1:1] = ["--clean", "--if-exists"]
+                subprocess.run([*command, str(plain)], check=True, capture_output=True, text=True)
+                strip_newer_pg_restore_settings(raw_sql, compatible_sql)
+                psql = [find_tool("psql"), "--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--single-transaction",
+                        "-h", parts["host"], "-p", parts["port"], "-U", parts["user"], "-d", parts["dbname"],
+                        "--file", str(compatible_sql)]
+                subprocess.run(psql, check=True, capture_output=True, text=True)
         else:
             if is_postgres(url):
                 raise BackupError("SQLite backup requires a sqlite:/// target URL")
@@ -292,8 +468,38 @@ def main(argv=None) -> int:
     r.add_argument("--encrypt-key-file")
     r.add_argument("--verify", action="store_true")
     r.add_argument("--force", action="store_true")
+    sub.add_parser("keygen")
+    sc = sub.add_parser("scheduled")
+    sc.add_argument("--database-url", default=os.environ.get("ASAA_AP_DATABASE_URL", "sqlite:///./asaa_ap.db"))
+    sc.add_argument("--out", type=Path, default=Path("backups"))
+    sc.add_argument("--encrypt-key-file")
+    sc.add_argument("--keep-daily", type=int, default=7)
+    sc.add_argument("--keep-weekly", type=int, default=4)
+    sc.add_argument("--keep-monthly", type=int, default=6)
+    st = sub.add_parser("check-staleness")
+    st.add_argument("--out", type=Path, default=Path("backups"))
+    st.add_argument("--max-age-hours", type=float, default=26)
+    ro = sub.add_parser("rotate")
+    ro.add_argument("--out", type=Path, default=Path("backups"))
+    ro.add_argument("--keep-daily", type=int, default=7)
+    ro.add_argument("--keep-weekly", type=int, default=4)
+    ro.add_argument("--keep-monthly", type=int, default=6)
     args = parser.parse_args(argv)
     try:
+        if args.command == "keygen":
+            print(generate_key())
+            return 0
+        if args.command == "check-staleness":
+            result = check_staleness(args.out, args.max_age_hours)
+            print(json.dumps(result))
+            return 0 if result["ok"] else 2
+        if args.command == "rotate":
+            print(json.dumps(rotate(args.out, args.keep_daily, args.keep_weekly, args.keep_monthly)))
+            return 0
+        if args.command == "scheduled":
+            status = scheduled(args.database_url, args.out, args.encrypt_key_file, (args.keep_daily, args.keep_weekly, args.keep_monthly))
+            print(json.dumps({k: status[k] for k in ("last_success_at", "last_artifact", "sha256")}))
+            return 0
         if args.command == "backup":
             artifact = backup(args.database_url, args.out, args.encrypt_key_file)
             print(json.dumps({"backup": str(artifact), **{k: load_manifest(artifact)[k] for k in ("sha256", "size_bytes", "alembic_revision")}}))

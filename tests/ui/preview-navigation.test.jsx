@@ -21,27 +21,26 @@ describe("unauthenticated preview", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("every launch workspace renders without error, makes no API call and passes axe", async () => {
+  // One test per workspace: each gets its own render, its own timeout budget and a failure that names the screen
+  // (a single loop over every workspace starves the event loop and times out on a loaded machine).
+  it.each(LAUNCH_SCREENS)("launch workspace %s renders without error, makes no API call and passes axe", async name => {
+    const user = userEvent.setup({ delay: null });
     const calls = mockApi({});
     const { container } = render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: /Explore all module UIs/ }));
-    const violations = [];
-    for (const name of LAUNCH_SCREENS) {
-      const button = within(container.querySelector("nav")).getAllByRole("button").find(b => b.textContent.startsWith(name));
-      expect(button, `nav entry for ${name}`).toBeDefined();
-      await userEvent.click(button);
-      violations.push(...(await axeViolations(container)).map(v => `${name}: ${v}`));
-    }
-    expect(violations).toEqual([]);
+    await user.click(screen.getByRole("button", { name: /Explore all module UIs/ }));
+    const button = within(container.querySelector("nav")).getAllByRole("button").find(b => b.textContent.startsWith(name));
+    expect(button, `nav entry for ${name}`).toBeDefined();
+    await user.click(button);
+    expect(await axeViolations(container)).toEqual([]);
     expect(calls).toHaveLength(0);
-  }, 120000);
+  });
 
   it("module search filters the navigation and can be cleared", async () => {
     mockApi({});
     const { container } = render(<App />);
     await userEvent.click(screen.getByRole("button", { name: /Explore all module UIs/ }));
     const input = screen.getByPlaceholderText(/Find a module/);
-    await userEvent.type(input, "payroll");
+    await userEvent.setup({ delay: null }).type(input, "payroll");
     const nav = container.querySelector("nav");
     expect(within(nav).getAllByRole("button").length).toBeLessThan(5);
     await userEvent.click(screen.getByRole("button", { name: "Clear module search" }));

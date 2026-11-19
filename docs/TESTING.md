@@ -9,14 +9,14 @@
 |---|---|---|
 | Static/compile | Python compile, frontend build, lint/type checks | Python compile in API CI; Vite production build; ESLint flat config (`npm run lint`) with 0 errors and 0 warnings locally (2026-11-13). No TypeScript/type-check layer (JavaScript/JSX). |
 | Unit | Domain rules, schemas, state transitions, calculations | API pytest suite; coverage percentage not recorded. |
-| API/integration | Authentication, authorization, CRUD, workflow transitions, errors and audit | API suite: 130 passed passed with PostgreSQL integration enabled, 124 passed, 6 skipped without PostgreSQL (local, 2026-11-14). |
+| API/integration | Authentication, authorization, CRUD, workflow transitions, errors and audit | API suite: 159 passed with PostgreSQL integration enabled, 153 passed, 6 skipped without PostgreSQL (local, 2026-11-14). |
 | Database/migrations | Upgrade, downgrade/re-upgrade, constraints, transaction and concurrency behavior | SQLite migration checks and PostgreSQL 16 CI (earlier commit); local PostgreSQL 18 upgrade/downgrade/re-upgrade of all 16 revisions and PostgreSQL integration tests passed locally. |
 | UI/component | Rendering, validation, role-aware controls, errors and accessibility semantics | 17 Vitest + Testing Library (jsdom) tests plus 4 Node.js OIDC policy tests, run locally. |
-| E2E | Real user journeys across UI/API/database | 19 passed Playwright tests in Chromium against `vite preview` and a live local API (fresh SQLite, per-run RSA key). Single browser, no device matrix, run locally only so far. |
+| E2E | Real user journeys across UI/API/database | Playwright against `vite preview` and a live local API (fresh SQLite, per-run RSA key): launch workflows on Chromium, Firefox and WebKit; responsive/reflow checks at 320 px and 640 px on Chromium and Pixel 5 / iPhone 13 emulation. 96 passed, 2 skipped, 1 failed (WebKit does not Tab to links) in the first full run across five projects; after skipping that one test for WebKit, WebKit launch suite 18 passed; Chromium+mobile reflow/device suite 40 passed, 2 skipped. Local only so far; no physical devices. |
 | Security | Authentication, MFA, tenant isolation, IDOR, privilege escalation, SoD, sensitive fields, audit | `tests/test_security_negative.py` (15 tests) plus existing security/authorization tests; independent assurance pending. |
 | Performance | Load, stress, soak, concurrency, pool/capacity and response budgets | `apps/ap-api/scripts/load_test.py` with recorded local numbers (section 4). No soak, no target-infrastructure evidence, no approved budgets. |
-| Accessibility/compatibility | Keyboard, screen reader, contrast, zoom, responsive layout, browsers/devices | jsdom axe checks (no contrast) plus real-browser @axe-core/playwright scans (WCAG 2 A/AA + best-practice, colour contrast included) and keyboard-only checks (sign-in, skip link, dialog focus). No screen-reader, zoom/reflow, mobile or multi-browser evidence. |
-| Operational | Deployment smoke, alerts, backup/restore, rollback and DR | `scripts/smoke_test.py` (tested against a spawned API); backup -> restore -> verify round trip tested locally on SQLite and PostgreSQL 18. No alerting, rollback or DR exercise. |
+| Accessibility/compatibility | Keyboard, screen reader, contrast, zoom, responsive layout, browsers/devices | Real-browser axe (colour contrast included) on three engines, keyboard-only checks, 320 px reflow, 640 px (200% zoom equivalent) and touch-target checks. No screen reader, native browser zoom or physical device evidence. |
+| Operational | Deployment smoke, alerts, backup/restore, rollback and DR | Smoke script tested against a spawned API; encrypted backup, retention, scheduled run and staleness checks tested; alert rules statically checked (promtool run by CI only); deployment rehearsal scripted but NOT RUN locally (Docker daemon not running). No live alerting or DR exercise. |
 | Business acceptance | Approved finance, HR, payroll, procurement and governance scenarios | Owner acceptance pending. |
 
 ## 2. Current CI workflows
@@ -28,6 +28,7 @@ Workflow: `.github/workflows/people-api-ci.yml`
 
 - Python 3.12; install, compile, pytest, SQLite Alembic upgrade/downgrade/re-upgrade.
 - Job `python-dependency-audit`: `pip-audit` on the installed dependency set.
+- (PostgreSQL workflow) a load run with `monitoring/performance-budget.json` as a provisional gate, result uploaded.
 - Job `local-load-and-smoke`: spawns the API, runs the 20 s load script with a generous p95 regression budget and uploads the JSON result.
 
 Latest recorded successful run (earlier commit): [43411431405](https://github.com/ASAA1229/ASAA/actions/runs/43411431405), commit `ba87df7fdb967adf80d00b7b4771a823708b7582`.
@@ -47,6 +48,12 @@ Workflow: `.github/workflows/portal-ci.yml`
 ### Web E2E
 Job `web-e2e` in `portal-ci.yml`: installs the API, Chromium and runs `npx playwright test` (builds the app, serves it with `vite preview`, starts `scripts/e2e_api.py`). Uploads the Playwright report. Configured, **not yet run on GitHub**; the same suite passed locally (see Project Status section 7).
 
+### Monitoring rules
+Workflow `.github/workflows/monitoring-ci.yml` runs `promtool check rules` and `promtool test rules` (official Prometheus image). Not yet run on GitHub. Update 2026-11-15: run locally through the `prom/prometheus:v2.55.1` image, check and test passed (agent-reported).
+
+### Deployment rehearsal
+Workflow `.github/workflows/deploy-rehearsal.yml` runs `deploy/rehearsal.sh` (migrate, smoke, bad release, rollback, smoke) on the runner and uploads `rehearsal-result.json`. Not yet run anywhere.
+
 ### Post-deploy smoke
 Workflow: `.github/workflows/release-smoke.yml` (manual `workflow_dispatch`, read-only). It performs no deployment.
 
@@ -59,8 +66,9 @@ npm ci
 npm run lint
 npm run test:web      # Node.js OIDC transport-policy tests
 npm run test:ui       # Vitest + Testing Library + axe (jsdom)
-npx playwright install chromium   # once
-npm run test:e2e      # real Chromium + live local API + axe incl. contrast
+npx playwright install chromium firefox webkit   # once
+npm run test:e2e      # all projects: chromium, firefox, webkit, mobile-chrome, mobile-safari
+npx playwright test --project=chromium responsive   # reflow checks only
 npm run build
 npm audit --audit-level=high
 ```
@@ -74,8 +82,12 @@ python -m alembic upgrade head
 python -m alembic current
 python -m pip_audit --skip-editable
 python scripts/load_test.py --concurrency 20 --duration 20
-python scripts/smoke_test.py --base-url http://127.0.0.1:8000
-python scripts/backup_restore.py backup --database-url sqlite:///./asaa_ap.db --out backups/
+python scripts/smoke_test.py --base-url http://127.0.0.1:8001
+python scripts/backup_restore.py keygen            # base64 AES-256 key; store in a secret manager
+python scripts/backup_restore.py scheduled --database-url sqlite:///./asaa_ap.db --out backups/ --encrypt-key-file env:ASAA_BACKUP_KEY
+python scripts/backup_restore.py check-staleness --out backups/ --max-age-hours 26   # exit 2 = alert
+python scripts/load_test.py --concurrency 20 --duration 20 --workers 2 --database-url postgresql+psycopg://... --budget-file ../../monitoring/performance-budget.json
+bash deploy/rehearsal.sh   # needs a running Docker daemon
 python scripts/db_roles.py provision --admin-url postgresql://admin@host/db   # needs ASAA_DB_*_PASSWORD env
 PGPASSWORD=... python scripts/db_roles.py check --runtime-url postgresql://asaa_runtime@host/db
 ```
@@ -91,6 +103,8 @@ Environment: Windows 11, 12 logical CPUs, Python 3.14.7, API and load generator 
 | SQLite (temp file) | 1 | 10 | 714 | 35.4 rps | 154 ms | 903 ms | 1,978 ms | 0 |
 | SQLite (temp file) | 1 | 50 | 1,746 | 85.8 rps | 404 ms | 1,635 ms | 2,696 ms | 0 |
 | PostgreSQL 18 (local) | 2 | 20 | 1,338 | 66.0 rps | 180 ms | 978 ms | 1,769 ms | 0 |
+
+Later PostgreSQL 18 runs on the same machine under heavier background load (2 workers, 20 clients, 20 s, 0 errors): 616 req / 30.4 rps / p50 379 ms / p95 1,909 ms / p99 2,886 ms; 656 req / 31.4 rps / p95 2,062 ms; 630 req / 31.0 rps / p95 1,904 ms. The spread between 978 ms and ~2,000 ms p95 on identical code shows how sensitive these numbers are to machine load; the CI budget therefore carries headroom (see `monitoring/performance-budget.json`).
 
 Even `/health` showed >100 ms median latency under this load, so the numbers are dominated by single-machine CPU contention and Windows process scheduling rather than by the database.
 
@@ -109,3 +123,16 @@ Even `/health` showed >100 ms median latency under this load, so the numbers are
 A release candidate must pass all tests relevant to the enabled scope. P0 security, data-integrity, authorization, recovery and critical workflow defects block release. UI/E2E, accessibility, performance, compatibility and operational tests must be completed for included workflows or the affected capability must be disabled/excluded with explicit owner acceptance.
 
 Do not invent coverage percentages or convert skipped tests into passed tests.
+
+
+## Head check note — 2026-11-14
+
+At head `a40c7ca` `npm run lint` fails with a parse error in `playwright.config.js` (duplicate declarations from an appended second configuration), and `src/styles.css` lost the accessibility and reflow rules. The Playwright, axe and lint evidence in this document is therefore valid for `ac2f696` only until those are repaired. See PROJECT_STATUS section "2026-11-14 documentation reconciliation and head check".
+
+
+## Update 2026-11-15
+
+- Coordinator-verified at `37f478d`: lint, build, 17 UI tests, pytest SQLite 165 passed / 6 skipped. The a40c7ca regression noted above was repaired in that commit, so the Playwright, axe and lint evidence applies again.
+- Agent-reported: Playwright 96 passed / 3 skipped across 5 projects; container deployment rehearsal 13/13; promtool check/test passed.
+- New tests since: notification outbox (12, migration 0017), governed registers (`tests/e2e/registers.spec.js`, `tests/ui/register-workspace.test.jsx`, `apps/ap-api/tests/test_registers.py`), workspace inventory sync test, reports and audit-view tests. Commits 3bda274, b1006d4 and 0dbb67b are agent-pushed and not yet coordinator-verified.
+- No GitHub Actions run observed.

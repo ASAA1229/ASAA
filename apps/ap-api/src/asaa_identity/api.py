@@ -11,8 +11,8 @@ from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
 from asaa_identity import service
-from asaa_identity.models import IdentitySubjectLink, IdentitySyncJob
-from asaa_identity.provider import IdentityProvider, resolve_provider
+from asaa_identity.models import IdentityAdoptionRequest, IdentitySubjectLink, IdentitySyncJob
+from asaa_identity.provider import IdentityProvider, PermanentProviderError, TransientProviderError, resolve_provider
 from asaa_people.models import Employee
 
 router = APIRouter(prefix="/api/v1/identity-sync", tags=["Identity Lifecycle"])
@@ -102,7 +102,7 @@ def create_job(payload: JobCreate, db: Db, principal: Annotated[Principal, Depen
 
 @router.get("/jobs")
 def list_jobs(db: Db, principal: Annotated[Principal, Depends(require_permission("identity:sync:read"))],
-              status: str | None = Query(default=None, pattern="^(Pending|Succeeded|DeadLetter)$"), limit: int = Query(default=100, ge=1, le=500)):
+              status: str | None = Query(default=None, pattern="^(Pending|Succeeded|DeadLetter|NotFound)$"), limit: int = Query(default=100, ge=1, le=500)):
     stmt = select(IdentitySyncJob).where(IdentitySyncJob.organization_id == principal.organization_id)
     if status:
         stmt = stmt.where(IdentitySyncJob.status == status)
@@ -135,3 +135,96 @@ def reconcile(db: Db, principal: Annotated[Principal, Depends(require_permission
     if repair and "identity:sync:enqueue" not in principal.permissions:
         raise HTTPException(status_code=403, detail="Permission denied")
     return service.reconcile(db, provider, principal.organization_id, repair=repair, actor=principal.subject)
+
+
+# ---------------------------------------------------------------- one-time adoption of existing accounts (maker-checker)
+
+class AdoptionCreate(Strict):
+    employee_id: str = Field(min_length=1, max_length=36)
+    provider_username: str = Field(min_length=1, max_length=128, pattern=r"^[^\s/\\?#%]+$")
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class AdoptionReview(Strict):
+    decision: str = Field(pattern="^(Approve|Reject)$")
+    reason: str = Field(min_length=3, max_length=500)
+
+
+def dump_adoption(row: IdentityAdoptionRequest) -> dict:
+    return {"id": row.id, "employee_id": row.employee_id, "subject": row.subject, "provider_username": row.provider_username,
+            "reason": row.reason, "status": row.status, "requested_by": row.requested_by, "requested_at": row.requested_at,
+            "reviewed_by": row.reviewed_by, "reviewed_at": row.reviewed_at, "review_reason": row.review_reason, "result": row.result}
+
+
+@router.post("/adoptions", status_code=201)
+def request_adoption(payload: AdoptionCreate, db: Db,
+                     principal: Annotated[Principal, Depends(require_permission("identity:adoption:request"))],
+                     x_correlation_id: Annotated[str | None, Header()] = None):
+    """Ask to adopt a pre-existing provider account for a linked employee. Nothing happens until a different person approves."""
+    link = db.scalar(select(IdentitySubjectLink).where(
+        IdentitySubjectLink.organization_id == principal.organization_id, IdentitySubjectLink.employee_id == payload.employee_id))
+    if link is None:
+        raise HTTPException(status_code=404, detail={"code": "employee_not_linked_to_identity_subject"})
+    pending = db.scalar(select(IdentityAdoptionRequest.id).where(
+        IdentityAdoptionRequest.organization_id == principal.organization_id, IdentityAdoptionRequest.employee_id == payload.employee_id,
+        IdentityAdoptionRequest.status == "Pending"))
+    if pending:
+        raise HTTPException(status_code=409, detail={"code": "adoption_already_pending"})
+    row = IdentityAdoptionRequest(organization_id=principal.organization_id, employee_id=payload.employee_id, subject=link.subject,
+                                  provider_username=payload.provider_username, reason=payload.reason, requested_by=principal.subject)
+    db.add(row)
+    db.flush()
+    _audit(db, principal, "identity_adoption.requested", "identity_adoption_request", row.id,
+           {"employee_id": row.employee_id, "provider_username": row.provider_username}, x_correlation_id)
+    db.commit()
+    return dump_adoption(row)
+
+
+@router.get("/adoptions")
+def list_adoptions(db: Db, principal: Annotated[Principal, Depends(require_permission("identity:adoption:read"))],
+                   status: str | None = Query(default=None, pattern="^(Pending|Approved|Rejected|Failed)$"),
+                   limit: int = Query(default=100, ge=1, le=500)):
+    stmt = select(IdentityAdoptionRequest).where(IdentityAdoptionRequest.organization_id == principal.organization_id)
+    if status:
+        stmt = stmt.where(IdentityAdoptionRequest.status == status)
+    return [dump_adoption(r) for r in db.scalars(stmt.order_by(IdentityAdoptionRequest.requested_at.desc()).limit(limit)).all()]
+
+
+@router.post("/adoptions/{adoption_id}/review")
+def review_adoption(adoption_id: str, payload: AdoptionReview, db: Db,
+                    principal: Annotated[Principal, Depends(require_permission("identity:adoption:approve"))],
+                    provider: Annotated[IdentityProvider, Depends(get_identity_provider)],
+                    x_correlation_id: Annotated[str | None, Header()] = None):
+    row = db.scalar(select(IdentityAdoptionRequest).where(
+        IdentityAdoptionRequest.id == adoption_id, IdentityAdoptionRequest.organization_id == principal.organization_id).with_for_update())
+    if row is None:
+        raise HTTPException(status_code=404, detail="Adoption request not found")
+    if row.status != "Pending":
+        raise HTTPException(status_code=409, detail={"code": "adoption_not_pending"})
+    if row.requested_by == principal.subject:
+        raise HTTPException(status_code=403, detail={"code": "adoption_self_approval_forbidden"})
+    row.reviewed_by, row.reviewed_at, row.review_reason = principal.subject, service.utcnow(), payload.reason
+    if payload.decision == "Reject":
+        row.status = "Rejected"
+        _audit(db, principal, "identity_adoption.rejected", "identity_adoption_request", row.id, {"employee_id": row.employee_id}, x_correlation_id)
+        db.commit()
+        return dump_adoption(row)
+    employee = db.scalar(select(Employee).where(Employee.id == row.employee_id, Employee.organization_id == principal.organization_id))
+    if employee is None:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    try:
+        provider_id = provider.adopt_account(row.subject, row.provider_username, employee.employee_code, employee.work_email)
+    except TransientProviderError:
+        db.rollback()
+        raise HTTPException(status_code=503, detail={"code": "identity_provider_unavailable"}) from None
+    except PermanentProviderError as exc:
+        row.status, row.result = "Failed", str(exc)[:300]
+        _audit(db, principal, "identity_adoption.failed", "identity_adoption_request", row.id, {"employee_id": row.employee_id}, x_correlation_id)
+        db.commit()
+        raise HTTPException(status_code=422, detail={"code": "adoption_refused", "message": row.result}) from None
+    row.status, row.result = "Approved", "adopted"
+    _audit(db, principal, "identity_adoption.approved", "identity_adoption_request", row.id,
+           {"employee_id": row.employee_id, "provider_id": provider_id, "requested_by": row.requested_by}, x_correlation_id)
+    service.enqueue(db, principal.organization_id, row.subject, "mover", "adoption", principal.subject)  # converge groups and attributes
+    db.commit()
+    return dump_adoption(row)

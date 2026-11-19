@@ -1,0 +1,31 @@
+# Free-tier-ready definition for the API (Render Blueprint). Nothing is created until the owner connects the repo in Render.
+# Database: create a free Postgres (Neon or Supabase) yourself and paste its connection string into ASAA_AP_DATABASE_URL below
+# as postgresql+psycopg://USER:PASSWORD@HOST/DB?sslmode=require (the API rejects the bare postgres:// scheme).
+# Render's free plan has no pre-deploy command, so migrations run at container start (single instance only).
+services:
+  - type: web
+    name: asaa-api
+    runtime: docker
+    plan: free
+    dockerContext: apps/ap-api
+    dockerfilePath: apps/ap-api/Dockerfile
+    branch: main
+    healthCheckPath: /ready
+    dockerCommand: sh -c "alembic upgrade head && uvicorn asaa_ap.main:app --host 0.0.0.0 --port $PORT --proxy-headers"
+    envVars:
+      - key: ASAA_AP_ENVIRONMENT
+        value: production
+      - key: ASAA_AP_DATABASE_URL
+        sync: false
+      - key: ASAA_AP_JWT_PUBLIC_KEY
+        sync: false
+      - key: ASAA_AP_JWT_ISSUER
+        sync: false
+      - key: ASAA_AP_JWT_AUDIENCE
+        sync: false
+      - key: ASAA_AP_CORS_ORIGINS
+        sync: false   # JSON list, e.g. ["https://your-portal.pages.dev"]
+      - key: ASAA_AP_METRICS_TOKEN
+        generateValue: true
+      - key: ASAA_AP_LOG_LEVEL
+        value: INFO
