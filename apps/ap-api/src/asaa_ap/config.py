@@ -1,6 +1,8 @@
 from functools import lru_cache
 from typing import Literal
 
+import re
+
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from pydantic import Field, SecretStr
@@ -13,6 +15,14 @@ class ProducerMapping(BaseModel):
     source: str
     project: Literal["ASAA", "JARVIS", "TEMPLATES", "PORTFOLIO"]
     typePrefix: str
+
+    @model_validator(mode="after")
+    def prefix_belongs_to_the_source(self):
+        if not re.fullmatch(r"[a-z][a-z0-9-]{1,39}", self.source):
+            raise ValueError("producer source must look like a service id")
+        if not self.typePrefix or not self.typePrefix.endswith(".") or not self.typePrefix.startswith(self.source + "."):
+            raise ValueError("producer typePrefix must end with '.' and start with '<source>.'")
+        return self
 
 
 class Settings(BaseSettings):
@@ -73,16 +83,31 @@ class Settings(BaseSettings):
     # Event producers keyed by token azp (client id), JSON, e.g.
     # {"jarvis-events":{"source":"jarvis","project":"JARVIS","typePrefix":"jarvis."}}. A token whose azp is not listed cannot write events.
     integration_producers: dict[str, ProducerMapping] = {}
-    # Per-principal ingest rate limit (token bucket, per process).
+    # Per-principal ingest rate limit (token bucket). The bucket lives in each API process: with N worker processes the effective
+    # limit is N times these values, so size them per worker.
     integration_rate_per_minute: int = Field(default=120, ge=1, le=100000)
     integration_rate_burst: int = Field(default=30, ge=1, le=100000)
     # A critical alert for the same (source, type) is not repeated within this window.
     integration_critical_dedupe_minutes: int = Field(default=15, ge=0, le=1440)
+    # Within the same window a source may raise alerts for at most this many distinct critical event types, so varying type names
+    # cannot flood the recipients.
+    integration_critical_source_max_streams: int = Field(default=3, ge=1, le=100)
     # Retention for ingested events, used by scripts/purge_integration_events.py. Default 180 days, approved by the owner (2026-11-18); keep it configurable.
     integration_event_retention_days: int = Field(default=180, ge=1, le=3650)
     # Event `time` must be within this many seconds of now (past or future).
     integration_clock_skew_seconds: int = Field(default=86400, ge=0, le=31536000)
 
+
+    @model_validator(mode="after")
+    def producers_must_be_unambiguous(self):
+        clients = [c for c in self.integration_producers if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{1,127}", c)]
+        if clients:
+            raise ValueError("ASAA_AP_INTEGRATION_PRODUCERS: invalid client id (azp)")
+        for field in ("source", "typePrefix"):
+            values = [getattr(m, field) for m in self.integration_producers.values()]
+            if len(values) != len(set(values)):
+                raise ValueError(f"ASAA_AP_INTEGRATION_PRODUCERS: two clients share the same {field}; each producer needs its own credential")
+        return self
 
     @model_validator(mode="after")
     def production_database_must_be_postgresql(self):

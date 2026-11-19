@@ -56,7 +56,7 @@ def test_no_configured_producers_means_nobody_can_write(client, monkeypatch):
 
 @pytest.mark.parametrize("patch", [
     {"source": "jarvis"}, {"project": "JARVIS"}, {"type": "jarvis.task.completed"}, {"type": "ci.build.completed"},
-    {"source": "templates-api2"},
+    {"source": "templates2"},
 ])
 def test_envelope_must_match_the_producer_mapping(client, patch):
     response = client.post(URL, json=envelope(**patch))

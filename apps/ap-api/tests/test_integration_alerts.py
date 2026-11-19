@@ -65,7 +65,8 @@ def test_critical_event_notifies_role_holders_with_event_or_ops_permission(write
         assert "jarvis.security.audit-integrity-failed" in m.subject_text and "JARVIS" in m.subject_text
         assert "audit/chain-7" not in m.body_text + m.subject_text  # the producer-supplied subject is never interpolated
         assert "brokenAt" not in m.body_text and "41" not in m.body_text  # payload is never copied
-        assert m.idempotency_key == f"integration.critical:jarvis:jarvis.security.audit-integrity-failed:{body['id']}:{m.recipient_subject}"
+        assert m.idempotency_key == f"{alerts.alert_key_prefix('jarvis', 'jarvis.security.audit-integrity-failed')}{body['id']}:{alerts._digest(m.recipient_subject)}"
+        assert len(m.idempotency_key) < 200
         assert m.correlation_id == "corr-alert-1234"
     audit = s.scalars(select(AuditEvent).where(AuditEvent.action == "integration_event.received")).one()
     assert audit.details["notifications_queued"] == 2

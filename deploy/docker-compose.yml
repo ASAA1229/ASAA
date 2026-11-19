@@ -39,6 +39,7 @@ services:
       ASAA_AP_CORS_ORIGINS: '["http://127.0.0.1:${PORTAL_PORT:-8180}"]'
       ASAA_AP_LOG_LEVEL: INFO
       ASAA_AP_ECOSYSTEM_REGISTRY_PATH: /app/contracts/ecosystem/v1/ecosystem-registry.json
+      ASAA_AP_INTEGRATION_PRODUCERS: '{"jarvis-events":{"source":"jarvis","project":"JARVIS","typePrefix":"jarvis."},"portfolio-events":{"source":"portfolio","project":"PORTFOLIO","typePrefix":"portfolio."},"templates-events":{"source":"templates","project":"TEMPLATES","typePrefix":"templates."}}'
     volumes:
       - ../contracts/ecosystem/v1:/app/contracts/ecosystem/v1:ro
     ports:

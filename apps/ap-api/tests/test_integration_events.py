@@ -118,7 +118,7 @@ def test_data_is_capped_at_16_kib(client):
 
 
 def test_list_filters_and_pagination(client):
-    specs = [("templates-events", "templates-api", "templates.generation.completed", "TEMPLATES", "info", -3),
+    specs = [("templates-events", "templates", "templates.generation.completed", "TEMPLATES", "info", -3),
              ("jarvis-events", "jarvis", "jarvis.security.alert", "JARVIS", "critical", -2),
              ("jarvis-events", "jarvis", "jarvis.task.completed", "JARVIS", "info", -1)]
     for client_id, source, kind, project, severity, offset in specs:

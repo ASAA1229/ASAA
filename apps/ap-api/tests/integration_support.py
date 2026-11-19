@@ -11,7 +11,7 @@ from asaa_integration import alerts, events
 
 URL = "/api/v1/integration/events"
 PRODUCERS = {
-    "templates-events": {"source": "templates-api", "project": "TEMPLATES", "typePrefix": "templates."},
+    "templates-events": {"source": "templates", "project": "TEMPLATES", "typePrefix": "templates."},
     "jarvis-events": {"source": "jarvis", "project": "JARVIS", "typePrefix": "jarvis."},
     "portfolio-events": {"source": "portfolio", "project": "PORTFOLIO", "typePrefix": "portfolio."},
 }
@@ -49,7 +49,7 @@ def now_iso(offset_seconds=0, tz=timezone.utc):
 
 
 def envelope(**over):
-    base = {"specversion": "asaa.event.v1", "id": str(uuid.uuid4()), "source": "templates-api", "type": "templates.generation.completed",
+    base = {"specversion": "asaa.event.v1", "id": str(uuid.uuid4()), "source": "templates", "type": "templates.generation.completed",
             "time": now_iso(), "orgId": "org-a", "project": "TEMPLATES", "subject": "generation/abc",
             "correlationId": "corr-12345678", "severity": "info", "data": {"files": 3, "durationMs": 120}}
     base.update(over)

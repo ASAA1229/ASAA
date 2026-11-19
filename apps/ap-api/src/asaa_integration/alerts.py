@@ -4,6 +4,7 @@ Recipients are the subjects holding an approved, in-window role assignment whose
 (the same grants the identity-sync service uses), plus the optional ASAA_AP_INTEGRATION_CRITICAL_RECIPIENTS list. JWT permissions
 are not stored server-side, so a subject whose access only comes from a token claim must be listed explicitly.
 """
+import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -21,6 +22,16 @@ ALERT_PERMISSIONS = frozenset({"integration:event:read", "ops:ecosystem:read"})
 TEMPLATE_CODE = "integration.event.critical"
 TEMPLATE_VARIABLES = ["source", "event_type", "project"]  # never the event subject: it is producer-supplied text
 SYSTEM_ACTOR = "system:integration"
+
+
+def _digest(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
+def alert_key_prefix(source: str, event_type: str | None = None) -> str:
+    """Idempotency keys are bounded: integration.critical:<source>:<type digest>:<event id>:<recipient digest> (always under 200
+    characters, whatever the type or recipient length), so the source and the type stay queryable as prefixes."""
+    return f"integration.critical:{source}:" + (f"{_digest(event_type)}:" if event_type else "")
 
 
 def _aware(value: datetime | None) -> datetime | None:
@@ -60,15 +71,19 @@ def ensure_template(db: Session, organization_id: str, channel: str) -> None:
     db.flush()
 
 
-def recently_alerted(db: Session, event: IntegrationEvent, window_minutes: int, now: datetime | None = None) -> bool:
-    """True when a critical alert for the same (source, type) was queued inside the window (sliding, any event of that kind)."""
+def recently_alerted(db: Session, event: IntegrationEvent, window_minutes: int, now: datetime | None = None,
+                     max_streams: int = 3) -> bool:
+    """True when this alert should be suppressed: the same (source, type) alerted inside the sliding window, or the source has
+    already raised alerts for max_streams distinct types in that window (varying type names must not flood recipients)."""
     if window_minutes <= 0:
         return False
     cutoff = (now or datetime.now(timezone.utc)) - timedelta(minutes=window_minutes)
-    prefix = f"integration.critical:{event.source}:{event.type}:"
-    return db.scalar(select(NotificationMessage.id).where(
+    keys = db.scalars(select(NotificationMessage.idempotency_key).where(
         NotificationMessage.organization_id == event.organization_id, NotificationMessage.template_code == TEMPLATE_CODE,
-        NotificationMessage.idempotency_key.like(prefix + "%"), NotificationMessage.created_at >= cutoff).limit(1)) is not None
+        NotificationMessage.idempotency_key.like(alert_key_prefix(event.source) + "%"), NotificationMessage.created_at >= cutoff)).all()
+    streams = {key.split(":")[2] for key in keys if key.count(":") >= 4}
+    mine = _digest(event.type)
+    return mine in streams or len(streams) >= max_streams
 
 
 def notify_critical(db: Session, event: IntegrationEvent, correlation_id: str | None = None) -> int:
@@ -83,7 +98,9 @@ def notify_critical(db: Session, event: IntegrationEvent, correlation_id: str | 
             if not recipients:
                 log.warning("critical_event_without_recipients", extra={"event_id": event.id, "event_type": event.type})
                 return 0
-            if recently_alerted(db, event, get_settings().integration_critical_dedupe_minutes):
+            settings = get_settings()
+            if recently_alerted(db, event, settings.integration_critical_dedupe_minutes,
+                                max_streams=settings.integration_critical_source_max_streams):
                 log.info("critical_event_alert_deduplicated", extra={"event_id": event.id, "event_type": event.type})
                 return 0
             ensure_template(db, event.organization_id, channel)
@@ -91,7 +108,7 @@ def notify_critical(db: Session, event: IntegrationEvent, correlation_id: str | 
             queued = 0
             for recipient in recipients:
                 message = service.enqueue(db, event.organization_id, recipient, TEMPLATE_CODE, variables, channel=channel,
-                                          idempotency_key=f"integration.critical:{event.source}:{event.type}:{event.id}:{recipient}", correlation_id=correlation_id)
+                                          idempotency_key=f"{alert_key_prefix(event.source, event.type)}{event.id}:{_digest(recipient)}", correlation_id=correlation_id)
                 queued += 1 if message is not None else 0
             return queued
     except Exception as exc:  # noqa: BLE001 - see docstring
