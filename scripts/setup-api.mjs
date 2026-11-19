@@ -7,6 +7,7 @@ const venvDir = join(apiDir, ".venv");
 const windowsPython = join(venvDir, "Scripts", "python.exe");
 const unixPython = join(venvDir, "bin", "python");
 const pythonInVenv = process.platform === "win32" ? windowsPython : unixPython;
+const configuredPython = process.env.PYTHON?.trim();
 
 function run(command, args, cwd) {
   return new Promise((resolve, reject) => {
@@ -19,14 +20,22 @@ function run(command, args, cwd) {
 try {
   if (!existsSync(pythonInVenv)) {
     console.log("[API setup] Creating apps/ap-api/.venv");
-    if (process.platform === "win32") {
-      await run("py", ["-3", "-m", "venv", ".venv"], apiDir);
+    if (configuredPython) {
+      await run(configuredPython, ["-m", "venv", ".venv"], apiDir);
+    } else if (process.platform === "win32") {
+      await run("py", ["-3.12", "-m", "venv", ".venv"], apiDir); // the API targets Python 3.12 (CI and Docker); never the newest "py -3"
     } else {
       await run("python3", ["-m", "venv", ".venv"], apiDir);
     }
   }
   console.log("[API setup] Installing API and test dependencies");
-  await run(pythonInVenv, ["-m", "pip", "install", "-e", ".[test]"], apiDir);
+  const constraints = join(apiDir, "constraints.txt");
+  const pipArgs = ["-m", "pip", "install", "-e", ".[test]"];
+  if (existsSync(constraints)) {
+    console.log("[API setup] Using pinned versions from apps/ap-api/constraints.txt");
+    pipArgs.push("-c", constraints);
+  }
+  await run(pythonInVenv, pipArgs, apiDir);
   console.log("[API setup] Complete. Start both services with: npm run dev");
 } catch (error) {
   console.error(`[API setup] ${error.message}`);

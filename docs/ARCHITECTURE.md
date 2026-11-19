@@ -171,13 +171,25 @@ Role templates define explicit permission identifiers and a scope type. Proposed
 - `reconcile` compares desired state with provider users, reports missing, disabled, entitlement drift, should-be-disabled and unmanaged users (without personal data) and can queue repairs. Unmanaged users are reported, never deleted.
 - Not decided: the real provider, how provider subjects map to employees in practice, and what the provider SLA for revocation is.
 
+### SCIM 2.0 adapter
+
+`asaa_identity/scim.py` implements `IdentityProvider` over SCIM 2.0: subject -> `userName`, entitlement -> Group `displayName` with a configurable prefix (only prefixed groups are managed), `active` -> deactivate. It uses ETag/If-Match, paged `ListResponse` reads and bounded retries (429 Retry-After, 5xx, timeouts). It is selected only by configuration (`bootstrap.register_configured_providers`). It assumes the provider returns `User.groups`; session revocation has no SCIM equivalent, so an optional hook is required for providers with a separate revoke API.
+
 ## Observability and hardening
 
 `RequestContextMiddleware` assigns/validates `X-Request-ID`, writes JSON access logs without query strings or bodies, and feeds an in-process metrics registry exposed at `/metrics` (route-template labels; token-protected; disabled in production without a token). `HardeningMiddleware` adds security headers, `Cache-Control: no-store` on API paths and a 1 MiB body limit. `/health` is dependency-free liveness; `/ready` checks the database. Log redaction is key-name and value-pattern based. Log shipping, dashboards and alert routing are intentionally not chosen.
 
+## Delivery artifacts
+
+`apps/ap-api/Dockerfile`, `Dockerfile.portal`, `deploy/docker-compose.yml` and `deploy/rehearsal.sh` define a local container rehearsal (migrate job, API, static portal behind nginx). They are rehearsal assets, not a production topology; hosting is undecided.
+
 ## Recovery tooling
 
 `apps/ap-api/scripts/backup_restore.py` produces SQLite (online backup API) or PostgreSQL (`pg_dump -Fc`) backups with a SHA-256 manifest and row-count/Alembic-revision verification, optional Fernet encryption, and `restore --verify`. Scheduling, storage location, key custody and retention are deployment decisions not made here.
+
+## Modules added 2026-11-14/15 (agent-pushed; see PROJECT_STATUS)
+
+`asaa_notifications` (provider-independent outbox, migration 0017), `asaa_registers` (governed registers, migration 0018), `asaa_reports` (read-only aggregation with lineage and freshness) and the web workspace registry (`src/workspaces/registry.js`, `inventory.json`).
 
 ## Implementation status
 

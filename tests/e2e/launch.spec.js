@@ -146,7 +146,9 @@ test.describe("keyboard-only operation", () => {
     await expect(page.getByText("API connected")).toBeVisible();
   });
 
-  test("skip link moves focus past the navigation to the main content", async ({ page }) => {
+  test("skip link moves focus past the navigation to the main content", async ({ page, browserName }) => {
+    // Safari/WebKit does not include links in Tab order by default (system "Press Tab to highlight each item" off).
+    test.skip(browserName === "webkit", "WebKit does not Tab to links by default");
     await page.goto("/"); // fresh load: sequential focus starts at the top of the document
     await page.keyboard.press("Tab");
     const skip = page.getByRole("link", { name: /skip to main content/i });

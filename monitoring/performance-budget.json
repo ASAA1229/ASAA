@@ -1,0 +1,12 @@
+{
+  "_note": "PROVISIONAL regression budget for CI (PostgreSQL service, 2 workers, 20 concurrent clients, 20 s). Not an owner-approved SLO. Calibrated from local Windows/PostgreSQL 18 runs on 2026-11-14 (p95 978 ms / 66 rps, then 1909 and 2062 ms / ~31 rps on a busier machine) with headroom; tighten once a stable reference environment exists.",
+  "overall_p95_ms": 3000,
+  "overall_p99_ms": 5000,
+  "max_error_rate": 0.01,
+  "min_throughput_rps": 10,
+  "operations": {
+    "list_suppliers": {"p95_ms": 3000},
+    "create_supplier": {"p95_ms": 3500},
+    "ready": {"p95_ms": 3000}
+  }
+}

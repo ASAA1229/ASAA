@@ -606,3 +606,6 @@ No requirement was removed or weakened. The following requirement areas gained i
 - **Backup and recovery:** verified backup/restore tooling exists; approved RPO/RTO/retention, automation and off-site encrypted storage remain required.
 - **Quality:** UI component tests, automated accessibility checks, lint, deterministic installs and dependency scanning exist; real-browser E2E, manual accessibility and device/browser verification remain required.
 - **Performance:** a reproducible load test and local measurements exist; response-time budgets and target-environment validation remain required.
+
+### Addendum 2026-11-14 (second follow-up)
+SCIM 2.0 provisioning, encrypted/rotated/scheduled backups with staleness monitoring, Prometheus alert rules, a JSON log schema, a provisional PostgreSQL performance budget gate, container rehearsal assets, and cross-browser/mobile/reflow accessibility tests now exist. They advance, but do not close, the identity lifecycle, recovery, observability, performance, deployment and accessibility requirements: real provider validation, approved objectives and SLOs, live alert routing, a executed rehearsal and physical-device/screen-reader testing remain required.

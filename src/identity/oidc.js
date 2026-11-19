@@ -54,7 +54,6 @@ async function discovery() {
   assertHttps(metadata.authorization_endpoint, "OIDC authorization endpoint");
   assertHttps(metadata.token_endpoint, "OIDC token endpoint");
   assertHttps(metadata.jwks_uri, "OIDC JWKS endpoint");
-  assertHttps(metadata.jwks_uri, "OIDC JWKS endpoint");
   return metadata;
 }
 

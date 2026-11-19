@@ -34,7 +34,7 @@ Required improvements:
 
 Required ASAA branches: `main`, `dev`, `new`, `fix`, `test`.
 
-Observed branches: `main`, `new`, `docs/organization-preservation-baseline`. Branches `dev`, `fix` and `test` were not present. `main` and `new` metadata reported unprotected. Full ruleset/required-check inspection was restricted by GitHub integration permissions.
+Observed branches at the first assessment: `main`, `new`, `docs/organization-preservation-baseline`; `dev`, `fix` and `test` were not present then and were observed on origin on 2026-11-14 (ASAA-012). `main` and `new` metadata reported unprotected. Full ruleset/required-check inspection was restricted by GitHub integration permissions.
 
 The `new` branch is reported 408 commits ahead of `main`. Inspect the complete history and compare before proposing any merge. PR #1 is a separate open documentation PR from `docs/organization-preservation-baseline` to `main`; it is not authorization to merge the current application branch.
 
@@ -42,7 +42,17 @@ No force-push, branch deletion, history rewrite or merge to `main` is authorized
 
 ## 4. Jenkins and Nexus
 
-No Jenkinsfile or Nexus publishing/retrieval configuration was found in the inspected repository tree. Jenkins is known to exist locally in the user's Windows environment, but its agent execution, credentials, job configuration and repository pipeline behavior have not been verified in this assessment. No Nexus artifact publication or retrieval is claimed.
+The repository root `Jenkinsfile` defines a Windows-agent CI pipeline for locked npm installation, API environment setup, dependency audit/SBOM, frontend and API lint/tests, and the production web build. It does not deploy. The Windows Jenkins agent needs Node.js/npm, Python 3.11+, Git, and permission to install the API's Python test dependencies. Python may be available through the `py` launcher or `python` on `PATH`; alternatively configure the Jenkins agent environment variable `PYTHON` with the full path to `python.exe`. An agent without Python cannot run this pipeline.
+
+The pipeline definition has not been executed or verified on a Jenkins controller/agent. Configure a Jenkins Pipeline job to use this repository's root `Jenkinsfile`; confirm the agent has the required tools and access before treating any run as CI evidence. Nexus publishing/retrieval is not configured, and no Nexus artifact flow is claimed.
+
+### Local development stack
+
+`Jenkinsfile.stack` is a separate Pipeline job named **ASAA-Local-Stack**. Set its script path to `Jenkinsfile.stack`, source branch to `new`, and keep its workspace persistent (do not enable post-build workspace cleanup). It accepts `DEPLOY`, `START`, `STOP`, `RESTART` and `STATUS`. A successful `new`-branch build in each of the four project CI jobs queues `DEPLOY`; that job checks out and validates all four projects before starting them. `STOP` stops the applications and Templates' local PostgreSQL server without deleting its data.
+
+The stack job needs Node.js 24/npm 11, Git, Python 3.11+, PostgreSQL `initdb`/`pg_ctl`/`psql`, Microsoft Edge for the JARVIS browser check, and a non-administrator Windows Jenkins service account. Add a Jenkins **username/password** credential named `github-read-token` with read access to the four repositories; do not put a GitHub token in a URL or source file. Missing prerequisites or failed checks prevent startup.
+
+The development applications bind to loopback only: ASAA `http://127.0.0.1:5173` (API docs on `:8001`), JARVIS `http://127.0.0.1:3000`, Templates `http://127.0.0.1:5000` (API on `:4000`), and Portfolio `http://127.0.0.1:8080`. Jenkins is intended to be exposed over HTTP `:8000` and HTTPS `:8443` through a TLS reverse proxy. The current Jenkins listener is plain HTTP on `:8443`; its service must move to a loopback backend port before the proxy can use `:8443`. Application pipelines do not change Jenkins or proxy settings. ASAA uses its local development database default, Templates uses its project-local PostgreSQL cluster on port 54339, and no MongoDB is configured by these projects. Portfolio's local development storage is not durable. This stack is for localhost development only, not production or LAN access.
 
 If these tools are selected for this project, verify actual agent execution, credentials scope, artifact coordinates, checksums, retention and retrieval from the target repository before marking integration complete.
 
@@ -85,3 +95,17 @@ Do not report CI as deployment, a configured Jenkins endpoint as a working pipel
 Resolved from section 2: lockfile generated and committed; deterministic clean install configured; Python and npm dependency scanning configured. Still open: dependency update/remediation policy, SBOM, artifact checksums, provenance, license policy. YAML for all four workflows parses; none of these changed definitions has a recorded GitHub run, so none is marked CI VERIFIED.
 
 Deployment, environments, approvals and rollback remain not implemented: they require a hosting target, release owner and secrets store. Exactly what is needed is listed in [Operations](OPERATIONS.md) section 11.
+
+## 8. Additional workflows configured 2026-11-14 (not yet executed on GitHub)
+
+| Workflow | Purpose |
+|---|---|
+| `monitoring-ci.yml` | `promtool check rules` and `promtool test rules` for `monitoring/asaa-alerts*.yml` using the official Prometheus Docker image. |
+| `deploy-rehearsal.yml` | Runs `deploy/rehearsal.sh` (migrate, smoke, bad release, rollback, smoke) on a runner; deploys nowhere. |
+| `postgres-integration.yml` (extended) | Adds the PostgreSQL load run against `monitoring/performance-budget.json` and artifact upload. |
+| `portal-ci.yml` (`web-e2e`) | Playwright now covers Chromium, Firefox, WebKit and two mobile emulations (browsers installed with `npx playwright install --with-deps chromium firefox webkit`). |
+
+
+## Update 2026-11-15
+
+`deploy-rehearsal` assets were exercised locally once (13/13 steps, agent-reported, host ports via `API_PORT`/`PORTAL_PORT`) and the Prometheus rules were checked and tested with the `prom/prometheus:v2.55.1` image (agent-reported). Neither has run on GitHub Actions; no run observed. `.gitignore` now ignores `*.log` and `.e2e/`.

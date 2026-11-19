@@ -1,0 +1,141 @@
+# promtool unit tests: promtool test rules monitoring/asaa-alerts.test.yml
+rule_files:
+  - asaa-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: instance down fires after 2 minutes
+    interval: 1m
+    input_series:
+      - series: 'up{job="asaa-api",instance="api-1"}'
+        values: '1 1 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: AsaaApiDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: AsaaApiDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: asaa-api
+              instance: api-1
+            exp_annotations:
+              summary: "ASAA API instance is not reachable by Prometheus"
+              runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"
+
+  - name: healthy traffic raises no alert
+    interval: 1m
+    input_series:
+      - series: 'up{job="asaa-api",instance="api-1"}'
+        values: '1+0x20'
+      - series: 'asaa_http_requests_total{method="GET",route="/api/v1/ap/suppliers",status="200"}'
+        values: '0+60x20'
+      - series: 'asaa_http_request_duration_seconds_bucket{method="GET",route="/api/v1/ap/suppliers",le="0.1"}'
+        values: '0+60x20'
+      - series: 'asaa_http_request_duration_seconds_bucket{method="GET",route="/api/v1/ap/suppliers",le="1.0"}'
+        values: '0+60x20'
+      - series: 'asaa_http_request_duration_seconds_bucket{method="GET",route="/api/v1/ap/suppliers",le="+Inf"}'
+        values: '0+60x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: AsaaHighServerErrorRate
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: AsaaHighLatencyP95
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: AsaaApiDown
+        exp_alerts: []
+
+  - name: sustained 5xx ratio fires
+    interval: 1m
+    input_series:
+      - series: 'asaa_http_requests_total{method="GET",route="/api/v1/ap/suppliers",status="200"}'
+        values: '0+10x20'
+      - series: 'asaa_http_requests_total{method="GET",route="/api/v1/ap/suppliers",status="500"}'
+        values: '0+10x20'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: AsaaHighServerErrorRate
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: AsaaHighServerErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "More than 5% of API requests are failing with 5xx"
+              runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"
+
+  - name: slow requests push p95 over one second
+    interval: 1m
+    input_series:
+      - series: 'asaa_http_request_duration_seconds_bucket{method="GET",route="/api/v1/ap/suppliers",le="0.5"}'
+        values: '0+0x25'
+      - series: 'asaa_http_request_duration_seconds_bucket{method="GET",route="/api/v1/ap/suppliers",le="1.0"}'
+        values: '0+0x25'
+      - series: 'asaa_http_request_duration_seconds_bucket{method="GET",route="/api/v1/ap/suppliers",le="2.5"}'
+        values: '0+60x25'
+      - series: 'asaa_http_request_duration_seconds_bucket{method="GET",route="/api/v1/ap/suppliers",le="+Inf"}'
+        values: '0+60x25'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: AsaaHighLatencyP95
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: AsaaHighLatencyP95
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "API p95 latency above 1s (provisional budget)"
+              runbook: "docs/TESTING.md#4-local-measurements-recorded-2026-11-13"
+
+  - name: authentication denial spike
+    interval: 1m
+    input_series:
+      - series: 'asaa_http_requests_total{method="GET",route="/api/v1/hr/employees",status="403"}'
+        values: '0+600x30'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: AsaaAuthenticationDenialSpike
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Sustained spike of 401/403 responses (possible credential misuse or misconfigured client)"
+              runbook: "docs/SECURITY.md#7-audit-and-accountability"
+
+  - name: in-flight saturation
+    interval: 1m
+    input_series:
+      - series: 'asaa_http_requests_in_flight{instance="api-1"}'
+        values: '5 5 80+0x15'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: AsaaRequestSaturation
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: api-1
+            exp_annotations:
+              summary: "More than 50 requests in flight on one instance (possible pool or worker saturation)"
+              runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"
+
+  - name: restart loop
+    interval: 1m
+    input_series:
+      - series: 'asaa_process_uptime_seconds{instance="api-1"}'
+        values: '100 160 5 65 5 65 5 65 5'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: AsaaFrequentRestarts
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: api-1
+            exp_annotations:
+              summary: "API process restarted more than twice in 30 minutes"
+              runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"

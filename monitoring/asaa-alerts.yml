@@ -1,0 +1,61 @@
+# Prometheus alert rules for the ASAA API /metrics output (apps/ap-api/src/asaa_ap/observability.py).
+# Thresholds are PROVISIONAL engineering defaults, not owner-approved SLOs. Scrape job name assumed: "asaa-api".
+# Alert routing, on-call ownership and runbook URLs are deployment decisions and are intentionally not configured here.
+groups:
+  - name: asaa-api
+    rules:
+      - alert: AsaaApiDown
+        expr: up{job="asaa-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ASAA API instance is not reachable by Prometheus"
+          runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"
+
+      - alert: AsaaHighServerErrorRate
+        expr: |
+          sum(rate(asaa_http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(asaa_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "More than 5% of API requests are failing with 5xx"
+          runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"
+
+      - alert: AsaaHighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(asaa_http_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency above 1s (provisional budget)"
+          runbook: "docs/TESTING.md#4-local-measurements-recorded-2026-11-13"
+
+      - alert: AsaaAuthenticationDenialSpike
+        expr: sum(rate(asaa_http_requests_total{status=~"401|403"}[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sustained spike of 401/403 responses (possible credential misuse or misconfigured client)"
+          runbook: "docs/SECURITY.md#7-audit-and-accountability"
+
+      - alert: AsaaRequestSaturation
+        expr: asaa_http_requests_in_flight > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 50 requests in flight on one instance (possible pool or worker saturation)"
+          runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"
+
+      - alert: AsaaFrequentRestarts
+        expr: resets(asaa_process_uptime_seconds[30m]) > 2
+        labels:
+          severity: warning
+        annotations:
+          summary: "API process restarted more than twice in 30 minutes"
+          runbook: "docs/OPERATIONS.md#5-monitoring-and-alerting-requirements"

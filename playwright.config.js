@@ -14,7 +14,15 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
-  use: { baseURL: WEB, trace: "retain-on-failure", screenshot: "only-on-failure", ...devices["Desktop Chrome"] },
+  use: { baseURL: WEB, trace: "retain-on-failure", screenshot: "only-on-failure" },
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] }, testIgnore: /responsive/ },
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testIgnore: /responsive/ },
+    // Mobile viewports run the responsive/reflow checks (real touch emulation, small screens).
+    { name: "mobile-chrome", use: { ...devices["Pixel 5"] }, testMatch: /responsive/ },
+    { name: "mobile-safari", use: { ...devices["iPhone 13"] }, testMatch: /responsive/ },
+  ],
   webServer: [
     {
       command: `"${python}" apps/ap-api/scripts/e2e_api.py --port 8765 --cors-origin ${WEB} --token-file .e2e/tokens.json`,

@@ -153,6 +153,7 @@ class UnitCreate(StrictModel):
 
 class UnitUpdate(StrictModel):
     expected_version: int = Field(ge=1)
+    parent_id: str | None = None  # explicit null moves the unit to the top level
     name: str | None = Field(default=None, min_length=2, max_length=180)
     description: str | None = Field(default=None, max_length=1000)
     owner_subject: str | None = Field(default=None, max_length=128)
@@ -212,6 +213,35 @@ def get_unit(db, unit_id, org_id):
     return row
 
 
+ALLOWED_CHILD_TYPES = {
+    "Legal Entity": {"Business Unit", "Division", "Department", "Location"},
+    "Business Unit": {"Division", "Department", "Team", "Location"},
+    "Division": {"Department", "Team", "Location"},
+    "Department": {"Team", "Position", "Location"},
+    "Team": {"Position"},
+    "Location": set(), "Position": set(),
+}
+
+
+def check_parent(db, org_id, unit_type, parent_id, unit_id=None):
+    """Validate a proposed parent: it must exist in the organization, be a permitted parent type and must not create a cycle.
+    unit_id is the unit being moved (None when creating, because a new unit cannot yet have descendants)."""
+    if unit_id is not None and parent_id == unit_id:
+        raise HTTPException(status_code=422, detail={"code": "organization_unit_self_parent"})
+    parent = get_unit(db, parent_id, org_id)
+    if unit_id is not None:
+        seen, cursor = set(), parent
+        while cursor is not None and cursor.id not in seen:
+            if cursor.id == unit_id:
+                raise HTTPException(status_code=422, detail={"code": "organization_unit_parent_cycle"})
+            seen.add(cursor.id)
+            cursor = db.scalar(select(OrganizationUnit).where(
+                OrganizationUnit.id == cursor.parent_id, OrganizationUnit.organization_id == org_id)) if cursor.parent_id else None
+    if unit_type not in ALLOWED_CHILD_TYPES.get(parent.unit_type, set()):
+        raise HTTPException(status_code=422, detail={"code": "invalid_organization_parent_type"})
+    return parent
+
+
 @router.get("/profile")
 def get_profile(db: Session = Depends(get_db), principal: Principal = Depends(require_permission("organization:profile:read"))):
     row = db.scalar(select(OrganizationProfile).where(OrganizationProfile.organization_id == principal.organization_id))
@@ -268,17 +298,7 @@ def create_unit(payload: UnitCreate, db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("organization:structure:write")),
     x_correlation_id: str | None = Header(default=None)):
     if payload.parent_id:
-        parent = get_unit(db, payload.parent_id, principal.organization_id)
-        allowed = {
-            "Legal Entity": {"Business Unit", "Division", "Department", "Location"},
-            "Business Unit": {"Division", "Department", "Team", "Location"},
-            "Division": {"Department", "Team", "Location"},
-            "Department": {"Team", "Position", "Location"},
-            "Team": {"Position"},
-            "Location": set(), "Position": set(),
-        }
-        if payload.unit_type not in allowed.get(parent.unit_type, set()):
-            raise HTTPException(status_code=422, detail={"code": "invalid_organization_parent_type"})
+        check_parent(db, principal.organization_id, payload.unit_type, payload.parent_id)
     duplicate = db.scalar(select(OrganizationUnit.id).where(
         OrganizationUnit.organization_id == principal.organization_id,
         OrganizationUnit.unit_code == payload.unit_code))
@@ -300,10 +320,17 @@ def patch_unit(unit_id: str, payload: UnitUpdate, db: Session = Depends(get_db),
     if row.version != payload.expected_version: raise HTTPException(status_code=409, detail={"code": "stale_organization_unit_version"})
     changes = payload.model_dump(exclude_unset=True, exclude={"expected_version"})
     if not changes: raise HTTPException(status_code=422, detail={"code": "no_organization_unit_changes"})
+    if changes.get("parent_id"):
+        check_parent(db, principal.organization_id, row.unit_type, changes["parent_id"], unit_id=row.id)
+    reparented = "parent_id" in changes and changes["parent_id"] != row.parent_id
     for key, value in changes.items(): setattr(row, key, value)
+    status_reset = reparented and row.status == "Active"
+    if status_reset:  # a changed hierarchy position needs a fresh independent review (maker-checker)
+        row.status = "Proposed"
+        row.reviewed_by = row.reviewed_at = row.review_reason = None
     row.updated_by = principal.subject; db.flush()
     audit(db, principal, "organization_unit.updated", "organization_unit", row.id,
-          {"changed_fields": sorted(changes), "status": row.status}, x_correlation_id)
+          {"changed_fields": sorted(changes), "status": row.status, "status_reset_for_review": status_reset}, x_correlation_id)
     db.commit(); db.refresh(row)
     return dump(row)
 
@@ -317,7 +344,7 @@ def review_unit(unit_id: str, payload: UnitReview, db: Session = Depends(get_db)
         raise HTTPException(status_code=409, detail={"code": "organization_unit_not_proposed"})
     if row.version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"code": "stale_organization_unit_version"})
-    if row.created_by == principal.subject:
+    if principal.subject in {row.created_by, row.updated_by}:
         raise HTTPException(status_code=403, detail={"code": "organization_unit_self_approval_forbidden"})
     if payload.decision == "Approve" and row.parent_id:
         parent = get_unit(db, row.parent_id, principal.organization_id)

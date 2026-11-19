@@ -51,9 +51,9 @@ npm run dev
 
 This single command starts:
 
-- Web UI: `http://localhost:5000`
-- FastAPI: `http://127.0.0.1:8000`
-- Interactive API docs: `http://127.0.0.1:8000/docs`
+- Web UI: `http://localhost:5173`
+- FastAPI: `http://127.0.0.1:8001`
+- Interactive API docs: `http://127.0.0.1:8001/docs`
 
 Press **Ctrl+C** once to stop both services.
 
@@ -79,7 +79,7 @@ cd apps/ap-api
 
 For Linux/macOS, use `.venv/bin/python -m alembic upgrade head` instead.
 
-The API fails closed for authenticated routes until the RS256 identity settings are configured. Set `ASAA_AP_DATABASE_URL`, `ASAA_AP_JWT_PUBLIC_KEY`, `ASAA_AP_JWT_ISSUER` and `ASAA_AP_JWT_AUDIENCE` in the environment or a local, untracked `.env` file. Never commit private keys, tokens or production secrets. The default CORS configuration permits the local frontend origins on port 5000.
+The API fails closed for authenticated routes until the RS256 identity settings are configured. Set `ASAA_AP_DATABASE_URL`, `ASAA_AP_JWT_PUBLIC_KEY`, `ASAA_AP_JWT_ISSUER` and `ASAA_AP_JWT_AUDIENCE` in the environment or a local, untracked `.env` file. Never commit private keys, tokens or production secrets. The default CORS configuration permits the local frontend origins on port 5173.
 
 Run API checks from `apps/ap-api` using the virtual environment's Python:
 

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asaa.invalid/schemas/api-log-line.json",
+  "title": "ASAA API structured log line",
+  "description": "One JSON object per line on stdout. Personal data and secrets are redacted before serialization.",
+  "type": "object",
+  "required": ["timestamp", "level", "logger", "message", "request_id"],
+  "properties": {
+    "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"},
+    "level": {"enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]},
+    "logger": {"type": "string", "minLength": 1},
+    "message": {"type": "string"},
+    "request_id": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9._-]{8,64}$"},
+    "method": {"enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]},
+    "path": {"type": "string", "not": {"pattern": "\\?"}},
+    "status": {"type": "integer", "minimum": 100, "maximum": 599},
+    "duration_ms": {"type": "number", "minimum": 0},
+    "exception": {
+      "type": "object",
+      "required": ["type", "message"],
+      "properties": {"type": {"type": "string"}, "message": {"type": "string"}},
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

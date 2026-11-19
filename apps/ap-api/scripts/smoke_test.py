@@ -2,7 +2,7 @@
 """Post-deployment smoke test (ASAA-010). Standard library only; safe to run against any environment.
 
   python scripts/smoke_test.py --base-url https://api.example.internal
-  python scripts/smoke_test.py --base-url http://127.0.0.1:8000 --token-file token.txt --expect-production
+  python scripts/smoke_test.py --base-url http://127.0.0.1:8001 --token-file token.txt --expect-production
 
 Checks liveness, readiness (database), request-ID propagation, security headers, that API routes refuse
 anonymous callers, that docs are not exposed in production, and (with a token) one authenticated read.

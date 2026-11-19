@@ -26,6 +26,25 @@ class IdentitySubjectLink(Base):
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
 
 
+class IdentityAdoptionRequest(Base):
+    """Maker-checker record for adopting a pre-existing (manually created) provider account for an employee. Never automatic."""
+    __tablename__ = "identity_adoption_requests"
+    __table_args__ = (Index("ix_identity_adoption_org_status", "organization_id", "status"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    employee_id: Mapped[str] = mapped_column(ForeignKey("hr_employees.id"), nullable=False)
+    subject: Mapped[str] = mapped_column(String(128), nullable=False)
+    provider_username: Mapped[str] = mapped_column(String(128), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="Pending")  # Pending|Approved|Rejected|Failed
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    requested_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewed_by: Mapped[str | None] = mapped_column(String(128))
+    review_reason: Mapped[str | None] = mapped_column(String(500))
+    result: Mapped[str | None] = mapped_column(String(300))
+
+
 class IdentitySyncJob(Base):
     """Transactional-outbox row. Level-triggered: the desired state is recomputed when the job runs."""
     __tablename__ = "identity_sync_jobs"
