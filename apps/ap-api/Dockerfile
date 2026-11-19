@@ -1,5 +1,6 @@
-# ASAA API image. Build context: apps/ap-api.  docker build -t asaa-api:local apps/ap-api
-FROM python:3.12-slim AS runtime
+# ASAA API image. Build context: apps/ap-api.  docker build -t asaa-api:0.2.0 apps/ap-api
+# Exact patch tag plus digest (resolved from the Docker Hub tag index, not pulled). Bump deliberately together with CI (Python 3.12).
+FROM python:3.12.16-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS runtime
 
 # BAD_RELEASE=1 builds a deliberately broken image used only by deploy/rehearsal.sh to rehearse rollback.
 ARG BAD_RELEASE=0

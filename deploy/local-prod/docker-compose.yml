@@ -13,7 +13,7 @@ x-api-env: &api-env
 
 services:
   migrate:
-    image: asaa-api:${API_IMAGE_TAG}
+    image: asaa-api:${API_IMAGE_TAG:-0.2.0}
     profiles: ["migrate"]
     command: ["alembic", "upgrade", "head"]
     environment:
@@ -22,7 +22,7 @@ services:
     extra_hosts: ["host.docker.internal:host-gateway"]
 
   api:
-    image: asaa-api:${API_IMAGE_TAG}
+    image: asaa-api:${API_IMAGE_TAG:-0.2.0}
     restart: unless-stopped
     entrypoint: ["sh", "-c", "export ASAA_AP_JWT_PUBLIC_KEY=\"$$(cat /run/keys/jwt_public.pem)\"; exec \"$$@\"", "--"]
     command: ["uvicorn", "asaa_ap.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
@@ -50,7 +50,7 @@ services:
     cap_drop: ["ALL"]
 
   portal:
-    image: asaa-portal:${PORTAL_IMAGE_TAG}
+    image: asaa-portal:${PORTAL_IMAGE_TAG:-0.1.0}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${PORTAL_PORT:-8100}:80"

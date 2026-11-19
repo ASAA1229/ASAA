@@ -8,7 +8,13 @@ param([string]$Tag = '', [switch]$NoRollback)
 . (Join-Path $PSScriptRoot 'common.ps1')
 $e = Read-EnvFile
 $env:COMPOSE_PROJECT_NAME = 'asaa-local-prod'
-if (-not $Tag) { $sha = (& git -C $Repo rev-parse --short HEAD).Trim(); $Tag = "$sha-$(Get-Date -Format 'yyyyMMddHHmmss')" }
+if (-not $Tag) {
+  # Local images get an explicit, non-latest tag derived from the API version: <version>-<commit>-<timestamp>.
+  $version = ([regex]::Match((Get-Content (Join-Path $Repo 'apps\ap-api\pyproject.toml') -Raw), '(?m)^version\s*=\s*"([^"]+)"')).Groups[1].Value
+  if (-not $version) { throw 'Could not read the API version from apps\ap-api\pyproject.toml.' }
+  $sha = (& git -C $Repo rev-parse --short HEAD).Trim()
+  $Tag = "$version-$sha-$(Get-Date -Format 'yyyyMMddHHmmss')"
+}
 $vars = @{ API_IMAGE_TAG = $Tag; PORTAL_IMAGE_TAG = $Tag; API_PORT = $e.API_PORT; PORTAL_PORT = $e.PORTAL_PORT }
 $state = Get-State
 $py = Get-VenvPython
