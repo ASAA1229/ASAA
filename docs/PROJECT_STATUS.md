@@ -241,3 +241,14 @@ Gap tally is unchanged (13: 2 complete and verified, 8 partial, 3 blocked). ASAA
 **Current phase: DEVELOPMENT** (owner direction: DEVELOPMENT, then TESTING, then DEPLOYMENT). Features added in this phase carry the status **IMPLEMENTED — NOT FULLY TESTED** until the testing phase runs. Test-phase and deployment-phase items that are not yet due (full-suite reruns, CI runs, hosted or staging verification, hosting, live providers, production rehearsal) are **deferred to test phase** or **deferred to deployment phase**; they are not failures. Evidence classes used in these documents: coordinator-verified, agent-reported, in progress, CI not observed.
 
 Tracker note: the workbooks add ASAA-014 (governed registers and workspace inventory) as a tracked row with status IMPLEMENTED — NOT FULLY TESTED; verification is deferred to the test phase, so the tracked gap count is 14 (2 complete and verified, 8 partial, 3 blocked, 1 implemented not fully tested).
+
+
+## 2026-11-19 CI follow-up
+
+The organization audit inspected PostgreSQL integration run **44501324951** on `new`, SHA `2c6e39a2`: **623 passed, 1 failed**. The failure was `test_postgresql_round_trip_backup_restore_verify`. The archive was produced by a newer PostgreSQL client that emitted `SET transaction_timeout = 0;`, which PostgreSQL 16 does not recognize.
+
+A compatibility fix was committed on `new`:
+- `apps/ap-api/scripts/backup_restore.py` now renders the custom archive to SQL, removes only the unsupported newer-client session setting, then executes the compatible SQL with `psql` in a single transaction (commit `71fb683d76892e9be5477199adb462fc5555e721`).
+- `apps/ap-api/tests/test_backup_restore.py` adds a focused regression test proving the filter removes that setting and preserves other SQL (commit `cd22a4cf718cd35dbcb4ff80e01018ffcb7e1694`).
+
+Post-fix PostgreSQL integration run **44524049465** was in progress on the fix commit at the time of this update. API and web CI runs were also in progress. The compatibility fix is therefore **implemented; CI verification pending**. The earlier PostgreSQL integration failure remains part of historical evidence and must not be described as passed until the new exact-head run succeeds.
