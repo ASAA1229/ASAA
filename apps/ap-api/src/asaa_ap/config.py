@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     keycloak_client_id: str = Field(default="asaa-identity-sync", validation_alias="ASAA_IDENTITY_KEYCLOAK_CLIENT_ID")
     keycloak_client_secret: SecretStr | None = Field(default=None, validation_alias="ASAA_IDENTITY_KEYCLOAK_CLIENT_SECRET")
     keycloak_base_group: str = Field(default="employees", validation_alias="ASAA_IDENTITY_KEYCLOAK_BASE_GROUP")
+    # Roles the base group may map (JSON list; realm roles by name, client roles as "client/role"). Empty by default.
+    keycloak_base_group_roles: list[str] = Field(default=[], validation_alias="ASAA_IDENTITY_KEYCLOAK_BASE_GROUP_ROLES")
     # Groups are never created by identity sync unless this is set; entitlement groups must exist (and carry no role mappings).
     keycloak_create_groups: bool = Field(default=False, validation_alias="ASAA_IDENTITY_KEYCLOAK_CREATE_GROUPS")
     # Directory written by scripts/backup_restore.py scheduled (read-only status view). Unset = backup status not configured.

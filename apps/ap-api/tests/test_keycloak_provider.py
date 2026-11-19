@@ -170,6 +170,23 @@ def test_ambiguous_employee_references_are_refused():
         provider._resolve("brand-new", "E-DUP")
 
 
+def test_a_leaver_whose_account_appears_after_the_first_attempt_completes(client, db):
+    provider, kc, _ = build()
+    as_p(client)
+    emp = employee(client, "Late", "Show", "E-55")
+    link(client, emp, "sub-late")
+    from asaa_people.models import Employee
+    db.get(Employee, emp["id"]).status = "Inactive"
+    db.query(IdentitySyncJob).delete()
+    service.enqueue_for_employee(db, "org-a", emp["id"], "leaver", "left", "admin")
+    db.commit()
+    start = datetime.now(timezone.utc) + timedelta(seconds=5)
+    assert service.process_due(db, provider, "org-a", now=start)["retry_scheduled"] == 1
+    provider.upsert_user("sub-late", UserAttributes(email="l@example.invalid", employee_reference="E-55", first_name="L", last_name="S"), True)
+    done = service.process_due(db, provider, "org-a", now=start + timedelta(seconds=120))
+    assert done["succeeded"] == 1 and kc.user_by_name("sub-late")["enabled"] is False
+
+
 def test_a_leaver_whose_account_cannot_be_found_is_not_a_silent_success():
     provider, kc, _ = build()
     with pytest.raises(ProviderUserNotFound):
@@ -188,8 +205,13 @@ def test_the_not_found_leaver_gets_its_own_outcome_audit_and_alert_through_the_w
     service.enqueue_for_employee(db, "org-a", emp["id"], "leaver", "left", "admin")
     db.commit()
     caplog.set_level(logging.ERROR)
-    summary = service.process_due(db, provider, "org-a", now=datetime.now(timezone.utc) + timedelta(seconds=5))
+    start = datetime.now(timezone.utc) + timedelta(seconds=5)
+    first = service.process_due(db, provider, "org-a", now=start)
     job = db.scalars(select(IdentitySyncJob)).one()
+    assert first["retry_scheduled"] == 1 and first["not_found"] == 0 and job.status == "Pending"  # retried once before it is terminal
+    assert job.next_attempt_at.replace(tzinfo=timezone.utc) >= start + timedelta(seconds=service.NOT_FOUND_RETRY_SECONDS)
+    assert "identity_sync.not_found" not in {a.action for a in db.scalars(select(AuditEvent))}
+    summary = service.process_due(db, provider, "org-a", now=start + timedelta(seconds=120))
     assert summary["not_found"] == 1 and summary["succeeded"] == 0 and job.status == "NotFound"
     audits = {a.action: a for a in db.scalars(select(AuditEvent))}
     assert audits["identity_sync.not_found"].outcome == "failure" and "identity_sync.completed" not in audits
@@ -382,12 +404,34 @@ def test_a_group_with_role_mappings_is_never_used_for_entitlements_and_nothing_i
         provider.set_entitlements("sub-asha", frozenset({"risky:one"}))
 
 
-def test_the_base_group_may_carry_role_mappings_because_that_is_its_purpose():
+def test_the_base_group_may_only_map_roles_from_the_allow_list_which_is_empty_by_default():
     provider, kc, _ = build()
     gid = kc.add_group("employees")
     kc.group_roles[gid] = {"realmMappings": [{"name": "employee"}]}
-    provider.upsert_user("sub-asha", ATTRS, True)
-    assert gid in kc.memberships[kc.user_by_name("sub-asha")["id"]]
+    with pytest.raises(PermanentProviderError) as raised:
+        provider.upsert_user("sub-asha", ATTRS, True)
+    assert "allow-list" in str(raised.value)
+    assert not kc.memberships.get(kc.user_by_name("sub-asha")["id"], set())  # the account exists, but joined no group
+    kc2 = FakeKeycloak(secret=SECRET)
+    gid2 = kc2.add_group("employees")
+    kc2.group_roles[gid2] = {"realmMappings": [{"name": "employee"}], "clientMappings": {"portal": {"mappings": [{"name": "user"}]}}}
+    allowed, _, _ = build(kc2)
+    allowed.base_group_roles = frozenset({"employee", "portal/user"})
+    allowed.upsert_user("sub-asha", ATTRS, True)
+    assert gid2 in kc2.memberships[kc2.user_by_name("sub-asha")["id"]]
+    kc2.group_roles[gid2]["realmMappings"].append({"name": "realm-admin"})  # one unlisted role is enough to refuse
+    with pytest.raises(PermanentProviderError):
+        allowed.upsert_user("sub-asha", ATTRS, True)
+    kc2.group_roles[gid2] = {"clientMappings": {"realm-management": {"mappings": [{"name": "manage-users"}]}}}
+    with pytest.raises(PermanentProviderError):
+        allowed.upsert_user("sub-asha", ATTRS, True)
+
+
+def test_base_group_roles_come_from_settings(monkeypatch):
+    monkeypatch.setenv("ASAA_IDENTITY_KEYCLOAK_BASE_GROUP_ROLES", '["employee", "portal/user"]')
+    assert Settings().keycloak_base_group_roles == ["employee", "portal/user"]
+    monkeypatch.delenv("ASAA_IDENTITY_KEYCLOAK_BASE_GROUP_ROLES")
+    assert Settings().keycloak_base_group_roles == []
 
 
 # ============================================================================= leaver
@@ -751,6 +795,7 @@ def test_bootstrap_registers_the_keycloak_provider_and_requires_url_and_secret()
         keycloak_client_id = "asaa-identity-sync"
         keycloak_base_group = "employees"
         keycloak_create_groups = False
+        keycloak_base_group_roles = ["employee"]
 
         class keycloak_client_secret:  # noqa: N801
             @staticmethod
@@ -763,6 +808,7 @@ def test_bootstrap_registers_the_keycloak_provider_and_requires_url_and_secret()
     register_configured_providers(S)
     provider = resolve_provider("keycloak")
     assert isinstance(provider, KeycloakIdentityProvider) and provider.create_groups is False
+    assert provider.base_group_roles == frozenset({"employee"})
     S.keycloak_client_secret = None
     with pytest.raises(ValueError):
         register_configured_providers(S)

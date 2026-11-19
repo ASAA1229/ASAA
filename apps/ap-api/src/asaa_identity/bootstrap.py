@@ -20,4 +20,4 @@ def register_configured_providers(settings) -> None:
             KeycloakClient(settings.keycloak_url, settings.keycloak_realm, settings.keycloak_client_id,
                            settings.keycloak_client_secret.get_secret_value()),
             group_prefix=settings.scim_group_prefix, base_group=settings.keycloak_base_group,
-            create_groups=settings.keycloak_create_groups))
+            create_groups=settings.keycloak_create_groups, base_group_roles=settings.keycloak_base_group_roles))

@@ -118,6 +118,7 @@ def enqueue_for_subject_if_linked(db: Session, organization_id: str, subject: st
 
 # ---------------------------------------------------------------- execution
 
+NOT_FOUND_RETRY_SECONDS = 60  # a leaver whose account is not found is retried once (replication lag, a just-finished joiner)
 AUTH_FAILURE_BACKOFF_SECONDS = 900  # a refused credential is retried slowly: hammering a locked-out service account helps nobody
 
 
@@ -205,10 +206,16 @@ def process_due(db: Session, provider: IdentityProvider, organization_id: str | 
                 job.next_attempt_at = now + timedelta(seconds=max(AUTH_FAILURE_BACKOFF_SECONDS, backoff_seconds(job.attempts, backoff_base, backoff_cap)))
                 summary["retry_scheduled"] += 1
         except ProviderUserNotFound:
-            job.status, job.completed_at, job.last_error = "NotFound", now, "provider has no account for this leaver"
-            _audit(db, job, "identity_sync.not_found", "failure", {"operation": job.operation, "attempts": job.attempts})
-            log.error("identity_sync_leaver_account_not_found", extra={"job_id": job.id, "operation": job.operation})
-            summary["not_found"] += 1
+            if job.attempts < 2:  # once more after a short delay before the outcome becomes terminal
+                job.last_error = "provider has no account for this leaver; retrying once"
+                job.next_attempt_at = now + timedelta(seconds=NOT_FOUND_RETRY_SECONDS)
+                log.warning("identity_sync_leaver_account_not_found_retrying", extra={"job_id": job.id})
+                summary["retry_scheduled"] += 1
+            else:
+                job.status, job.completed_at, job.last_error = "NotFound", now, "provider has no account for this leaver"
+                _audit(db, job, "identity_sync.not_found", "failure", {"operation": job.operation, "attempts": job.attempts})
+                log.error("identity_sync_leaver_account_not_found", extra={"job_id": job.id, "operation": job.operation})
+                summary["not_found"] += 1
         except TransientProviderError as exc:
             job.last_error = f"transient: {redact(str(exc))}"[:300]
             if job.attempts >= job.max_attempts:

@@ -227,7 +227,7 @@ class KeycloakIdentityProvider(IdentityProvider):
     """Keycloak usernames are case-insensitive and stored lower-case; ASAA subjects are kept verbatim in the asaa_subject attribute."""
 
     def __init__(self, client: KeycloakClient, group_prefix: str = "asaa:", base_group: str = "employees", page_size: int = 100,
-                 create_groups: bool = False):
+                 create_groups: bool = False, base_group_roles: "frozenset[str] | set[str] | list[str]" = frozenset()):
         if not _PREFIX.match(group_prefix or ""):
             raise ValueError("The Keycloak entitlement group prefix must be non-empty (letters, digits and ._:/-, at most 32 characters)")
         if not _GROUP_NAME.match(base_group or ""):
@@ -237,6 +237,9 @@ class KeycloakIdentityProvider(IdentityProvider):
                 raise ValueError(f"The Keycloak {label} {name!r} is a protected group name and cannot be used by identity sync")
         self.client, self.prefix, self.base_group, self.page_size = client, group_prefix, base_group, page_size
         self.create_groups = create_groups
+        # Roles the base group may map: realm roles by name, client roles as "client/role". None by default: a membership step must
+        # not be able to confer roles, so a base group with any other role mapping is refused.
+        self.base_group_roles = frozenset(base_group_roles)
         self._steps: list[dict] = []
 
     # ---- audit -----------------------------------------------------------------
@@ -283,7 +286,7 @@ class KeycloakIdentityProvider(IdentityProvider):
                 return matches[0], True
         return None, False
 
-    def _find_group(self, name: str, allow_roles: bool = False) -> dict:
+    def _find_group(self, name: str, allowed_roles: frozenset = frozenset()) -> dict:
         _, _, groups = self.client.request("GET", "/groups", query={"search": name, "exact": "true"})
         group = next((g for g in groups or [] if g.get("name") == name), None)
         if group is None:
@@ -296,11 +299,13 @@ class KeycloakIdentityProvider(IdentityProvider):
             group = next((g for g in groups or [] if g.get("name") == name), None)
             if group is None:
                 raise TransientProviderError("Keycloak group was created but is not visible yet")
-        if not allow_roles:
-            _, _, mappings = self.client.request("GET", f"/groups/{_quote(group['id'])}/role-mappings")
-            mappings = mappings or {}
-            if mappings.get("realmMappings") or mappings.get("clientMappings"):
-                raise PermanentProviderError("Keycloak entitlement group carries role mappings and will not be used")
+        _, _, mappings = self.client.request("GET", f"/groups/{_quote(group['id'])}/role-mappings")
+        mappings = mappings or {}
+        mapped = {str(r.get("name")) for r in mappings.get("realmMappings") or []}
+        for client_id, doc in (mappings.get("clientMappings") or {}).items():
+            mapped |= {f"{client_id}/{r.get('name')}" for r in (doc or {}).get("mappings") or []}
+        if mapped - set(allowed_roles):
+            raise PermanentProviderError("Keycloak group carries role mappings outside its allow-list and will not be used")
         return group
 
     def _groups_of(self, user_id: str) -> list[dict]:
@@ -318,7 +323,7 @@ class KeycloakIdentityProvider(IdentityProvider):
             raise PermanentProviderError(f"Keycloak group membership change returned HTTP {status}")
 
     def _ensure_base_group(self, user_id: str) -> None:
-        group = self._find_group(self.base_group, allow_roles=True)
+        group = self._find_group(self.base_group, allowed_roles=self.base_group_roles)
         self._group_write("PUT", user_id, group["id"])
 
     # ---- representation ----------------------------------------------------------
