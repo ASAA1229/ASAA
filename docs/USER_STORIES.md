@@ -398,3 +398,8 @@ No new business-workflow story (finance, HR, payroll, procurement) was implement
 - ASAA-P0-02: backups are AES-256-GCM encrypted, rotated, scheduled and monitored via a staleness check (IN DEVELOPMENT; objectives, scheduler, off-site storage outstanding).
 - ASAA-P1-17: Firefox, WebKit, mobile-emulation, 320 px reflow and 640 px zoom-equivalent checks pass locally (NEEDS TESTING; CI, screen reader and physical devices outstanding).
 - ASAA-P0-07: alert rules, log schema, deployment rehearsal assets (rehearsal NOT RUN; promtool run by CI only).
+
+
+## Story evidence reconciliation — 2026-11-20
+
+Story status must not be upgraded from the organization CI snapshot alone. The observed `new` API/Web/PostgreSQL workflows passed, but `dev`/`main` API and PostgreSQL checks failed. Production identity-provider/MFA, full authorization/tenant-isolation assurance, backup/restore objectives, business UAT, operational ownership and production acceptance remain open. Keep implemented, tested, integrated, accepted and released states separate; attach exact-commit evidence to each story before changing its status. See [Project Status](PROJECT_STATUS.md) and [Pending Work](PENDING_WORK_REGISTER.md).

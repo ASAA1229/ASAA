@@ -51,3 +51,15 @@ Reconciliation rules:
 5. The approved Master Requirements Baseline v1.0 remains unchanged; any new baseline requires separate approval.
 6. Planning/documentation only. No code, tests, deployment, merge, paid service, production change or release is authorized by this update.
 
+
+
+## Verified organization update — 2026-11-20
+
+The following items remain open after the organization-wide CI and branch audit:
+- Resolve the observed API-quality and PostgreSQL-integration CI failures on `dev` and `main`; validate exact head commits and identify root causes before promotion.
+- Apply and verify approved branch protections for all five standard branches; ensure required checks and PR-only changes are enforced.
+- Enforce the promotion source/target policy in automation: working branches → `new`, `new` → `dev`, `dev` → `main`.
+- Complete production database provisioning, OIDC/SSO/MFA provider activation, identity lifecycle integration, independent authorization/security review, approved backup/restore RPO/RTO, business UAT, and operational ownership.
+- Re-run all mandatory checks on the exact release-candidate commit and attach immutable evidence.
+
+The `new` branch workflows listed in [Project Status](PROJECT_STATUS.md) passed for the observed run IDs. This does not establish that `dev` or `main` are healthy, nor does it authorize merge, deployment, or release. No code, tests, deployment, or branch promotion was performed by this documentation refresh.
