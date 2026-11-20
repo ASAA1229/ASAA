@@ -211,3 +211,8 @@ Mark an item **verified** only after inspecting the actual repository or platfor
 ## 14. Change control
 
 Changes to this organization-wide policy require explicit owner approval and an update to this document. Repository-specific exceptions must be recorded here or linked from the relevant repository, with scope and rationale. The policy applies consistently to ASAA, JARVIS, Templates and Portfolio unless a formally approved exception is documented.
+
+
+## Organization branch promotion policy — 2026-11-20
+
+Required flow across ASAA1229 repositories: task/working branches (including `fix` and `test`) → `new`; only `new` → `dev`; only `dev` → `main`. Do not open direct PRs from working branches to `dev` or `main`, or from `new` directly to `main`. All five standard branches exist in the organization snapshot, but were observed without branch protection; enforcement is approved and remains pending application/verification. No merge or promotion is performed by this documentation update.
