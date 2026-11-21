@@ -125,3 +125,10 @@ The first release should be limited to a coherent set of validated governance, w
 The single authoritative maturity assessment, current gap register and verified progress record is [Project Status](docs/PROJECT_STATUS.md). Use [POC](docs/POC.md) for the current executable scope, [Roadmap](docs/ROADMAP.md) for delivery sequence, [Testing](docs/TESTING.md) for test evidence, [DevOps](docs/DEVOPS.md) for CI/CD controls and [Release Readiness](docs/RELEASE_READINESS.md) for GO/NO-GO gates.
 
 **Current release decision: NO-GO.** API quality and PostgreSQL 16 CI integration passed at commit `ba87df7`; web CI passed at commit `69e08b2`, including four OIDC endpoint transport-policy regression tests and a Vite production build ([run 43419337233](https://github.com/ASAA1229/ASAA/actions/runs/43419337233)). These results do not establish production database, identity-provider, backup/recovery, full security-assurance or business-acceptance readiness.
+
+
+## Status and evidence — 2026-11-20
+
+ASAA status is **NO-GO** pending production identity/database, security, recovery, UAT and operational gates. The 2026-11-20 organization audit recorded passing observed `new` API/Web/PostgreSQL runs but failing API/PostgreSQL runs on `dev` and `main`.
+
+See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for the dated evidence, outstanding gates and next actions. Workflow results are specific to their recorded run and commit; missing runs are not passes.

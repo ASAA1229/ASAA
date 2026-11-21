@@ -39,3 +39,8 @@ Sets 1–12 are complete; all questions were answered “all of the above.” Th
 
 ## Project-specific pending work carried forward (not a status promotion)
 Verify and close external identity-provider activation; complete workforce, payroll/leave/expense policy E2E and business UAT; supplier/procurement/AP and AR/billing integrations; project/product/service-delivery requirements and implementation; reporting freshness/lineage and coordinator verification; independent security review; CI evidence on exact SHA; approved hosting/topology; production backup/restore exercise and owner-approved RPO/RTO; cross-project data authority and integration contracts.
+
+
+## Epic status evidence note — 2026-11-20
+
+The latest organization audit confirms the `new` API quality, Web CI and PostgreSQL integration runs passed (44732168373, 44732168216, 44732168210), while API quality and PostgreSQL integration failed on observed `dev` and `main` runs. Treat epic implementation states as distinct from branch CI and release acceptance. Production database, identity-provider/MFA, independent security, backup/recovery objectives, business UAT and operations remain release blockers. See [Project Status](PROJECT_STATUS.md).

@@ -150,6 +150,19 @@ def test_security_headers_and_no_store_on_api_responses(client):
     assert client.get("/health").headers["referrer-policy"] == "no-referrer"
 
 
+def test_swagger_docs_csp_allows_required_assets_without_weakening_api_policy(client):
+    docs = client.get("/docs")
+    csp = docs.headers["content-security-policy"]
+
+    assert docs.status_code == 200 and "swagger-ui-bundle.js" in docs.text
+    assert "script-src 'unsafe-inline' https://cdn.jsdelivr.net" in csp
+    assert "style-src 'unsafe-inline' https://cdn.jsdelivr.net" in csp
+    assert "img-src https://fastapi.tiangolo.com data:" in csp
+    assert "connect-src 'self'" in csp
+    assert "frame-ancestors 'none'" in csp
+    assert client.get("/api/v1/ap/suppliers").headers["content-security-policy"] == "default-src 'none'; frame-ancestors 'none'"
+
+
 def test_oversized_request_bodies_are_rejected_with_413(client):
     response = client.post("/api/v1/ap/suppliers", content=b"x" * (1_048_576 + 10), headers={"Content-Type": "application/json"})
     assert response.status_code == 413
