@@ -264,6 +264,14 @@ export function AttendancePanel({ api, claims, connected }) {
   const range = `date_from=${plusDays(-30)}&date_to=${today()}`;
   const canRecords = connected && permissions.includes("attendance:record:read");
   const records = useList(api, `/api/v1/attendance/records?${range}`, canRecords);
+  const [summaryRange, setSummaryRange] = useState({ date_from: plusDays(-30), date_to: today() });
+  const [summary, setSummary] = useState({ data: null, error: "" });
+  const loadSummary = async event => {
+    event?.preventDefault();
+    setSummary({ data: null, error: "" });
+    try { setSummary({ data: await api(`/api/v1/attendance/summary?date_from=${summaryRange.date_from}&date_to=${summaryRange.date_to}`), error: "" }); }
+    catch (e) { setSummary({ data: null, error: e.message || "Could not load the summary." }); }
+  };
   const corrections = useList(api, "/api/v1/attendance/corrections", connected && permissions.includes("attendance:correction:read"));
   const shifts = useList(api, "/api/v1/attendance/shifts", connected && permissions.includes("attendance:shift:read"));
   const canRoster = connected && permissions.includes("attendance:roster:read");
@@ -304,6 +312,16 @@ export function AttendancePanel({ api, claims, connected }) {
     {canRecords && <RecordTable title="Attendance records (last 30 days)" description="Overtime is computed only when an owner-approved attendance policy exists." list={records} permissions={permissions} busy={busy}
       columns={[["Date", r => r.work_date], ["Employee", r => r.employee_id], ["In", r => r.clock_in], ["Out", r => r.clock_out], ["Worked (min)", r => r.worked_minutes], ["Overtime (min)", r => r.overtime_minutes], ["Overtime status", r => r.overtime_status]]}
       actions={[["Approve overtime", "attendance:overtime:review", r => r.overtime_status === "Pending", decide("/api/v1/attendance/records", "approve")], ["Reject overtime", "attendance:overtime:review", r => r.overtime_status === "Pending", decide("/api/v1/attendance/records", "reject")]]} />}
+    {canRecords && <section className="panel list-panel"><div className="list-heading"><div><h2>Attendance summary</h2><p>Per employee worked minutes, rostered days, days without attendance (approved leave and holidays excluded) and overtime. Ranges up to 92 days.</p></div></div>
+      <form className="form-grid" onSubmit={loadSummary}>
+        <Field label="From"><input required type="date" value={summaryRange.date_from} onChange={e => setSummaryRange(r => ({ ...r, date_from: e.target.value }))} /></Field>
+        <Field label="To"><input required type="date" value={summaryRange.date_to} onChange={e => setSummaryRange(r => ({ ...r, date_to: e.target.value }))} /></Field>
+        <button className="btn btn-primary">Show summary</button></form>
+      {summary.error && <div className="notice" role="alert">{summary.error}</div>}
+      {summary.data && <><small className="field-help">Overtime policy: {summary.data.overtime_policy || "not configured"}. {summary.data.organization_timezone_configured ? "" : "Organization time zone is not configured, so days without attendance are not judged."}</small>
+        {!summary.data.employees.length ? <div className="admin-empty"><b>No attendance or roster data</b><span>Nothing in this range.</span></div>
+          : <div className="table-wrap"><table><thead><tr><th>Employee</th><th>Worked (min)</th><th>Rostered days</th><th>Days without attendance</th><th>Open records</th><th>Overtime pending (min)</th><th>Overtime approved (min)</th></tr></thead>
+            <tbody>{summary.data.employees.map(e => <tr key={e.employee_id}><td>{e.employee_id}</td><td>{e.worked_minutes}</td><td>{e.rostered_days}</td><td>{e.days_without_attendance}</td><td>{e.open_records}</td><td>{e.overtime_pending_minutes}</td><td>{e.overtime_approved_minutes}</td></tr>)}</tbody></table></div>}</>}</section>}
     {permissions.includes("attendance:correction:request") && <section className="panel list-panel"><div className="list-heading"><div><h2>Request a correction</h2><p>Missed or wrong clock times need an independent reviewer.</p></div></div>
       <form className="form-grid" onSubmit={requestCorrection}>
         <Field label="Work date"><input required type="date" value={correction.work_date} onChange={e => setCorrection(c => ({ ...c, work_date: e.target.value }))} /></Field>
@@ -424,7 +442,7 @@ export function AnalyticsPanel({ api, claims, connected }) {
   const permissions = permissionsOf(claims);
   const analytics = connected && permissions.includes("report:analytics:read");
   const lineage = connected && permissions.includes("report:lineage:read");
-  const [state, setState] = useState({ capital: null, cycles: null, freshness: null, error: "" });
+  const [state, setState] = useState({ capital: null, cycles: null, freshness: null, lineageMap: null, error: "" });
   const [trend, setTrend] = useState({ dataset: "", grain: "month", result: null, error: "" });
   const loadTrend = async event => {
     event.preventDefault();
@@ -434,16 +452,17 @@ export function AnalyticsPanel({ api, claims, connected }) {
   };
   const load = useCallback(async () => {
     try {
-      const [capital, cycles, freshness] = await Promise.all([
+      const [capital, cycles, freshness, lineageMap] = await Promise.all([
         analytics ? api("/api/v1/reports/analytics/working-capital-position") : null,
         analytics ? api("/api/v1/reports/analytics/review-cycle-times") : null,
-        lineage ? api("/api/v1/reports/freshness") : null]);
-      setState({ capital, cycles, freshness, error: "" });
+        lineage ? api("/api/v1/reports/freshness") : null,
+        lineage ? api("/api/v1/reports/lineage") : null]);
+      setState({ capital, cycles, freshness, lineageMap, error: "" });
     } catch (e) { setState(s => ({ ...s, error: e.message || "Could not load analytics." })); }
   }, [api, analytics, lineage]);
   useEffect(() => { if (analytics || lineage) load(); }, [load, analytics, lineage]);
   if (!analytics && !lineage) return null;
-  const { capital, cycles, freshness, error } = state;
+  const { capital, cycles, freshness, lineageMap, error } = state;
   return <div className="admin-workspace"><Messages error={error} />
     {analytics && <section className="panel list-panel"><div className="list-heading"><div><h2>Trends</h2><p>Records created per period for one dataset. Only periods with records appear.</p></div></div>
       <form className="form-grid" onSubmit={loadTrend}>
@@ -460,5 +479,7 @@ export function AnalyticsPanel({ api, claims, connected }) {
       <div className="table-wrap"><table><thead><tr><th>Dataset</th><th>Reviewed</th><th>Mean (h)</th><th>Median (h)</th><th>Longest (h)</th></tr></thead><tbody>{Object.entries(cycles.cycle_times || {}).map(([n, v]) => <tr key={n}><td>{n}</td><td>{v.reviewed_records}</td><td>{cell(v.mean_hours)}</td><td>{cell(v.median_hours)}</td><td>{cell(v.longest_hours)}</td></tr>)}</tbody></table></div></section>}
     {freshness && <section className="panel list-panel"><div className="list-heading"><div><h2>Data freshness and lineage</h2><p>{freshness.note}</p></div></div>
       <div className="table-wrap"><table><thead><tr><th>Dataset</th><th>Owner module</th><th>Records</th><th>Newest record</th><th>Age (h)</th></tr></thead><tbody>{(freshness.datasets || []).map(d => <tr key={d.dataset}><td>{d.dataset}</td><td>{d.owner_module}</td><td>{d.record_count}</td><td>{cell(d.newest_record_at)}</td><td>{cell(d.age_hours)}</td></tr>)}</tbody></table></div></section>}
+    {lineageMap && <section className="panel list-panel"><div className="list-heading"><div><h2>Report lineage</h2><p>Which datasets each report reads. Datasets you may not read are counted, not named.</p></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Report</th><th>Datasets read</th><th>Hidden datasets</th></tr></thead><tbody>{Object.entries(lineageMap.reports || {}).map(([r, v]) => <tr key={r}><td>{r}</td><td>{(v.datasets || []).join(", ") || "-"}</td><td>{v.hidden_dataset_count}</td></tr>)}</tbody></table></div></section>}
   </div>;
 }
