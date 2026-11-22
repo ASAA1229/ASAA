@@ -191,6 +191,70 @@ export function ReceivablesControlsPanel({ api, claims, connected }) {
   </div>;
 }
 
+/* ------------------------------------------------------------------ Receivables: debit notes, refunds and disputes */
+export function ReceivablesAdjustmentsPanel({ api, claims, connected }) {
+  const permissions = permissionsOf(claims);
+  const { error, notice, busy, run } = useActions();
+  const [reason, setReason] = useState("");
+  const [debit, setDebit] = useState({ invoice_id: "", amount: "", reason: "" });
+  const [refund, setRefund] = useState({ receipt_id: "", amount: "", reason: "" });
+  const [dispute, setDispute] = useState({ invoice_id: "", disputed_amount: "", reason: "" });
+  const [paymentRef, setPaymentRef] = useState("");
+  const [alloc, setAlloc] = useState({ receipt_id: "", invoice_id: "", amount: "" });
+  const on = p => connected && permissions.includes(p);
+  const debits = useList(api, "/api/v1/ar/debit-notes", on("ar:debit:read"));
+  const refunds = useList(api, "/api/v1/ar/refunds", on("ar:refund:read"));
+  const disputes = useList(api, "/api/v1/ar/disputes", on("ar:dispute:read"));
+  const post = (path, body) => api(path, { method: "POST", ...(body ? { body: JSON.stringify(body) } : {}) });
+  const needReason = () => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return reason.trim(); };
+  const submit = (event, path, body, message, reset, list) => { event.preventDefault(); run(() => post(path, body), message, async () => { reset(); await list.reload(); }); };
+  if (!on("ar:debit:read") && !on("ar:refund:read") && !on("ar:dispute:read") && !on("ar:receipt:allocate")) return null;
+  return <div className="admin-workspace"><Messages error={error} notice={notice} /><ReasonField value={reason} onChange={setReason} label="Reason or note for the next decision" />
+    {on("ar:receipt:allocate") && <section className="panel list-panel"><div className="list-heading"><div><h2>Allocate unapplied receipt</h2><p>Applies part of the unapplied amount of a recorded receipt to an open invoice of the same customer and currency.</p></div></div>
+      <form className="form-grid" onSubmit={e => { e.preventDefault(); run(() => post(`/api/v1/ar/receipts/${encodeURIComponent(alloc.receipt_id.trim())}/allocations`, { invoice_id: alloc.invoice_id.trim(), amount: alloc.amount }), "Receipt allocated.", () => setAlloc({ receipt_id: "", invoice_id: "", amount: "" })); }}>
+        <Field label="Receipt id"><input required value={alloc.receipt_id} onChange={e => setAlloc(f => ({ ...f, receipt_id: e.target.value }))} /></Field>
+        <Field label="Invoice id"><input required value={alloc.invoice_id} onChange={e => setAlloc(f => ({ ...f, invoice_id: e.target.value }))} /></Field>
+        <Field label="Amount"><input required inputMode="decimal" value={alloc.amount} onChange={e => setAlloc(f => ({ ...f, amount: e.target.value }))} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Allocate</button></form></section>}
+    {on("ar:debit:read") && <>
+      {on("ar:debit:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Debit note</h2><p>Adds a charge to an issued invoice once approved by someone other than the maker.</p></div></div>
+        <form className="form-grid" onSubmit={e => submit(e, "/api/v1/ar/debit-notes", debit, "Debit note submitted for independent approval.", () => setDebit({ invoice_id: "", amount: "", reason: "" }), debits)}>
+          <Field label="Invoice id"><input required value={debit.invoice_id} onChange={e => setDebit(f => ({ ...f, invoice_id: e.target.value }))} /></Field>
+          <Field label="Amount"><input required inputMode="decimal" value={debit.amount} onChange={e => setDebit(f => ({ ...f, amount: e.target.value }))} /></Field>
+          <Field label="Reason"><input required minLength={3} value={debit.reason} onChange={e => setDebit(f => ({ ...f, reason: e.target.value }))} /></Field>
+          <button className="btn btn-primary" disabled={busy}>Submit debit note</button></form></section>}
+      <RecordTable title="Debit notes" description="Pending debit notes need an independent decision." list={debits} permissions={permissions} busy={busy}
+        columns={[["Invoice", r => r.invoice_id], ["Amount", r => `${r.amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Maker", r => r.created_by]]}
+        actions={[["Approve", "ar:debit:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/debit-notes/${r.id}/review`, { decision: "approve", reason: needReason() }), "Decision recorded.", debits.reload)],
+          ["Reject", "ar:debit:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/debit-notes/${r.id}/review`, { decision: "reject", reason: needReason() }), "Decision recorded.", debits.reload)]]} /></>}
+    {on("ar:refund:read") && <>
+      {on("ar:refund:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Refund</h2><p>Returns the unapplied part of a recorded receipt. Approval and payout recording are separate people; ASAA does not initiate the payment.</p></div></div>
+        <form className="form-grid" onSubmit={e => submit(e, "/api/v1/ar/refunds", refund, "Refund requested for independent approval.", () => setRefund({ receipt_id: "", amount: "", reason: "" }), refunds)}>
+          <Field label="Receipt id"><input required value={refund.receipt_id} onChange={e => setRefund(f => ({ ...f, receipt_id: e.target.value }))} /></Field>
+          <Field label="Amount"><input required inputMode="decimal" value={refund.amount} onChange={e => setRefund(f => ({ ...f, amount: e.target.value }))} /></Field>
+          <Field label="Reason"><input required minLength={3} value={refund.reason} onChange={e => setRefund(f => ({ ...f, reason: e.target.value }))} /></Field>
+          <button className="btn btn-primary" disabled={busy}>Request refund</button></form></section>}
+      {on("ar:refund:record") && <Field label="Payment reference for recording a payout"><input value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="Bank or provider reference" /></Field>}
+      <RecordTable title="Refunds" description="Pending Approval, then Approved, then Refunded once the payout is recorded." list={refunds} permissions={permissions} busy={busy}
+        columns={[["Receipt", r => r.receipt_id], ["Amount", r => `${r.amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Reference", r => r.payment_reference]]}
+        actions={[["Approve", "ar:refund:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/refunds/${r.id}/review`, { decision: "approve", reason: needReason() }), "Decision recorded.", refunds.reload)],
+          ["Reject", "ar:refund:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/refunds/${r.id}/review`, { decision: "reject", reason: needReason() }), "Decision recorded.", refunds.reload)],
+          ["Record payout", "ar:refund:record", r => r.status === "Approved", r => run(() => { if (!paymentRef.trim()) throw new Error("Enter the payment reference first."); return post(`/api/v1/ar/refunds/${r.id}/record-payment`, { payment_reference: paymentRef.trim() }); }, "Payout recorded.", refunds.reload)]]} /></>}
+    {on("ar:dispute:read") && <>
+      {on("ar:dispute:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Dispute</h2><p>Records a customer dispute of an invoice. Resolving it never changes a balance; issue a credit note to correct one.</p></div></div>
+        <form className="form-grid" onSubmit={e => submit(e, "/api/v1/ar/disputes", dispute, "Dispute recorded.", () => setDispute({ invoice_id: "", disputed_amount: "", reason: "" }), disputes)}>
+          <Field label="Invoice id"><input required value={dispute.invoice_id} onChange={e => setDispute(f => ({ ...f, invoice_id: e.target.value }))} /></Field>
+          <Field label="Disputed amount"><input required inputMode="decimal" value={dispute.disputed_amount} onChange={e => setDispute(f => ({ ...f, disputed_amount: e.target.value }))} /></Field>
+          <Field label="Reason"><input required minLength={3} value={dispute.reason} onChange={e => setDispute(f => ({ ...f, reason: e.target.value }))} /></Field>
+          <button className="btn btn-primary" disabled={busy}>Record dispute</button></form></section>}
+      <RecordTable title="Disputes" description="An open dispute is resolved by someone other than the person who raised it." list={disputes} permissions={permissions} busy={busy}
+        columns={[["Invoice", r => r.invoice_id], ["Disputed", r => `${r.disputed_amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Raised by", r => r.created_by]]}
+        actions={[["Uphold", "ar:dispute:resolve", r => r.status === "Open", r => run(() => post(`/api/v1/ar/disputes/${r.id}/resolve`, { outcome: "Upheld", note: needReason() }), "Dispute resolved.", disputes.reload)],
+          ["Reject", "ar:dispute:resolve", r => r.status === "Open", r => run(() => post(`/api/v1/ar/disputes/${r.id}/resolve`, { outcome: "Rejected", note: needReason() }), "Dispute resolved.", disputes.reload)],
+          ["Withdraw", "ar:dispute:write", r => r.status === "Open", r => run(() => post(`/api/v1/ar/disputes/${r.id}/withdraw`), "Dispute withdrawn.", disputes.reload)]]} /></>}
+  </div>;
+}
+
 /* ------------------------------------------------------------------ Attendance */
 export function AttendancePanel({ api, claims, connected }) {
   const permissions = permissionsOf(claims);

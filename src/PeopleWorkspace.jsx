@@ -7,6 +7,7 @@ const statusClass = value => "status status-" + String(value || "unknown").toLow
 
 export default function PeopleWorkspace({ name, api, claims, connected, onChanged }) {
   const [data, setData] = useState({ employees: [], templates: [], assignments: [], leave: [], exits: [], assets: [] });
+  const [balance, setBalance] = useState(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState("");
   const [form, setForm] = useState({});
@@ -236,8 +237,13 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
           {field("leave_category", "Leave category")}{field("leave_start", "Start date", "date")}{field("leave_end", "End date", "date")}{field("leave_reason", "Reason", "text", false)}
           <button className="btn btn-primary" disabled={busy}>Submit leave request</button>
         </form>}
+        {can("hr:leave:read") && can("hr:employee:read") && <div className="people-form">
+          <label className="people-field">Leave balance for employee<select value={balance?.employee_id || ""} onChange={e => { const id = e.target.value; if (!id) { setBalance(null); return; } api("/api/v1/hr/employees/" + id + "/leave-balance").then(setBalance).catch(err => setBalance({ employee_id: id, error: err.message })); }}><option value="">Select employee…</option>{data.employees.map(x => <option key={x.id} value={x.id}>{x.first_name} {x.last_name}</option>)}</select></label>
+          {balance?.error && <small>{balance.error}</small>}
+          {balance?.balances?.map(b => <small key={b.leave_category}><b>{b.leave_category}</b>: entitlement {b.entitlement_days ?? "not configured"}, used {b.used_days}, pending {b.pending_days}, remaining {b.remaining_days ?? "n/a"} · {b.policy_status}{b.note ? " · " + b.note : ""}</small>)}
+        </div>}
         <div className="people-table-wrap" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="people-table"><thead><tr><th>Employee</th><th>Leave type</th><th>Dates</th><th>Status</th><th>Decision</th></tr></thead><tbody>
-          {data.leave.map(item=><tr key={item.id}><td>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</td><td>{item.leave_category}</td><td>{dateText(item.start_date)} – {dateText(item.end_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td>{item.status==="Submitted"&&can("hr:leave:review")?<div className="people-inline-actions"><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Approved",review_note:"Reviewed in HR workspace"},"Leave request approved.")}>Approve</button><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Rejected",review_note:"Reviewed in HR workspace"},"Leave request rejected.")}>Reject</button></div>:item.reviewer_subject||"—"}</td></tr>)}
+          {data.leave.map(item=><tr key={item.id}><td>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</td><td>{item.leave_category}</td><td>{dateText(item.start_date)} – {dateText(item.end_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td>{["Submitted","Approved"].includes(item.status)&&can("hr:leave:cancel")&&(item.created_by===claims.sub||can("hr:leave:review"))&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/cancel","POST",{reason:"Cancelled in HR workspace"},"Leave request cancelled.")}>Cancel</button>}{item.status==="Submitted"&&can("hr:leave:review")?<div className="people-inline-actions"><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Approved",review_note:"Reviewed in HR workspace"},"Leave request approved.")}>Approve</button><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Rejected",review_note:"Reviewed in HR workspace"},"Leave request rejected.")}>Reject</button></div>:item.reviewer_subject||"—"}</td></tr>)}
         </tbody></table>{!data.leave.length&&<Empty icon={CalendarDays} title="No leave requests" text="Submitted requests will appear here."/>}</div>
       </section>
     </>}

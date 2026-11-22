@@ -7,7 +7,7 @@ import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { MODULE_GROUPS, REGISTER_WORKSPACES, ROUTED_WORKSPACES } from "./workspaces/registry.js";
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
-import { AnalyticsPanel, AttendancePanel, DeliveryPanel, ExpensePolicyPanel, PayablesPanel, ReceivablesControlsPanel } from "./OperationsPanels.jsx";
+import { AnalyticsPanel, AttendancePanel, DeliveryPanel, ExpensePolicyPanel, PayablesPanel, ReceivablesAdjustmentsPanel, ReceivablesControlsPanel } from "./OperationsPanels.jsx";
 import { AuditTrailWorkspace, BackupRecoveryWorkspace, EcosystemStatusPanel, GovernanceWorkspace, IntegrationEventsPanel, LeavePolicyPanel, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
@@ -185,6 +185,7 @@ function App() {
           {section === "AP · Payables" && (token ? <><SupplierWorkspace suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/><ProcurementWorkspace requests={data.purchaseRequests} suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/></> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "AP · Payables" && token && <PayablesPanel api={api} claims={claims} connected={!!token}/>}
           {section === "AR · Receivables" && token && <ReceivablesControlsPanel api={api} claims={claims} connected={!!token}/>}
+          {section === "AR · Receivables" && token && <ReceivablesAdjustmentsPanel api={api} claims={claims} connected={!!token}/>}
           {section === "Attendance & shifts" && token && <AttendancePanel api={api} claims={claims} connected={!!token}/>}
           {section === "Client delivery" && token && <DeliveryPanel view="engagements" api={api} claims={claims} connected={!!token}/>}
           {section === "Service catalogue" && token && <DeliveryPanel view="services" api={api} claims={claims} connected={!!token}/>}
