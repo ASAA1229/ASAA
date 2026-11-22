@@ -161,6 +161,9 @@ export function ReceivablesControlsPanel({ api, claims, connected }) {
   const create = event => { event.preventDefault(); run(() => post("/api/v1/ar/credit-notes", form), "Credit note submitted for independent approval.", async () => { setForm({ invoice_id: "", amount: "", reason: "" }); await notes.reload(); }); };
   const decide = decision => row => run(() => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return post(`/api/v1/ar/credit-notes/${row.id}/review`, { decision, reason: reason.trim() }); }, "Decision recorded.", notes.reload);
   const canVoid = connected && permissions.includes("ar:invoice:void") && permissions.includes("ar:invoice:read");
+  const [statementCustomer, setStatementCustomer] = useState("");
+  const [statement, setStatement] = useState(null);
+  const loadStatement = event => { event.preventDefault(); run(async () => setStatement(await api(`/api/v1/ar/customers/${encodeURIComponent(statementCustomer.trim())}/statement`)), "Statement loaded."); };
   const issued = useList(api, "/api/v1/ar/invoices", canVoid);
   if (!connected || (!canRead && !canAging && !canVoid)) return null;
   return <div className="admin-workspace"><Messages error={error} notice={notice} /><ReasonField value={reason} onChange={setReason} />
@@ -177,6 +180,13 @@ export function ReceivablesControlsPanel({ api, claims, connected }) {
       <RecordTable title="Credit notes" description="Pending credit notes need an independent decision." list={notes} permissions={permissions} busy={busy}
         columns={[["Invoice", r => r.invoice_id], ["Amount", r => `${r.amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Maker", r => r.created_by]]}
         actions={[["Approve", "ar:credit:approve", r => r.status === "Pending Approval", decide("approve")], ["Reject", "ar:credit:approve", r => r.status === "Pending Approval", decide("reject")]]} /></>}
+    {canAging && <section className="panel list-panel"><div className="list-heading"><div><h2>Customer statement</h2><p>Invoices, receipts and approved credits with a running balance. Enter a customer id.</p></div></div>
+      <form className="form-grid" onSubmit={loadStatement}><Field label="Customer id"><input required value={statementCustomer} onChange={e => setStatementCustomer(e.target.value)} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Load statement</button></form>
+      {statement && <><div className="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th>Currency</th><th>Amount</th><th>Running balance</th></tr></thead>
+        <tbody>{statement.entries.map((e, i) => <tr key={i}><td>{e.date}</td><td>{e.type}</td><td>{cell(e.reference)}</td><td>{e.currency}</td><td>{e.amount}</td><td>{e.running_balance}</td></tr>)}</tbody></table></div>
+        {Object.entries(statement.closing_balance_by_currency || {}).map(([c, v]) => <div className="data-line" key={c}><span>Closing balance {c}</span><b>{v}</b></div>)}
+        <p>{statement.note}</p></>}</section>}
     <AgingTable report={aging} />
   </div>;
 }
@@ -192,6 +202,15 @@ export function AttendancePanel({ api, claims, connected }) {
   const records = useList(api, `/api/v1/attendance/records?${range}`, canRecords);
   const corrections = useList(api, "/api/v1/attendance/corrections", connected && permissions.includes("attendance:correction:read"));
   const shifts = useList(api, "/api/v1/attendance/shifts", connected && permissions.includes("attendance:shift:read"));
+  const canRoster = connected && permissions.includes("attendance:roster:read");
+  const roster = useList(api, `/api/v1/attendance/roster?date_from=${today()}&date_to=${plusDays(30)}`, canRoster);
+  const canHolidays = connected && permissions.includes("attendance:holiday:read");
+  const holidays = useList(api, `/api/v1/attendance/holidays?year=${new Date().getFullYear()}`, canHolidays);
+  const [assign, setAssign] = useState({ employee_id: "", shift_id: "", work_date: today() });
+  const [holiday, setHoliday] = useState({ holiday_date: today(), name: "", optional: false });
+  const sendJson = (method, path, body) => api(path, { method, body: JSON.stringify(body) });
+  const assignRoster = event => { event.preventDefault(); run(() => sendJson("PUT", "/api/v1/attendance/roster", assign), "Roster assignment saved.", roster.reload); };
+  const addHoliday = event => { event.preventDefault(); run(() => sendJson("POST", "/api/v1/attendance/holidays", holiday), "Holiday added.", async () => { setHoliday(h => ({ ...h, name: "" })); await holidays.reload(); }); };
   const post = (path, body) => api(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
   const reloadAll = async () => { await Promise.all([records.reload(), corrections.reload()]); };
   const decide = (base, decision) => row => run(() => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return post(`${base}/${row.id}/${base.endsWith("records") ? "overtime-review" : "review"}`, { decision, reason: reason.trim() }); }, "Decision recorded.", reloadAll);
@@ -207,7 +226,7 @@ export function AttendancePanel({ api, claims, connected }) {
   useEffect(() => { loadPolicy(); }, [loadPolicy]);
   const savePolicy = event => { event.preventDefault(); run(() => api("/api/v1/attendance/policy", { method: "PUT", body: JSON.stringify({ overtime_threshold_minutes: threshold === "" ? null : Number(threshold) }) }), "Policy saved as Pending Approval. It is not applied until someone else approves it.", loadPolicy); };
   if (!connected) return null;
-  if (!canRecords && !canPolicy && !permissions.includes("attendance:clock") && !permissions.includes("attendance:shift:read")) return null;
+  if (!canRecords && !canPolicy && !canRoster && !canHolidays && !permissions.includes("attendance:clock") && !permissions.includes("attendance:shift:read")) return null;
   return <div className="admin-workspace"><Messages error={error} notice={notice} />
     {canPolicy && <section className="panel list-panel"><div className="list-heading"><div><h2>Attendance policy</h2><p>The overtime threshold is an owner value. Overtime is not computed until a policy is approved by someone other than its maker. The company time zone is set on the organization profile; clock-in is refused until it is set.</p></div></div>
       <div className="data-line"><span>Status</span><b>{policy?.status ?? "-"}</b></div>
@@ -233,6 +252,24 @@ export function AttendancePanel({ api, claims, connected }) {
       actions={[["Approve", "attendance:correction:review", r => r.status === "Pending", decide("/api/v1/attendance/corrections", "approve")], ["Reject", "attendance:correction:review", r => r.status === "Pending", decide("/api/v1/attendance/corrections", "reject")]]} />}
     {permissions.includes("attendance:shift:read") && <RecordTable title="Shifts" description="Shift definitions used by the roster." list={shifts} permissions={permissions} busy={busy}
       columns={[["Code", r => r.code], ["Name", r => r.name], ["Start", r => r.start_time], ["End", r => r.end_time], ["Break (min)", r => r.break_minutes], ["Arrangement", r => r.work_arrangement], ["Status", r => r.status]]} />}
+    {permissions.includes("attendance:roster:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Assign a shift</h2><p>One shift per employee per day. Refused for approved leave and non-optional holidays.</p></div></div>
+      <form className="form-grid" onSubmit={assignRoster}>
+        <Field label="Employee id"><input required value={assign.employee_id} onChange={e => setAssign(a => ({ ...a, employee_id: e.target.value }))} /></Field>
+        <Field label="Shift id"><input required value={assign.shift_id} onChange={e => setAssign(a => ({ ...a, shift_id: e.target.value }))} /></Field>
+        <Field label="Work date"><input required type="date" value={assign.work_date} onChange={e => setAssign(a => ({ ...a, work_date: e.target.value }))} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Assign</button></form></section>}
+    {canRoster && <RecordTable title="Roster (next 30 days)" description="Published shift assignments." list={roster} permissions={permissions} busy={busy}
+      columns={[["Date", r => r.work_date], ["Employee", r => r.employee_id], ["Shift", r => r.shift_id]]}
+      actions={[["Remove", "attendance:roster:write", () => true, r => run(() => api(`/api/v1/attendance/roster/${r.id}`, { method: "DELETE" }), "Assignment removed.", roster.reload)]]} />}
+    {permissions.includes("attendance:holiday:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Add a holiday</h2><p>Non-optional holidays block roster assignments.</p></div></div>
+      <form className="form-grid" onSubmit={addHoliday}>
+        <Field label="Date"><input required type="date" value={holiday.holiday_date} onChange={e => setHoliday(h => ({ ...h, holiday_date: e.target.value }))} /></Field>
+        <Field label="Name"><input required minLength={2} value={holiday.name} onChange={e => setHoliday(h => ({ ...h, name: e.target.value }))} /></Field>
+        <Field label="Optional holiday"><input type="checkbox" checked={holiday.optional} onChange={e => setHoliday(h => ({ ...h, optional: e.target.checked }))} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Add holiday</button></form></section>}
+    {canHolidays && <RecordTable title="Holidays (this year)" description="Holiday calendar." list={holidays} permissions={permissions} busy={busy}
+      columns={[["Date", r => r.holiday_date], ["Name", r => r.name], ["Optional", r => (r.optional ? "Yes" : "No")]]}
+      actions={[["Delete", "attendance:holiday:write", () => true, r => run(() => api(`/api/v1/attendance/holidays/${r.id}`, { method: "DELETE" }), "Holiday deleted.", holidays.reload)]]} />}
   </div>;
 }
 
@@ -324,6 +361,13 @@ export function AnalyticsPanel({ api, claims, connected }) {
   const analytics = connected && permissions.includes("report:analytics:read");
   const lineage = connected && permissions.includes("report:lineage:read");
   const [state, setState] = useState({ capital: null, cycles: null, freshness: null, error: "" });
+  const [trend, setTrend] = useState({ dataset: "", grain: "month", result: null, error: "" });
+  const loadTrend = async event => {
+    event.preventDefault();
+    setTrend(t => ({ ...t, result: null, error: "" }));
+    try { const result = await api(`/api/v1/reports/analytics/trends?dataset=${encodeURIComponent(trend.dataset.trim())}&grain=${trend.grain}`); setTrend(t => ({ ...t, result })); }
+    catch (e) { setTrend(t => ({ ...t, error: e.message || "Could not load the trend." })); }
+  };
   const load = useCallback(async () => {
     try {
       const [capital, cycles, freshness] = await Promise.all([
@@ -337,6 +381,14 @@ export function AnalyticsPanel({ api, claims, connected }) {
   if (!analytics && !lineage) return null;
   const { capital, cycles, freshness, error } = state;
   return <div className="admin-workspace"><Messages error={error} />
+    {analytics && <section className="panel list-panel"><div className="list-heading"><div><h2>Trends</h2><p>Records created per period for one dataset. Only periods with records appear.</p></div></div>
+      <form className="form-grid" onSubmit={loadTrend}>
+        <Field label="Dataset"><input required list="trend-datasets" pattern="[a-z_]{3,40}" value={trend.dataset} onChange={e => setTrend(t => ({ ...t, dataset: e.target.value }))} /></Field>
+        <datalist id="trend-datasets">{(freshness?.datasets || []).map(d => <option key={d.dataset} value={d.dataset} />)}</datalist>
+        <Field label="Grain"><select value={trend.grain} onChange={e => setTrend(t => ({ ...t, grain: e.target.value }))}><option value="month">Month</option><option value="week">Week</option></select></Field>
+        <button className="btn btn-primary">Show trend</button></form>
+      {trend.error && <div className="notice" role="alert">{trend.error}</div>}
+      {trend.result && <div className="table-wrap"><table><thead><tr><th>Period</th><th>Records</th></tr></thead><tbody>{trend.result.series.map(r => <tr key={r.period}><td>{r.period}</td><td>{r.records}</td></tr>)}</tbody></table></div>}</section>}
     {capital && <section className="panel list-panel"><div className="list-heading"><div><h2>Working-capital position</h2><p>Receivables outstanding versus approved unpaid payables, per currency. Derived from records; not a cash balance.</p></div>
       <button className="btn btn-quiet" onClick={load}><RefreshCw size={14} />Refresh</button></div>
       <div className="table-wrap"><table><thead><tr><th>Currency</th><th>Receivables</th><th>Payables</th><th>Net</th></tr></thead><tbody>{Object.entries(capital.by_currency || {}).map(([c, v]) => <tr key={c}><td>{c}</td><td>{v.receivables_outstanding}</td><td>{v.payables_approved_unpaid}</td><td>{v.net}</td></tr>)}</tbody></table></div></section>}
