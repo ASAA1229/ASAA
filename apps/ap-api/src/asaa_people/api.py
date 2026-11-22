@@ -116,15 +116,21 @@ def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db:
         organization_id=principal.organization_id, employee_id=employee_id,
         created_by=principal.subject, **payload.model_dump(),
     )
-    if payload.effective_from <= date.today() and (
-        payload.effective_to is None or payload.effective_to >= date.today()
-    ):
+    previous_status = employee.status
+    takes_effect_now = payload.effective_from <= date.today() and (payload.effective_to is None or payload.effective_to >= date.today())
+    if takes_effect_now:
         employee.status = payload.status
         employee.employment_type = payload.employment_type
     db.add(row)
     db.flush()
     audit(db, principal, "employment_record.created", "hr_employment_record", row.id,
           {"effective_from": payload.effective_from.isoformat(), "status": payload.status}, x_correlation_id)
+    if takes_effect_now:  # transfer, role/manager or status change: converge the linked provider account (mover/joiner) in the same transaction
+        from asaa_identity.service import enqueue_for_employee_change
+        job = enqueue_for_employee_change(db, principal.organization_id, employee.id, previous_status, employee.status, "employment_record_changed", principal.subject)
+        if job:
+            audit(db, principal, "employee.identity_sync_requested", "hr_employee", employee.id,
+                  {"operation": job.operation, "job_id": job.id, "trigger": "employment_record_changed"}, x_correlation_id)
     db.commit()
     db.refresh(row)
     return view(row)
