@@ -91,8 +91,15 @@ export function PayablesPanel({ api, claims, connected }) {
     run(() => post("/api/v1/ap/supplier-invoices", { ...form, purchase_order_id: form.purchase_order_id || null, currency: form.currency.toUpperCase() }), "Supplier invoice captured. Run matching before review.", reloadAll);
   };
   const set = key => e => setForm(f => ({ ...f, [key]: e.target.value }));
+  const [receipt, setReceipt] = useState({ purchase_order_id: "", received_date: today(), reference: "", po_line_id: "", quantity: "" });
+  const receipts = useList(api, "/api/v1/ap/goods-receipts", connected && permissions.includes("ap:receipt:read"));
+  const record = event => {
+    event.preventDefault();
+    run(() => post("/api/v1/ap/goods-receipts", { purchase_order_id: receipt.purchase_order_id, received_date: receipt.received_date, reference: receipt.reference || null, lines: [{ po_line_id: receipt.po_line_id, quantity: receipt.quantity }] }),
+      "Goods receipt recorded.", async () => { setReceipt(r => ({ ...r, po_line_id: "", quantity: "" })); await receipts.reload(); });
+  };
   if (!connected) return null;
-  const any = ["ap:po:read", "ap:invoice:read", "ap:payment:read"].some(p => permissions.includes(p));
+  const any = ["ap:po:read", "ap:invoice:read", "ap:payment:read", "ap:receipt:read"].some(p => permissions.includes(p));
   if (!any) return null;
   return <div className="admin-workspace">
     <Messages error={error} notice={notice} />
@@ -101,6 +108,16 @@ export function PayablesPanel({ api, claims, connected }) {
       columns={[["Number", r => r.po_number], ["Supplier", r => r.supplier_id], ["Currency", r => r.currency], ["Total", r => r.total], ["Status", r => r.status]]}
       actions={[["Approve", "ap:po:review", r => r.status === "Draft", decide("/api/v1/ap/purchase-orders", "approve")], ["Reject", "ap:po:review", r => r.status === "Draft", decide("/api/v1/ap/purchase-orders", "reject")],
         ["Issue", "ap:po:issue", r => r.status === "Approved", r => run(() => post(`/api/v1/ap/purchase-orders/${r.id}/issue`), "Purchase order issued.", reloadAll)]]} />}
+    {permissions.includes("ap:receipt:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Record goods received</h2><p>Receipts against an issued purchase order feed invoice matching. One line per submission.</p></div></div>
+      <form className="form-grid" onSubmit={record}>
+        <Field label="Purchase order id"><input required value={receipt.purchase_order_id} onChange={e => setReceipt(r => ({ ...r, purchase_order_id: e.target.value }))} /></Field>
+        <Field label="Order line id"><input required value={receipt.po_line_id} onChange={e => setReceipt(r => ({ ...r, po_line_id: e.target.value }))} /></Field>
+        <Field label="Quantity received"><input required inputMode="decimal" value={receipt.quantity} onChange={e => setReceipt(r => ({ ...r, quantity: e.target.value }))} /></Field>
+        <Field label="Received date"><input required type="date" value={receipt.received_date} onChange={e => setReceipt(r => ({ ...r, received_date: e.target.value }))} /></Field>
+        <Field label="Reference (optional)"><input value={receipt.reference} onChange={e => setReceipt(r => ({ ...r, reference: e.target.value }))} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Record receipt</button></form></section>}
+    {permissions.includes("ap:receipt:read") && <RecordTable title="Goods receipts" description="Recorded deliveries against purchase orders." list={receipts} permissions={permissions} busy={busy}
+      columns={[["Purchase order", r => r.purchase_order_id], ["Received", r => r.received_date], ["Reference", r => r.reference], ["Lines", r => r.lines?.length]]} />}
     {permissions.includes("ap:invoice:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Capture supplier invoice</h2><p>Record the supplier invoice. It is then matched against the purchase order and received goods.</p></div></div>
       <form className="form-grid" onSubmit={capture}>
         <Field label="Supplier id"><input required value={form.supplier_id} onChange={set("supplier_id")} /></Field>
@@ -143,8 +160,13 @@ export function ReceivablesControlsPanel({ api, claims, connected }) {
   const post = (path, body) => api(path, { method: "POST", body: JSON.stringify(body) });
   const create = event => { event.preventDefault(); run(() => post("/api/v1/ar/credit-notes", form), "Credit note submitted for independent approval.", async () => { setForm({ invoice_id: "", amount: "", reason: "" }); await notes.reload(); }); };
   const decide = decision => row => run(() => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return post(`/api/v1/ar/credit-notes/${row.id}/review`, { decision, reason: reason.trim() }); }, "Decision recorded.", notes.reload);
-  if (!connected || (!canRead && !canAging)) return null;
-  return <div className="admin-workspace"><Messages error={error} notice={notice} />
+  const canVoid = connected && permissions.includes("ar:invoice:void") && permissions.includes("ar:invoice:read");
+  const issued = useList(api, "/api/v1/ar/invoices", canVoid);
+  if (!connected || (!canRead && !canAging && !canVoid)) return null;
+  return <div className="admin-workspace"><Messages error={error} notice={notice} /><ReasonField value={reason} onChange={setReason} />
+    {canVoid && <RecordTable title="Void an invoice" description="Only an Issued invoice with no receipts or credits can be voided, with a reason (entered above). Otherwise issue a credit note." list={issued} permissions={permissions} busy={busy}
+      columns={[["Invoice", r => r.invoice_number || r.id], ["Customer", r => r.customer_id], ["Total", r => `${r.total} ${r.currency}`], ["Status", r => r.status]]}
+      actions={[["Void", "ar:invoice:void", r => r.status === "Issued", r => run(() => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return post(`/api/v1/ar/invoices/${r.id}/void`, { reason: reason.trim() }); }, "Invoice voided.", issued.reload)]]} />}
     {canRead && <>
       {permissions.includes("ar:credit:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Credit note</h2><p>Reduces the outstanding balance of an issued invoice once approved by someone other than the maker.</p></div></div>
         <form className="form-grid" onSubmit={create}>
@@ -152,7 +174,6 @@ export function ReceivablesControlsPanel({ api, claims, connected }) {
           <Field label="Amount"><input required inputMode="decimal" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></Field>
           <Field label="Reason"><input required minLength={3} value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} /></Field>
           <button className="btn btn-primary" disabled={busy}>Submit credit note</button></form></section>}
-      <ReasonField value={reason} onChange={setReason} />
       <RecordTable title="Credit notes" description="Pending credit notes need an independent decision." list={notes} permissions={permissions} busy={busy}
         columns={[["Invoice", r => r.invoice_id], ["Amount", r => `${r.amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Maker", r => r.created_by]]}
         actions={[["Approve", "ar:credit:approve", r => r.status === "Pending Approval", decide("approve")], ["Reject", "ar:credit:approve", r => r.status === "Pending Approval", decide("reject")]]} /></>}
@@ -179,9 +200,20 @@ export function AttendancePanel({ api, claims, connected }) {
     const at = time => new Date(`${correction.work_date}T${time}:00`).toISOString();
     run(() => post("/api/v1/attendance/corrections", { work_date: correction.work_date, requested_clock_in: at(correction.clock_in), requested_clock_out: at(correction.clock_out), reason: correction.reason }), "Correction submitted for independent review.", reloadAll);
   };
+  const canPolicy = connected && permissions.includes("attendance:policy:read");
+  const [policy, setPolicy] = useState(null);
+  const [threshold, setThreshold] = useState("");
+  const loadPolicy = useCallback(async () => { if (canPolicy) { try { setPolicy(await api("/api/v1/attendance/policy")); } catch { setPolicy(null); } } }, [api, canPolicy]);
+  useEffect(() => { loadPolicy(); }, [loadPolicy]);
+  const savePolicy = event => { event.preventDefault(); run(() => api("/api/v1/attendance/policy", { method: "PUT", body: JSON.stringify({ overtime_threshold_minutes: threshold === "" ? null : Number(threshold) }) }), "Policy saved as Pending Approval. It is not applied until someone else approves it.", loadPolicy); };
   if (!connected) return null;
-  if (!canRecords && !permissions.includes("attendance:clock") && !permissions.includes("attendance:shift:read")) return null;
+  if (!canRecords && !canPolicy && !permissions.includes("attendance:clock") && !permissions.includes("attendance:shift:read")) return null;
   return <div className="admin-workspace"><Messages error={error} notice={notice} />
+    {canPolicy && <section className="panel list-panel"><div className="list-heading"><div><h2>Attendance policy</h2><p>The overtime threshold is an owner value. Overtime is not computed until a policy is approved by someone other than its maker. The company time zone is set on the organization profile; clock-in is refused until it is set.</p></div></div>
+      <div className="data-line"><span>Status</span><b>{policy?.status ?? "-"}</b></div>
+      <div className="data-line"><span>Overtime threshold (minutes)</span><b>{policy?.overtime_threshold_minutes ?? "Policy not configured"}</b></div>
+      {permissions.includes("attendance:policy:write") && <form className="form-grid" onSubmit={savePolicy}><Field label="Overtime threshold in worked minutes per day (blank = none)"><input inputMode="numeric" value={threshold} onChange={e => setThreshold(e.target.value)} /></Field><button className="btn btn-primary" disabled={busy}>Save policy</button></form>}
+      {permissions.includes("attendance:policy:approve") && policy?.status === "Pending Approval" && <div className="form-actions"><button className="btn btn-quiet" disabled={busy} onClick={() => run(() => api("/api/v1/attendance/policy/approve", { method: "POST" }), "Policy approved.", loadPolicy)}>Approve policy</button></div>}</section>}
     {permissions.includes("attendance:clock") && <section className="panel list-panel"><div className="list-heading"><div><h2>Clock</h2><p>Records your own attendance. Your identity must be linked to an employee record.</p></div></div>
       <div className="form-actions"><button className="btn btn-primary" disabled={busy} onClick={() => run(() => post("/api/v1/attendance/clock-in"), "Clocked in.", reloadAll)}>Clock in</button>
         <button className="btn btn-quiet" disabled={busy} onClick={() => run(() => post("/api/v1/attendance/clock-out"), "Clocked out.", reloadAll)}>Clock out</button></div></section>}
@@ -236,7 +268,8 @@ export function DeliveryPanel({ api, claims, connected, view = "engagements" }) 
         <div className="table-wrap"><table><thead><tr><th>Milestone</th><th>Due</th><th>Billable</th><th>Status</th><th>Actions</th></tr></thead><tbody>{detail.milestones.map(m => <tr key={m.id}><td>{m.title}</td><td>{m.due_date}</td><td>{cell(m.billable_amount)}</td><td>{m.status}</td>
           <td>{permissions.includes("delivery:milestone:deliver") && ["Planned", "In Progress", "Rejected"].includes(m.status) && <button className="btn btn-quiet" disabled={busy} onClick={() => needText(r => post(`/api/v1/delivery/milestones/${r.id}/deliver`, { evidence: text.trim() }))(m)}>Mark delivered</button>}
             {permissions.includes("delivery:milestone:accept") && m.status === "Delivered" && <><button className="btn btn-quiet" disabled={busy} onClick={() => needText(r => post(`/api/v1/delivery/milestones/${r.id}/acceptance`, { decision: "accept", client_acceptance_reference: text.trim() }))(m)}>Record acceptance</button>
-              <button className="btn btn-quiet" disabled={busy} onClick={() => needText(r => post(`/api/v1/delivery/milestones/${r.id}/acceptance`, { decision: "reject", client_acceptance_reference: text.trim() }))(m)}>Record rejection</button></>}</td></tr>)}</tbody></table></div></section>}</>}
+              <button className="btn btn-quiet" disabled={busy} onClick={() => needText(r => post(`/api/v1/delivery/milestones/${r.id}/acceptance`, { decision: "reject", client_acceptance_reference: text.trim() }))(m)}>Record rejection</button></>}
+            {permissions.includes("delivery:milestone:bill") && m.status === "Accepted" && m.billable_amount && !m.invoice_id && <button className="btn btn-quiet" disabled={busy} onClick={() => needText(r => post(`/api/v1/delivery/milestones/${r.id}/link-invoice`, { invoice_id: text.trim() }))(m)}>Link invoice (id above)</button>}</td></tr>)}</tbody></table></div></section>}</>}
     {view === "workorders" && <>{permissions.includes("delivery:workorder:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>New work order</h2><p>Created Open, assigned to an active employee, executed, then verified by someone other than the person who completed it.</p></div></div>
       <form className="form-grid" onSubmit={createOrder}><Field label="Title"><input required minLength={3} value={order.title} onChange={e => setOrder(o => ({ ...o, title: e.target.value }))} /></Field>
         <Field label="Priority"><select value={order.priority} onChange={e => setOrder(o => ({ ...o, priority: e.target.value }))}>{["Low", "Normal", "High", "Urgent"].map(p => <option key={p}>{p}</option>)}</select></Field>
@@ -282,5 +315,34 @@ export function ExpensePolicyPanel({ api, claims, connected }) {
     <RecordTable title="Expense policy rules" description={data.note || "Configured rules."} list={{ rows: data.rules.map(r => ({ ...r, id: r.category_code })), loading: false, error: "", reload: load }} permissions={permissions} busy={busy}
       columns={[["Category", r => r.category_code], ["Currency", r => r.currency], ["Maximum", r => r.max_amount], ["Receipt above", r => r.receipt_required_above], ["On violation", r => r.on_violation], ["Status", r => r.status]]}
       actions={[["Approve", "expense:policy:approve", r => r.status === "Pending Approval", r => run(() => api(`/api/v1/workforce-finance/expense-policies/${encodeURIComponent(r.category_code)}/approve`, { method: "POST" }), "Rule approved and now enforced.", load)]]} />
+  </div>;
+}
+
+/* ------------------------------------------------------------------ Analytics, lineage and freshness (read-only) */
+export function AnalyticsPanel({ api, claims, connected }) {
+  const permissions = permissionsOf(claims);
+  const analytics = connected && permissions.includes("report:analytics:read");
+  const lineage = connected && permissions.includes("report:lineage:read");
+  const [state, setState] = useState({ capital: null, cycles: null, freshness: null, error: "" });
+  const load = useCallback(async () => {
+    try {
+      const [capital, cycles, freshness] = await Promise.all([
+        analytics ? api("/api/v1/reports/analytics/working-capital-position") : null,
+        analytics ? api("/api/v1/reports/analytics/review-cycle-times") : null,
+        lineage ? api("/api/v1/reports/freshness") : null]);
+      setState({ capital, cycles, freshness, error: "" });
+    } catch (e) { setState(s => ({ ...s, error: e.message || "Could not load analytics." })); }
+  }, [api, analytics, lineage]);
+  useEffect(() => { if (analytics || lineage) load(); }, [load, analytics, lineage]);
+  if (!analytics && !lineage) return null;
+  const { capital, cycles, freshness, error } = state;
+  return <div className="admin-workspace"><Messages error={error} />
+    {capital && <section className="panel list-panel"><div className="list-heading"><div><h2>Working-capital position</h2><p>Receivables outstanding versus approved unpaid payables, per currency. Derived from records; not a cash balance.</p></div>
+      <button className="btn btn-quiet" onClick={load}><RefreshCw size={14} />Refresh</button></div>
+      <div className="table-wrap"><table><thead><tr><th>Currency</th><th>Receivables</th><th>Payables</th><th>Net</th></tr></thead><tbody>{Object.entries(capital.by_currency || {}).map(([c, v]) => <tr key={c}><td>{c}</td><td>{v.receivables_outstanding}</td><td>{v.payables_approved_unpaid}</td><td>{v.net}</td></tr>)}</tbody></table></div></section>}
+    {cycles && <section className="panel list-panel"><div className="list-heading"><div><h2>Review cycle times</h2><p>Hours from creation to independent review.</p></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Dataset</th><th>Reviewed</th><th>Mean (h)</th><th>Median (h)</th><th>Longest (h)</th></tr></thead><tbody>{Object.entries(cycles.cycle_times || {}).map(([n, v]) => <tr key={n}><td>{n}</td><td>{v.reviewed_records}</td><td>{cell(v.mean_hours)}</td><td>{cell(v.median_hours)}</td><td>{cell(v.longest_hours)}</td></tr>)}</tbody></table></div></section>}
+    {freshness && <section className="panel list-panel"><div className="list-heading"><div><h2>Data freshness and lineage</h2><p>{freshness.note}</p></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Dataset</th><th>Owner module</th><th>Records</th><th>Newest record</th><th>Age (h)</th></tr></thead><tbody>{(freshness.datasets || []).map(d => <tr key={d.dataset}><td>{d.dataset}</td><td>{d.owner_module}</td><td>{d.record_count}</td><td>{cell(d.newest_record_at)}</td><td>{cell(d.age_hours)}</td></tr>)}</tbody></table></div></section>}
   </div>;
 }
