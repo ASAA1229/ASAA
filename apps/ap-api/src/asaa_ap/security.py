@@ -72,5 +72,8 @@ def require_permission(permission: str):
     def dependency(principal: Annotated[Principal, Depends(get_principal)]) -> Principal:
         if permission not in principal.permissions:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+        # A registered event-producer service account (token azp) may only use the integration event routes, whatever its token claims.
+        if principal.client_id and principal.client_id in get_settings().integration_producers and not permission.startswith("integration:event:"):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Service account is not permitted on this route")
         return principal
     return dependency
