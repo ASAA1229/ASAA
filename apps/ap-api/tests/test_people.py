@@ -628,3 +628,12 @@ def test_payroll_run_rejects_duplicate_employee_entries(client):
     assert duplicate.status_code == 409
     assert duplicate.json()["detail"]["code"] == "payroll_employee_entry_exists"
     assert duplicate.json()["detail"]["existing_entry_id"] == first.json()["id"]
+
+
+def test_payroll_calculation_is_refused_until_owner_rules_are_approved(client):
+    period = client.post("/api/v1/payroll/periods", json={"period_code": "2027-01-CALC", "start_date": "2027-01-01", "end_date": "2027-01-31"})
+    run = client.post("/api/v1/payroll/runs", json={"period_id": period.json()["id"], "run_code": "2027-01-CALC-01", "currency": "INR"})
+    refused = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/calculate")
+    assert refused.status_code == 409
+    assert refused.json()["detail"]["code"] == "policy_not_configured" and refused.json()["detail"]["policy"] == "payroll_calculation_rules"
+    assert client.post("/api/v1/payroll/runs/missing/calculate").status_code == 404
