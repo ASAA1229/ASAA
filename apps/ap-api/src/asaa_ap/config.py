@@ -1,3 +1,4 @@
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
@@ -98,6 +99,8 @@ class Settings(BaseSettings):
     integration_event_retention_days: int = Field(default=180, ge=1, le=3650)
     # Event `time` must be within this many seconds of now (past or future).
     integration_clock_skew_seconds: int = Field(default=86400, ge=0, le=31536000)
+    # Supplier-invoice match tolerance (absolute amount, invoice currency). 0 = exact match only. Owner policy value pending (BLOCKED - OWNER).
+    ap_match_tolerance_amount: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("1000000"))
 
 
     @model_validator(mode="after")

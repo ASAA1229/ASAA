@@ -297,3 +297,26 @@ def revoke_assignment(assignment_id: str, payload: AssignmentRevoke, db: Session
     _queue_identity_sync(db, principal, row.subject, "assignment_revoked")
     db.commit(); db.refresh(row)
     return dump(row)
+
+
+def revoke_subject_assignments(db, org_id: str, subject: str, actor: str, reason: str, role_code: str | None = None,
+                               scope_reference: str | None = None, correlation_id: str | None = None) -> list[str]:
+    """Close a subject's authorization assignments as a system consequence of an authoritative decision (offboarding completion or an
+    access-review Revoke decision). Approved assignments become Revoked, pending ones Rejected. Matching can be narrowed to one role
+    and scope. Audited per assignment; the caller commits and queues the identity-provider sync."""
+    from asaa_ap.models import AuditEvent
+    stmt = select(AuthorizationAssignment).where(AuthorizationAssignment.organization_id == org_id, AuthorizationAssignment.subject == subject,
+                                                 AuthorizationAssignment.status.in_(["Approved", "Pending Approval"]))
+    if role_code:
+        stmt = stmt.join(AuthorizationRoleTemplate, AuthorizationRoleTemplate.id == AuthorizationAssignment.role_template_id).where(AuthorizationRoleTemplate.role_code == role_code)
+    if scope_reference:
+        stmt = stmt.where(AuthorizationAssignment.scope_reference == scope_reference)
+    closed = []
+    for row in db.scalars(stmt).all():
+        previous = row.status
+        row.status = "Revoked" if previous == "Approved" else "Rejected"
+        row.reviewed_by, row.reviewed_at, row.review_reason = actor, utcnow(), reason[:1000]
+        db.add(AuditEvent(organization_id=org_id, actor_id=actor, action="authorization_assignment.revoked", entity_type="authorization_assignment", entity_id=row.id,
+                          details={"subject": subject, "reason": reason[:300], "from": previous, "system_consequence": True}, correlation_id=correlation_id))
+        closed.append(row.id)
+    return closed

@@ -24,6 +24,8 @@ trap finish EXIT
 
 docker info >/dev/null 2>&1 || { echo "Docker daemon is not running; rehearsal cannot run." >&2; exit 3; }
 
+# Throw-away database password, generated per run and never written to disk or committed (hex, so it is URL-safe).
+export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$($PY -c 'import secrets;print(secrets.token_hex(24))')}"
 CREDS="$($PY deploy/rehearsal_credentials.py)"
 export ASAA_AP_JWT_PUBLIC_KEY="$($PY -c 'import json,sys;print(json.loads(sys.argv[1])["public_key"])' "$CREDS")"
 TOKEN="$($PY -c 'import json,sys;print(json.loads(sys.argv[1])["token"])' "$CREDS")"

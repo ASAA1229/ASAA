@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
-from asaa_workforce_finance.models import Timesheet, TimeEntry, ExpenseClaim
-from asaa_workforce_finance.schemas import (TimesheetCreate, TimesheetRead, TimesheetReview, ExpenseCreate, ExpenseRead, ExpenseReview, ExpenseReimbursement)
+from asaa_integration.emitter import emit_for_audit
+from asaa_workforce_finance.models import Timesheet, TimeEntry, ExpenseClaim, ExpensePolicyRule
+from asaa_workforce_finance.schemas import (TimesheetCreate, TimesheetRead, TimesheetReview, ExpenseCreate, ExpenseRead, ExpenseReview, ExpenseReimbursement,
+    ExpenseUpdate, TimesheetUpdate, PolicyRuleWrite)
 
 router = APIRouter(prefix="/api/v1/workforce-finance", tags=["Timesheets and Expenses"])
 Db = Annotated[Session, Depends(get_db)]
@@ -16,6 +18,7 @@ def audit(db, principal, action, kind, entity_id, details, correlation_id):
     db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject,
         action=action, entity_type=kind, entity_id=entity_id, details=details,
         correlation_id=correlation_id))
+    emit_for_audit(db, principal.organization_id, principal.subject, action, entity_id, details, correlation_id)
 
 def owned_timesheet(db, timesheet_id, org):
     row = db.scalar(select(Timesheet).where(Timesheet.id == timesheet_id, Timesheet.organization_id == org))
@@ -130,8 +133,15 @@ def submit_expense(claim_id: str, payload: ExpenseReview, db: Db,
         raise HTTPException(status_code=409, detail="Only the owner can submit a Draft or Rejected claim")
     if row.version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"code": "version_conflict", "current_version": row.version})
+    flags = evaluate_policy(db, row)
+    blocking = [f for f in flags if f["action"] == "block"]
+    if blocking:
+        raise HTTPException(status_code=409, detail={"code": "expense_policy_violation", "violations": [f["rule"] for f in blocking]})
+    row.policy_flags = flags or None
     row.status, row.review_reason = "Submitted", payload.reason
-    audit(db, principal, "expense.submitted", "expense_claim", row.id, {}, x_correlation_id)
+    audit(db, principal, "expense.submitted", "expense_claim", row.id, {"policy_flags": [f["rule"] for f in flags]}, x_correlation_id)
+    for flag in flags:
+        audit(db, principal, "expense_claim.policy_flagged", "expense_claim", row.id, {"rule": flag["rule"]}, x_correlation_id)
     db.commit()
     db.refresh(row)
     return row
@@ -170,3 +180,108 @@ def reimburse_expense(claim_id: str, payload: ExpenseReimbursement, db: Db,
     db.commit()
     db.refresh(row)
     return row
+
+
+def evaluate_policy(db: Session, claim: ExpenseClaim) -> list[dict]:
+    """Rule violations for a claim. Only Approved owner-set rules apply; the duplicate check is neutral (same owner, date, amount, currency, merchant)."""
+    flags: list[dict] = []
+    rule = db.scalar(select(ExpensePolicyRule).where(ExpensePolicyRule.organization_id == claim.organization_id, ExpensePolicyRule.category_code == claim.category_code,
+                                                     ExpensePolicyRule.status == "Approved", ExpensePolicyRule.currency == claim.currency))
+    if rule:
+        if rule.max_amount is not None and claim.amount > rule.max_amount:
+            flags.append({"rule": "amount_exceeds_category_limit", "action": rule.on_violation})
+        if rule.receipt_required_above is not None and claim.amount > rule.receipt_required_above and not claim.receipt_reference:
+            flags.append({"rule": "receipt_required", "action": rule.on_violation})
+    dup = db.scalar(select(ExpenseClaim.id).where(ExpenseClaim.organization_id == claim.organization_id, ExpenseClaim.employee_subject == claim.employee_subject,
+                                                  ExpenseClaim.id != claim.id, ExpenseClaim.expense_date == claim.expense_date, ExpenseClaim.amount == claim.amount,
+                                                  ExpenseClaim.currency == claim.currency, ExpenseClaim.merchant == claim.merchant,
+                                                  ExpenseClaim.status.in_(["Submitted", "Approved", "Reimbursement Recorded"])).limit(1))
+    if dup:
+        flags.append({"rule": "possible_duplicate_claim", "action": "flag"})
+    return flags
+
+
+@router.put("/expenses/{claim_id}", response_model=ExpenseRead)
+def update_expense(claim_id: str, payload: ExpenseUpdate, db: Db, principal: Annotated[Principal, Depends(require_permission("expense:claim:write"))],
+                   x_correlation_id: Annotated[str | None, Header()] = None):
+    """Owner edits a Draft or Rejected claim before (re)submitting it."""
+    row = owned_expense(db, claim_id, principal.organization_id)
+    if row.employee_subject != principal.subject or row.status not in {"Draft", "Rejected"}:
+        raise HTTPException(status_code=409, detail="Only the owner can edit a Draft or Rejected claim")
+    if row.version != payload.expected_version:
+        raise HTTPException(status_code=409, detail={"code": "version_conflict", "current_version": row.version})
+    for field in ("expense_date", "category_code", "merchant", "description", "amount", "receipt_reference", "project_reference"):
+        setattr(row, field, getattr(payload, field))
+    row.policy_flags = None
+    audit(db, principal, "expense.updated", "expense_claim", row.id, {"amount": str(row.amount), "currency": row.currency}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.put("/timesheets/{timesheet_id}", response_model=TimesheetRead)
+def update_timesheet(timesheet_id: str, payload: TimesheetUpdate, db: Db, principal: Annotated[Principal, Depends(require_permission("tms:timesheet:write"))],
+                     x_correlation_id: Annotated[str | None, Header()] = None):
+    """Owner replaces the entries of a Draft or Rejected timesheet before (re)submitting it."""
+    row = owned_timesheet(db, timesheet_id, principal.organization_id)
+    if row.employee_subject != principal.subject or row.status not in {"Draft", "Rejected"}:
+        raise HTTPException(status_code=409, detail="Only the owner can edit a Draft or Rejected timesheet")
+    if row.version != payload.expected_version:
+        raise HTTPException(status_code=409, detail={"code": "version_conflict", "current_version": row.version})
+    db.query(TimeEntry).filter(TimeEntry.timesheet_id == row.id).delete(synchronize_session=False)
+    for entry in payload.entries:
+        db.add(TimeEntry(organization_id=principal.organization_id, timesheet_id=row.id, work_date=entry.work_date, project_reference=entry.project_reference,
+                         task_reference=entry.task_reference, description=entry.description, hours=entry.hours, billable=entry.billable))
+    row.period_start, row.period_end = payload.period_start, payload.period_end
+    row.total_hours = sum((e.hours for e in payload.entries), start=0)
+    audit(db, principal, "timesheet.updated", "timesheet", row.id, {"total_hours": str(row.total_hours), "entry_count": len(payload.entries)}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+# ---- expense policy rules (owner values; maker-checker) -------------------------------------------------------------
+
+def dump_rule(r: ExpensePolicyRule) -> dict:
+    return {"category_code": r.category_code, "currency": r.currency, "max_amount": str(r.max_amount) if r.max_amount is not None else None,
+            "receipt_required_above": str(r.receipt_required_above) if r.receipt_required_above is not None else None, "on_violation": r.on_violation,
+            "status": r.status, "enforced": r.status == "Approved", "updated_by": r.updated_by, "approved_by": r.approved_by}
+
+
+@router.get("/expense-policies")
+def list_expense_policies(db: Db, principal: Annotated[Principal, Depends(require_permission("expense:policy:read"))]):
+    rows = db.scalars(select(ExpensePolicyRule).where(ExpensePolicyRule.organization_id == principal.organization_id).order_by(ExpensePolicyRule.category_code)).all()
+    return {"rules": [dump_rule(r) for r in rows], "note": "BLOCKED - OWNER: limit values are owner policy. A rule is enforced only once approved by someone other than its maker."}
+
+
+@router.put("/expense-policies/{category_code}")
+def put_expense_policy(category_code: str, payload: PolicyRuleWrite, db: Db, principal: Annotated[Principal, Depends(require_permission("expense:policy:write"))],
+                       x_correlation_id: Annotated[str | None, Header()] = None):
+    if payload.max_amount is None and payload.receipt_required_above is None:
+        raise HTTPException(status_code=422, detail={"code": "rule_has_no_limit"})
+    row = db.scalar(select(ExpensePolicyRule).where(ExpensePolicyRule.organization_id == principal.organization_id, ExpensePolicyRule.category_code == category_code))
+    if not row:
+        row = ExpensePolicyRule(organization_id=principal.organization_id, category_code=category_code, currency=payload.currency, updated_by=principal.subject)
+        db.add(row)
+    row.currency, row.max_amount, row.receipt_required_above, row.on_violation = payload.currency, payload.max_amount, payload.receipt_required_above, payload.on_violation
+    row.status, row.updated_by, row.approved_by, row.approved_at = "Pending Approval", principal.subject, None, None
+    db.flush()
+    audit(db, principal, "expense_policy.updated", "expense_policy", row.id, {"category_code": category_code}, x_correlation_id)
+    db.commit()
+    return dump_rule(row)
+
+
+@router.post("/expense-policies/{category_code}/approve")
+def approve_expense_policy(category_code: str, db: Db, principal: Annotated[Principal, Depends(require_permission("expense:policy:approve"))],
+                           x_correlation_id: Annotated[str | None, Header()] = None):
+    row = db.scalar(select(ExpensePolicyRule).where(ExpensePolicyRule.organization_id == principal.organization_id, ExpensePolicyRule.category_code == category_code))
+    if not row:
+        raise HTTPException(status_code=404, detail="Expense policy rule not found")
+    if row.status == "Approved":
+        raise HTTPException(status_code=409, detail={"code": "policy_already_approved"})
+    if row.updated_by == principal.subject:
+        raise HTTPException(status_code=403, detail={"code": "maker_cannot_approve_own_policy"})
+    row.status, row.approved_by, row.approved_at = "Approved", principal.subject, datetime.now(timezone.utc)
+    audit(db, principal, "expense_policy.approved", "expense_policy", row.id, {"category_code": category_code}, x_correlation_id)
+    db.commit()
+    return dump_rule(row)

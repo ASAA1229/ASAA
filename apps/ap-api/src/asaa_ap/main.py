@@ -9,9 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from asaa_ap.api import router as ap_router
 from asaa_ap.purchase_requests import router as purchase_requests_router
 from asaa_ap.ar_api import router as ar_router
+from asaa_ap.ar_credit import router as ar_credit_router
 from asaa_people.api import hr_router, onboarding_router, payroll_router
 from asaa_people.lifecycle import router as hr_lifecycle_router
 from asaa_people.workflows import router as people_workflows_router
+from asaa_payables.api import router as payables_router
+from asaa_attendance.api import router as attendance_router
+from asaa_delivery.api import router as delivery_router
 from asaa_ap.config import get_settings
 from asaa_ap.database import engine
 from asaa_ap.security import Principal, get_principal
@@ -26,6 +30,8 @@ from asaa_identity.api import router as identity_sync_router
 from asaa_notifications.api import router as notifications_router
 from asaa_registers.api import router as registers_router
 from asaa_reports.api import router as reports_router
+from asaa_reports.lineage import router as report_lineage_router
+from asaa_reports.analytics import router as report_analytics_router
 from asaa_ap.operations import router as operations_router
 from asaa_integration.manifest import router as manifest_router
 from asaa_integration.events import router as integration_events_router
@@ -54,7 +60,11 @@ app.add_middleware(HardeningMiddleware)
 app.add_middleware(RequestContextMiddleware)
 app.include_router(ap_router)
 app.include_router(purchase_requests_router)
+app.include_router(payables_router)
+app.include_router(attendance_router)
+app.include_router(delivery_router)
 app.include_router(ar_router)
+app.include_router(ar_credit_router)
 app.include_router(hr_router)
 app.include_router(hr_lifecycle_router)
 app.include_router(onboarding_router)
@@ -69,6 +79,8 @@ app.include_router(identity_sync_router)
 app.include_router(notifications_router)
 app.include_router(registers_router)
 app.include_router(reports_router)
+app.include_router(report_lineage_router)
+app.include_router(report_analytics_router)
 app.include_router(operations_router)
 app.include_router(leave_policy_router)
 app.include_router(manifest_router)

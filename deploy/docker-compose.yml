@@ -1,5 +1,6 @@
 # Local deployment rehearsal stack (NOT a production definition). Used by deploy/rehearsal.sh.
-# Credentials below are throw-away rehearsal values for a local, unpublished database.
+# The database password is NOT stored here: deploy/rehearsal.sh generates a throw-away value per run and exports POSTGRES_PASSWORD.
+# Running compose by hand requires POSTGRES_PASSWORD (hex/alphanumeric only) in the environment or a gitignored env file.
 name: asaa-rehearsal
 
 services:
@@ -8,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: asaa_ap
       POSTGRES_USER: asaa
-      POSTGRES_PASSWORD: rehearsal-only-password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see deploy/rehearsal.sh)}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U asaa -d asaa_ap"]
       interval: 3s
@@ -23,7 +24,7 @@ services:
     command: ["alembic", "upgrade", "head"]
     environment:
       ASAA_AP_ENVIRONMENT: test
-      ASAA_AP_DATABASE_URL: postgresql+psycopg://asaa:rehearsal-only-password@postgres:5432/asaa_ap
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://asaa:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see deploy/rehearsal.sh)}@postgres:5432/asaa_ap
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,7 +33,7 @@ services:
     image: asaa-api:${API_IMAGE_TAG:-rehearsal-1}
     environment:
       ASAA_AP_ENVIRONMENT: production
-      ASAA_AP_DATABASE_URL: postgresql+psycopg://asaa:rehearsal-only-password@postgres:5432/asaa_ap
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://asaa:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see deploy/rehearsal.sh)}@postgres:5432/asaa_ap
       ASAA_AP_JWT_PUBLIC_KEY: ${ASAA_AP_JWT_PUBLIC_KEY}
       ASAA_AP_JWT_ISSUER: https://rehearsal.invalid
       ASAA_AP_JWT_AUDIENCE: asaa-rehearsal
