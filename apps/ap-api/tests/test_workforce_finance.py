@@ -46,3 +46,18 @@ def test_timesheet_rejects_entries_outside_period(client):
         "entries":[{"work_date":"2026-11-08","description":"Outside period","hours":"1.00"}]
     })
     assert response.status_code == 422
+
+
+def test_timesheet_rejects_duplicate_entries_and_overlapping_periods(client):
+    url = "/api/v1/workforce-finance/timesheets"
+    entry = {"work_date": "2026-11-02", "project_reference": "P1", "task_reference": "T1", "description": "Work", "hours": "4.00"}
+    dup = client.post(url, json={"period_start": "2026-11-01", "period_end": "2026-11-07", "entries": [entry, dict(entry, hours="2.00")]})
+    assert dup.status_code == 409 and dup.json()["detail"]["code"] == "duplicate_time_entry"
+    other_task = client.post(url, json={"period_start": "2026-11-01", "period_end": "2026-11-07", "entries": [entry, dict(entry, task_reference="T2")]})
+    assert other_task.status_code == 201
+    overlap = client.post(url, json={"period_start": "2026-11-07", "period_end": "2026-11-14", "entries": [dict(entry, work_date="2026-11-08")]})
+    assert overlap.status_code == 409 and overlap.json()["detail"]["code"] == "timesheet_period_overlap"
+    adjacent = client.post(url, json={"period_start": "2026-11-08", "period_end": "2026-11-14", "entries": [dict(entry, work_date="2026-11-08")]})
+    assert adjacent.status_code == 201
+    outside = client.post(url, json={"period_start": "2026-11-15", "period_end": "2026-11-21", "entries": [dict(entry, work_date="2026-11-30")]})
+    assert outside.status_code == 422
