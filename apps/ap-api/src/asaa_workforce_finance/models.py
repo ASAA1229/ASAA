@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from sqlalchemy import Boolean, Date, DateTime, Index, Integer, Numeric, String, Text
+from sqlalchemy import JSON, Boolean, Date, DateTime, Index, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from asaa_ap.database import Base
 
@@ -64,3 +64,21 @@ class ExpenseClaim(Base):
     reimbursed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reimbursed_by: Mapped[str | None] = mapped_column(String(128))
     reimbursement_reference: Mapped[str | None] = mapped_column(String(200))
+    policy_flags: Mapped[list | None] = mapped_column(JSON)
+
+
+class ExpensePolicyRule(Base):
+    """Per-category expense rule. Limits are owner policy values: nothing is enforced until a rule is Approved by someone other than its maker."""
+    __tablename__ = "expense_policy_rules"
+    __table_args__ = (UniqueConstraint("organization_id", "category_code", name="uq_expense_policy_org_category"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    category_code: Mapped[str] = mapped_column(String(80), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    max_amount: Mapped[object | None] = mapped_column(Numeric(18, 2))
+    receipt_required_above: Mapped[object | None] = mapped_column(Numeric(18, 2))
+    on_violation: Mapped[str] = mapped_column(String(8), nullable=False, default="flag")
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Pending Approval")
+    updated_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    approved_by: Mapped[str | None] = mapped_column(String(128))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

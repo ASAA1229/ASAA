@@ -290,6 +290,52 @@ def scheduled(url: str, out_dir: Path, key_source: str | None, keep: tuple[int, 
     return status
 
 
+def restore_test(out_dir: Path, key_source: str | None, scratch_url: str | None = None, artifact: Path | None = None) -> dict:
+    """Automated restore test: restore the newest (or a named) backup into a scratch database, prove it matches its manifest, record the outcome.
+
+    SQLite restores into a temporary file that is deleted afterwards. PostgreSQL never creates or drops databases here: pass an explicit,
+    empty scratch database URL (--scratch-database-url); it is restored with --force semantics, so it must never be a live database.
+    The measured restore time is an observation, not an RTO. RPO/RTO values and the test cadence remain owner decisions.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    status_path = out_dir / STATUS_FILE
+    previous = json.loads(status_path.read_text()) if status_path.exists() else {}
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        if artifact is None:
+            manifests = _manifests(out_dir)
+            if not manifests:
+                raise BackupError("no backup manifest found to test")
+            artifact = manifests[0][1]
+        manifest = load_manifest(artifact)
+        with tempfile.TemporaryDirectory(prefix="asaa-restore-test-") as work:
+            if manifest["kind"] == "postgresql":
+                if not scratch_url or not is_postgres(scratch_url):
+                    raise BackupError("a PostgreSQL backup needs --scratch-database-url pointing at an empty scratch database")
+                target = scratch_url
+            else:
+                target = "sqlite:///" + (Path(work) / "restore-test.db").as_posix()
+            result = restore(artifact, target, key_source, verify=True, force=bool(scratch_url))
+            integrity = "not_checked"
+            if manifest["kind"] != "postgresql":
+                con = sqlite3.connect(sqlite_path(target))
+                try:
+                    integrity = con.execute("PRAGMA integrity_check").fetchone()[0]
+                finally:
+                    con.close()
+                if integrity != "ok":
+                    raise BackupError(f"SQLite integrity_check failed: {integrity[:200]}")
+        status = {**previous, "last_restore_test_at": now, "last_restore_test_ok": True, "last_restore_test_artifact": artifact.name,
+                  "last_restore_test_seconds": result["restore_seconds"], "last_restore_test_rows": result["rows"], "last_restore_test_integrity": integrity,
+                  "last_restore_test_error": None}
+    except (BackupError, subprocess.CalledProcessError, OSError) as exc:
+        status = {**previous, "last_restore_test_at": now, "last_restore_test_ok": False, "last_restore_test_error": str(exc)[:300]}
+        status_path.write_text(json.dumps(status, indent=2))
+        raise BackupError(str(exc)) from exc
+    status_path.write_text(json.dumps(status, indent=2))
+    return {k: status[k] for k in status if k.startswith("last_restore_test")}
+
+
 def check_staleness(out_dir: Path, max_age_hours: float, now: datetime | None = None) -> dict:
     """Monitoring check: not ok when no verified backup exists, the last run failed after the last success,
     the newest backup is older than max_age_hours, or the recorded artifact is missing."""
@@ -479,6 +525,11 @@ def main(argv=None) -> int:
     st = sub.add_parser("check-staleness")
     st.add_argument("--out", type=Path, default=Path("backups"))
     st.add_argument("--max-age-hours", type=float, default=26)
+    rt = sub.add_parser("restore-test")
+    rt.add_argument("--out", type=Path, default=Path("backups"))
+    rt.add_argument("--backup", type=Path)
+    rt.add_argument("--scratch-database-url")
+    rt.add_argument("--encrypt-key-file")
     ro = sub.add_parser("rotate")
     ro.add_argument("--out", type=Path, default=Path("backups"))
     ro.add_argument("--keep-daily", type=int, default=7)
@@ -493,6 +544,9 @@ def main(argv=None) -> int:
             result = check_staleness(args.out, args.max_age_hours)
             print(json.dumps(result))
             return 0 if result["ok"] else 2
+        if args.command == "restore-test":
+            print(json.dumps(restore_test(args.out, args.encrypt_key_file, args.scratch_database_url, args.backup)))
+            return 0
         if args.command == "rotate":
             print(json.dumps(rotate(args.out, args.keep_daily, args.keep_weekly, args.keep_monthly)))
             return 0

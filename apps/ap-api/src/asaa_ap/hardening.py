@@ -16,6 +16,16 @@ SECURITY_HEADERS = [
     (b"cross-origin-resource-policy", b"same-origin"),
     (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'"),
 ]
+DOCS_CSP = (
+    b"default-src 'none'; "
+    b"script-src 'unsafe-inline' https://cdn.jsdelivr.net; "
+    b"style-src 'unsafe-inline' https://cdn.jsdelivr.net; "
+    b"img-src https://fastapi.tiangolo.com data:; "
+    b"font-src https://cdn.jsdelivr.net data:; "
+    b"connect-src 'self'; "
+    b"frame-ancestors 'none'"
+)
+DOCS_PATHS = {"/docs", "/docs/", "/docs/oauth2-redirect"}
 
 
 class BodyTooLarge(HTTPException):
@@ -61,7 +71,13 @@ class HardeningMiddleware:
             if message["type"] == "http.response.start":
                 started = True
                 existing = {k.lower() for k, _ in message.get("headers", [])}
-                extra = [(k, v) for k, v in SECURITY_HEADERS if k not in existing]
+                security_headers = SECURITY_HEADERS
+                if path in DOCS_PATHS:
+                    security_headers = [
+                        (key, DOCS_CSP if key == b"content-security-policy" else value)
+                        for key, value in SECURITY_HEADERS
+                    ]
+                extra = [(k, v) for k, v in security_headers if k not in existing]
                 if api_path and b"cache-control" not in existing:
                     extra.append((b"cache-control", b"no-store"))
                 message["headers"] = [*message.get("headers", []), *extra]
