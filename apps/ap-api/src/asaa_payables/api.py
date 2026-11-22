@@ -19,6 +19,7 @@ from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent, Supplier
 from asaa_ap.procurement_models import PurchaseRequest
 from asaa_ap.security import Principal, require_permission
+from asaa_integration.emitter import emit_for_audit
 from asaa_payables.models import (GoodsReceipt, GoodsReceiptLine, PaymentBatch, PaymentBatchItem, PurchaseOrder, PurchaseOrderLine,
                                   SupplierInvoice)
 from asaa_payables.schemas import (BatchCreate, BatchOut, BatchPaid, Decision, InvoiceCreate, InvoiceOut, POCreate, POOut, Reason,
@@ -38,6 +39,7 @@ def money(value) -> Decimal:
 def audit(db: Session, principal: Principal, action: str, kind: str, entity_id: str, details: dict, correlation_id: str | None):
     db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action=action, entity_type=kind,
                       entity_id=entity_id, details=details, correlation_id=correlation_id))
+    emit_for_audit(db, principal.organization_id, principal.subject, action, entity_id, details, correlation_id)
 
 
 def now() -> datetime:

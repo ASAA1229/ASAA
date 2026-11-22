@@ -10,6 +10,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from asaa_ap.models import AuditEvent, ARCreditNote, ARCustomer, ARInvoice, ARInvoiceLine, ARReceipt, ARReceiptAllocation
 from asaa_ap.schemas_ar import ARCustomerCreate, ARInvoiceCreate, ARReceiptCreate
 from asaa_ap.security import Principal
+from asaa_integration.emitter import emit_for_audit
 
 
 CENT = Decimal("0.01")
@@ -25,6 +26,7 @@ def audit(db: Session, principal: Principal, action: str, entity_type: str, enti
         action=action, entity_type=entity_type, entity_id=entity_id,
         details=details, correlation_id=correlation_id,
     ))
+    emit_for_audit(db, principal.organization_id, principal.subject, action, entity_id, details, correlation_id)
 
 
 def create_customer(db: Session, payload: ARCustomerCreate, principal: Principal, correlation_id: str | None):

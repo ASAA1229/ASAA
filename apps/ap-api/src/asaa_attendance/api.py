@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
+from asaa_integration.emitter import emit_for_audit
 from asaa_attendance.models import AttendanceCorrection, AttendancePolicy, AttendanceRecord, Holiday, RosterAssignment, Shift
 from asaa_identity.models import IdentitySubjectLink
 from asaa_people.models import Employee, LeaveRequest
@@ -34,6 +35,7 @@ def now() -> datetime:
 def audit(db: Session, principal: Principal, action: str, kind: str, entity_id: str, details: dict, correlation_id: str | None):
     db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action=action, entity_type=kind, entity_id=entity_id,
                       details=details, correlation_id=correlation_id))
+    emit_for_audit(db, principal.organization_id, principal.subject, action, entity_id, details, correlation_id)
 
 
 def aware(value: datetime) -> datetime:

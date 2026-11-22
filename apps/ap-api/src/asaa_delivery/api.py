@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from asaa_ap.database import get_db
 from asaa_ap.models import ARCustomer, ARInvoice, AuditEvent
 from asaa_ap.security import Principal, require_permission
+from asaa_integration.emitter import emit_for_audit
 from asaa_delivery.models import Engagement, Milestone, ServiceDefinition, WorkOrder
 from asaa_people.models import Employee
 
@@ -34,6 +35,7 @@ def now() -> datetime:
 
 def audit(db: Session, principal: Principal, action: str, kind: str, entity_id: str, details: dict, correlation_id: str | None):
     db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action=action, entity_type=kind, entity_id=entity_id, details=details, correlation_id=correlation_id))
+    emit_for_audit(db, principal.organization_id, principal.subject, action, entity_id, details, correlation_id)
 
 
 def owned(db: Session, model, row_id: str, org: str, label: str, lock: bool = True):
