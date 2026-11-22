@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
+from asaa_integration.emitter import emit_for_audit
 from asaa_people.models import (
     Employee, EmploymentRecord, EmployeeDocument, EmployeeAsset, LeaveRequest,
     EmployeeExitCase, OnboardingTemplate, OnboardingTask, OnboardingAssignment,
@@ -40,6 +41,7 @@ def audit(db, principal, action, entity_type, entity_id, details, correlation_id
         action=action, entity_type=entity_type, entity_id=entity_id,
         details=details, correlation_id=correlation_id,
     ))
+    emit_for_audit(db, principal.organization_id, principal.subject, action, entity_id, details, correlation_id)
 
 
 def employee_or_404(db, employee_id, org_id):
@@ -376,9 +378,15 @@ def complete_exit_case(case_id: str, db: Db,
     db.flush()
     audit(db, principal, "employee_exit.completed", "hr_employee_exit_case", case.id,
           {"employee_id": employee.id, "status": employee.status}, x_correlation_id)
-    # Outbox: revoke provider access in the same transaction as the leaver decision.
+    # Access closure in the same transaction as the leaver decision: end ASAA authorization assignments, then queue provider deprovisioning.
+    from asaa_governance.authorization import revoke_subject_assignments
+    from asaa_identity.models import IdentitySubjectLink
     from asaa_identity.service import enqueue_for_employee
-    enqueue_for_employee(db, principal.organization_id, employee.id, "leaver", "offboarding_completed", principal.subject)
+    link = db.scalar(select(IdentitySubjectLink).where(IdentitySubjectLink.organization_id == principal.organization_id, IdentitySubjectLink.employee_id == employee.id))
+    closed = revoke_subject_assignments(db, principal.organization_id, link.subject, principal.subject, "offboarding completed", correlation_id=x_correlation_id) if link else []
+    queued = enqueue_for_employee(db, principal.organization_id, employee.id, "leaver", "offboarding_completed", principal.subject)
+    audit(db, principal, "offboarding.deprovisioning_requested", "hr_employee_exit_case", case.id,
+          {"assignments_closed": len(closed), "provider_job_queued": bool(queued), "identity_linked": bool(link)}, x_correlation_id)
     db.commit()
     db.refresh(case)
     return serialize(case)

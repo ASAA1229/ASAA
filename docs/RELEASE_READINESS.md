@@ -69,3 +69,12 @@ Head `a40c7ca` has a failing lint (`playwright.config.js` parse error) and remov
 ## Update 2026-11-15
 
 The a40c7ca regression was repaired in 37f478d; coordinator-verified there: lint, build, 17 UI tests, pytest SQLite 165 passed / 6 skipped. Rehearsal 13/13 and promtool passed locally (agent-reported). Head `0dbb67b` carries new workspaces and registers that are agent-pushed and not yet coordinator-verified. No GitHub Actions run observed. Decision unchanged: **NO-GO**.
+
+
+## Release gate reassessment — 2026-11-20
+
+**Decision: NO-GO.** Current `new` branch API quality, Web CI, and PostgreSQL integration workflow runs passed (run IDs 44732168373, 44732168216, and 44732168210). The observed API-quality and PostgreSQL-integration runs on both `dev` and `main` failed. Treat every result as specific to its recorded workflow run and commit.
+
+The following mandatory release gates remain open: production database and hosting readiness; real identity-provider/SSO/MFA activation; complete identity lifecycle and tenant/record/field authorization assurance; independent security review; owner-approved backup/restore RPO/RTO and recovery exercise; business workflow UAT; production monitoring/alert routing and named operational ownership; and successful exact-SHA CI on the release candidate.
+
+Do not promote branches or deploy based solely on the green `new` runs. Follow the organization promotion policy and require the applicable PR review and checks. Historical local test results in earlier sections are not substitutes for current CI or production acceptance evidence.

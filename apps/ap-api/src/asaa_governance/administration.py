@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, JSON, String, UniqueConstraint, select
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, JSON, String, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from asaa_ap.database import Base, get_db
@@ -362,6 +362,40 @@ def review_unit(unit_id: str, payload: UnitReview, db: Session = Depends(get_db)
     return dump(row)
 
 
+class UnitRetire(StrictModel):
+    expected_version: int = Field(ge=1)
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+@router.post("/units/{unit_id}/retire")
+def retire_unit(unit_id: str, payload: UnitRetire, db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("organization:structure:retire")),
+    x_correlation_id: str | None = Header(default=None)):
+    """End an Active unit. Refused while it still has Active child units or people currently placed in it; history is preserved."""
+    from asaa_people.models import EmploymentRecord
+    row = get_unit(db, unit_id, principal.organization_id)
+    if row.status != "Active":
+        raise HTTPException(status_code=409, detail={"code": "organization_unit_not_active"})
+    if row.version != payload.expected_version:
+        raise HTTPException(status_code=409, detail={"code": "stale_organization_unit_version"})
+    children = db.scalar(select(func.count()).select_from(OrganizationUnit).where(
+        OrganizationUnit.organization_id == principal.organization_id, OrganizationUnit.parent_id == row.id, OrganizationUnit.status.in_(["Active", "Proposed"])))
+    if children:
+        raise HTTPException(status_code=409, detail={"code": "organization_unit_has_active_children", "count": children})
+    placed = db.scalar(select(func.count()).select_from(EmploymentRecord).where(
+        EmploymentRecord.organization_id == principal.organization_id, EmploymentRecord.department_id == row.id,
+        EmploymentRecord.effective_to.is_(None), EmploymentRecord.status != "Inactive"))
+    if placed:
+        raise HTTPException(status_code=409, detail={"code": "organization_unit_has_placed_people", "count": placed})
+    row.status, row.effective_to, row.updated_by = "Retired", date.today(), principal.subject
+    row.reviewed_by, row.reviewed_at, row.review_reason = principal.subject, utcnow(), payload.reason
+    db.flush()
+    audit(db, principal, "organization_unit.retired", "organization_unit", row.id, {"reason": payload.reason}, x_correlation_id)
+    db.commit()
+    db.refresh(row)
+    return dump(row)
+
+
 @router.get("/access-reviews")
 def list_campaigns(db: Session = Depends(get_db), principal: Principal = Depends(require_permission("identity:access-review:read"))):
     rows = db.scalars(select(AccessReviewCampaign).where(
@@ -410,6 +444,15 @@ def decide_access_item(item_id: str, payload: ReviewDecision, db: Session = Depe
         raise HTTPException(status_code=403, detail={"code": "self_access_review_forbidden"})
     item.decision = payload.decision; item.review_reason = payload.reason
     item.reviewed_by = principal.subject; item.reviewed_at = utcnow()
+    revoked: list[str] = []
+    if payload.decision == "Revoke":
+        # A Revoke decision must take effect: close the matching assignments and queue the provider sync (no-op if the subject is not linked).
+        from asaa_governance.authorization import revoke_subject_assignments
+        from asaa_identity.service import enqueue_for_subject_if_linked
+        revoked = revoke_subject_assignments(db, principal.organization_id, item.subject, principal.subject, f"access review: {payload.reason}",
+                                             role_code=item.role_code, scope_reference=item.scope_reference, correlation_id=x_correlation_id)
+        if revoked:
+            enqueue_for_subject_if_linked(db, principal.organization_id, item.subject, "mover", "access_review_revoked", principal.subject)
     db.flush()
     remaining = db.scalar(select(AccessReviewItem.id).where(
         AccessReviewItem.campaign_id == campaign.id,
@@ -419,6 +462,6 @@ def decide_access_item(item_id: str, payload: ReviewDecision, db: Session = Depe
         campaign.status = "Completed"
     audit(db, principal, "identity_access_review.decided", "access_review_item", item.id,
           {"subject": item.subject, "decision": item.decision, "reason": item.review_reason,
-           "campaign_status": campaign.status}, x_correlation_id)
+           "campaign_status": campaign.status, "revoked_assignments": len(revoked)}, x_correlation_id)
     db.commit(); db.refresh(item)
     return dump(item)

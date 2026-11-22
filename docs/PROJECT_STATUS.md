@@ -252,3 +252,25 @@ A compatibility fix was committed on `new`:
 - `apps/ap-api/tests/test_backup_restore.py` adds a focused regression test proving the filter removes that setting and preserves other SQL (commit `cd22a4cf718cd35dbcb4ff80e01018ffcb7e1694`).
 
 Post-fix PostgreSQL integration run **44524049465** completed successfully on exact application commit `71fb683d76892e9be5477199adb462fc5555e721` (**CI VERIFIED**). The regression test and full PostgreSQL integration job passed. Run **44524049350** also completed successfully on that commit for local-load/smoke, Python dependency audit and people/finance API quality. In run **44524049436**, the web production build and dependency audit passed; the browser E2E job was still in progress at the time of this update. The earlier PostgreSQL integration failure remains historical evidence; the corrected restore path is now CI-verified for the named exact application commit. This does not change the overall **NO-GO** release decision or establish production acceptance.
+
+
+## Organization verification update — 2026-11-20
+
+**Assessed branch:** `new`  
+**Assessment basis:** organization-wide GitHub repository and workflow inspection on 2026-11-20. This update supersedes historical workflow/branch observations above where they conflict; historical local test evidence remains historical and is not promoted to current CI evidence.
+
+### Current repository governance
+- Required branches `main`, `dev`, `new`, `fix`, and `test` are present.
+- All six ASAA1229 repositories remain public by owner decision.
+- The five standard branches were observed without GitHub branch protection (`protected: false`) at the assessment snapshot. Branch-protection enforcement is approved but not yet applied/verified.
+- No open pull requests were found in the organization snapshot. No branch promotion or merge was performed as part of this documentation refresh.
+- Promotion policy: working branches → `new`; only `new` → `dev`; only `dev` → `main`.
+
+### Current CI evidence
+- `new`: API quality, Web CI, and PostgreSQL integration workflows passed on the observed runs [API quality](https://github.com/ASAA1229/ASAA/actions/runs/44732168373), [Web CI](https://github.com/ASAA1229/ASAA/actions/runs/44732168216), [PostgreSQL integration](https://github.com/ASAA1229/ASAA/actions/runs/44732168210).
+- `dev`: API quality and PostgreSQL integration were failing in the observed runs; Web and monitoring workflows passed.
+- `main`: API quality and PostgreSQL integration were failing in the observed runs; Web and monitoring workflows passed.
+- These results are run-specific, not a claim that all checks or all commits are green. Re-run checks on the exact candidate SHA before promotion.
+
+### Current release decision
+**NO-GO.** Green workflows on `new` do not close production database, identity-provider/MFA, full authorization/tenant-isolation assurance, independent security review, approved backup/restore objectives, business UAT, operational ownership, or production deployment gates. See [Release Readiness](RELEASE_READINESS.md) and [Pending Work](PENDING_WORK_REGISTER.md).
