@@ -67,6 +67,21 @@ services:
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
 
+  # Durable retry sweep for ASAA ecosystem events that failed to stage (runs outside business transactions).
+  integration-retry:
+    image: asaa-api:${API_IMAGE_TAG:-0.2.0}
+    restart: unless-stopped
+    command: ["python", "scripts/retry_ecosystem_events.py", "--interval", "60"]
+    environment:
+      ASAA_AP_ENVIRONMENT: production
+      ASAA_AP_DATABASE_URL: postgresql+psycopg://${ASAA_DB_RUNTIME_ROLE:-asaa_runtime}:${ASAA_DB_RUNTIME_PASSWORD}@host.docker.internal:${ASAA_PG_PORT:-5432}/${ASAA_DB_NAME:-asaa}
+      ASAA_AP_LOG_LEVEL: INFO
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
   portal:
     image: asaa-portal:${PORTAL_IMAGE_TAG:-0.1.0}
     restart: unless-stopped

@@ -50,3 +50,13 @@ def test_unknown_action_marker_is_dropped(session):
                            outcome="pending", details={"source_action": "nope.nope", "event_data": {}}))
     session.commit()
     assert retry.process_due(session, now=datetime.now(timezone.utc) + timedelta(minutes=5))["dropped"] == 1
+
+
+def test_local_prod_schedules_the_retry_sweep_with_the_api_image_and_no_ports():
+    from pathlib import Path
+    import yaml
+    document = yaml.safe_load((Path(__file__).resolve().parents[3] / "deploy/local-prod/docker-compose.yml").read_text())
+    service = document["services"]["integration-retry"]
+    assert service["command"][:2] == ["python", "scripts/retry_ecosystem_events.py"] and "--interval" in service["command"]
+    assert service["image"] == document["services"]["api"]["image"] and service["restart"] == "unless-stopped"
+    assert service["read_only"] is True and service["cap_drop"] == ["ALL"] and "ports" not in service
