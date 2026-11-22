@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from asaa_ap.database import get_db
 from asaa_ap.models import ARCustomer, ARInvoice, AuditEvent
+from asaa_ap.org_time import org_today_or_none
 from asaa_ap.security import Principal, require_permission
 from asaa_integration.emitter import emit_for_audit
 from asaa_delivery.models import Engagement, Milestone, ServiceDefinition, WorkOrder
@@ -156,15 +157,15 @@ def dump_milestone(m: Milestone) -> dict:
             "accepted_at": iso(m.accepted_at), "client_acceptance_reference": m.client_acceptance_reference, "invoice_id": m.invoice_id}
 
 
-def dump_engagement(e: Engagement, milestones: list[Milestone] | None = None) -> dict:
+def dump_engagement(e: Engagement, db: Session, milestones: list[Milestone] | None = None) -> dict:
     out = {"id": e.id, "code": e.code, "title": e.title, "customer_id": e.customer_id, "service_id": e.service_id, "sow_reference": e.sow_reference, "project_reference": e.project_reference,
            "owner_subject": e.owner_subject, "start_date": iso(e.start_date), "end_date": iso(e.end_date), "currency": e.currency,
            "budget_amount": str(e.budget_amount) if e.budget_amount is not None else None, "status": e.status, "created_by": e.created_by}
     if milestones is not None:
-        today = date.today()
+        today = org_today_or_none(db, e.organization_id)  # None = organization time zone not configured
         out["milestones"] = [dump_milestone(m) for m in milestones]
         out["progress"] = {"milestones": len(milestones), "accepted": sum(m.status == "Accepted" for m in milestones),
-                           "overdue": sum(m.status in {"Planned", "In Progress"} and m.due_date < today for m in milestones),
+                           "overdue": sum(m.status in {"Planned", "In Progress"} and m.due_date < today for m in milestones) if today is not None else None,
                            "billable_accepted_not_invoiced": str(sum((m.billable_amount or Decimal("0") for m in milestones if m.status == "Accepted" and not m.invoice_id), Decimal("0")))}
     return out
 
@@ -239,7 +240,7 @@ def create_engagement(payload: EngagementIn, db: Db, principal: Annotated[Princi
     flush_unique(db, "engagement_code_exists")
     audit(db, principal, "engagement.created", "dlv_engagement", row.id, {"code": row.code, "customer_id": row.customer_id}, x_correlation_id)
     db.commit()
-    return dump_engagement(row)
+    return dump_engagement(row, db)
 
 
 @router.get("/engagements")
@@ -250,14 +251,14 @@ def list_engagements(db: Db, principal: Annotated[Principal, Depends(require_per
         stmt = stmt.where(Engagement.status == status)
     if customer_id:
         stmt = stmt.where(Engagement.customer_id == customer_id)
-    return [dump_engagement(e) for e in db.scalars(stmt.order_by(Engagement.created_at.desc()).offset(offset).limit(limit)).all()]
+    return [dump_engagement(e, db) for e in db.scalars(stmt.order_by(Engagement.created_at.desc()).offset(offset).limit(limit)).all()]
 
 
 @router.get("/engagements/{engagement_id}")
 def get_engagement(engagement_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:read"))]):
     row = owned(db, Engagement, engagement_id, principal.organization_id, "Engagement", lock=False)
     milestones = db.scalars(select(Milestone).where(Milestone.engagement_id == row.id).order_by(Milestone.due_date)).all()
-    return dump_engagement(row, list(milestones))
+    return dump_engagement(row, db, list(milestones))
 
 
 @router.post("/engagements/{engagement_id}/status")
@@ -269,7 +270,7 @@ def change_engagement_status(engagement_id: str, payload: StatusIn, db: Db, prin
     if payload.status == "Active" and row.status == "Draft":
         if row.created_by == principal.subject:
             raise HTTPException(status_code=403, detail="The creator of an engagement cannot activate it")
-        customer = db.get(ARCustomer, row.customer_id)
+        customer = db.scalar(select(ARCustomer).where(ARCustomer.id == row.customer_id, ARCustomer.organization_id == org))
         if not customer or customer.status != "Active":
             raise HTTPException(status_code=409, detail={"code": "customer_not_active"})
     if payload.status == "Completed" and db.scalar(select(func.count()).select_from(Milestone).where(Milestone.engagement_id == row.id, Milestone.status.notin_(["Accepted"]))):
@@ -279,7 +280,7 @@ def change_engagement_status(engagement_id: str, payload: StatusIn, db: Db, prin
     previous, row.status = row.status, payload.status
     audit(db, principal, "engagement.status_changed", "dlv_engagement", row.id, {"from": previous, "to": payload.status, "reason": payload.reason}, x_correlation_id)
     db.commit()
-    return dump_engagement(row)
+    return dump_engagement(row, db)
 
 
 # ---- milestones -----------------------------------------------------------------------------------------------------------

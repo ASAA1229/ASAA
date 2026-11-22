@@ -48,6 +48,8 @@ EMITTED: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "work_order.assigned": ("asaa.delivery.work-order-assigned", "work-order", ()),
     "work_order.completed": ("asaa.delivery.work-order-completed", "work-order", ()),
     "work_order.verified": ("asaa.delivery.work-order-verified", "work-order", ("decision",)),
+    "expense.reviewed": ("asaa.expenses.claim-reviewed", "expense-claim", ("status",)),
+    "expense_policy.approved": ("asaa.expenses.policy-approved", "expense-policy", ()),
     "expense_claim.policy_flagged": ("asaa.expenses.claim-policy-flagged", "expense-claim", ("rule",)),
     "offboarding.deprovisioning_requested": ("asaa.people.deprovisioning-requested", "exit-case", ()),
 }
@@ -69,10 +71,12 @@ def emit_for_audit(db: Session, org: str, actor: str, action: str, entity_id: st
     correlation = correlation_id if correlation_id and re.fullmatch(r"[A-Za-z0-9._-]{8,64}", correlation_id) else None
     try:
         now = datetime.now(timezone.utc)
-        db.add(IntegrationEvent(id=str(uuid.uuid4()), organization_id=org, source="asaa", type=event_type, project="ASAA",
-                                subject=f"{entity_path}/{entity_id}"[:200], correlation_id=correlation, severity="info", declared_severity="info",
-                                occurred_at=now, received_at=now, data=data, received_by="asaa-internal"))
-    except Exception:  # an event must never break the business transaction
-        logger.exception("ecosystem_event_stage_failed")
+        # A savepoint isolates the event insert: if it fails, only the event is rolled back; the business change and its audit record stay in the transaction.
+        with db.begin_nested():
+            db.add(IntegrationEvent(id=str(uuid.uuid4()), organization_id=org, source="asaa", type=event_type, project="ASAA",
+                                    subject=f"{entity_path}/{entity_id}"[:200], correlation_id=correlation, severity="info", declared_severity="info",
+                                    occurred_at=now, received_at=now, data=data, received_by="asaa-internal"))
+    except Exception:  # an event must never break the business transaction; the failure is logged (the audit record is the durable record)
+        logger.exception("ecosystem_event_stage_failed", extra={"event_type": event_type, "action": action})
         return False
     return True
