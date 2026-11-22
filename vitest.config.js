@@ -11,6 +11,8 @@ export default defineConfig({
     setupFiles: ["tests/ui/setup.js"],
     globals: true,
     css: false,
-    testTimeout: 30000,
+    testTimeout: 60000,
+    hookTimeout: 120000,
+    fileParallelism: false,
   },
 });

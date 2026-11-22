@@ -151,7 +151,7 @@ def test_migration_0021_scopes_ids_per_org_keeps_data_and_downgrades(tmp_path):
     con.execute("DELETE FROM integration_events WHERE organization_id = 'org-b'")
     con.commit()
     con.close()
-    alembic(db, "downgrade", "-1")
+    alembic(db, "downgrade", "0020_integration_events")
     info = table_info(db)
     assert info["id"] == 1 and info["organization_id"] == 0 and "declared_severity" not in info
     con = sqlite3.connect(db)

@@ -69,3 +69,8 @@ These are foundational capabilities. A visible UI, API route or database model i
 ## 7. POC exit decision
 
 The POC demonstrates that foundational application slices and PostgreSQL CI integration exist. It does not authorize production launch. Exit to a first controlled release requires the P0 gates in [Project Status](PROJECT_STATUS.md) and [Release Readiness](RELEASE_READINESS.md) to be closed, with P1 workflows either accepted or disabled/excluded.
+
+
+## POC reassessment — 2026-11-20
+
+The ASAA POC remains **NOT ACCEPTED / NO-GO**. Observed `new` API quality, Web CI and PostgreSQL integration runs passed (44732168373, 44732168216, 44732168210), while API quality and PostgreSQL integration failed on the observed `dev` and `main` runs. Production identity/database, independent security, backup/restore objectives, business UAT and operational acceptance remain release blockers. CI on `new` alone does not prove the POC is production-ready.
