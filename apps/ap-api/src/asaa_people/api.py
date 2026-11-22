@@ -478,6 +478,35 @@ def list_payroll_runs(db: Db,
     return [view(row) for row in rows]
 
 
+def validate_source_references(db: Session, org: str, employee_id: str, refs) -> list[dict]:
+    """Every referenced source must exist in this organization, belong to this employee and be approved. Lineage only: nothing is calculated.
+    Attendance has no approval state of its own: a record qualifies when it is complete (clocked out) and has no overtime decision pending."""
+    from asaa_attendance.models import AttendanceRecord
+    from asaa_identity.models import IdentitySubjectLink
+    from asaa_people.models import LeaveRequest
+    from asaa_workforce_finance.models import Timesheet
+    checked = []
+    for ref in refs:
+        ok = False
+        if ref.type == "leave":
+            ok = db.scalar(select(LeaveRequest.id).where(LeaveRequest.id == ref.id, LeaveRequest.organization_id == org,
+                                                         LeaveRequest.employee_id == employee_id, LeaveRequest.status == "Approved")) is not None
+        elif ref.type == "attendance":
+            rec = db.scalar(select(AttendanceRecord).where(AttendanceRecord.id == ref.id, AttendanceRecord.organization_id == org,
+                                                           AttendanceRecord.employee_id == employee_id))
+            ok = rec is not None and rec.clock_out is not None and rec.overtime_status != "Pending"
+        else:
+            sheet = db.scalar(select(Timesheet).where(Timesheet.id == ref.id, Timesheet.organization_id == org, Timesheet.status == "Approved"))
+            if sheet is not None:
+                ok = db.scalar(select(IdentitySubjectLink.id).where(IdentitySubjectLink.organization_id == org, IdentitySubjectLink.employee_id == employee_id,
+                                                                   IdentitySubjectLink.subject == sheet.employee_subject)) is not None
+        if not ok:
+            raise HTTPException(status_code=409, detail={"code": "payroll_source_not_valid", "type": ref.type, "id": ref.id,
+                                                         "message": "The referenced record must exist in this organization, belong to this employee and be approved."})
+        checked.append({"type": ref.type, "id": ref.id})
+    return checked
+
+
 @payroll_router.post("/runs/{run_id}/entries", status_code=201)
 def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
@@ -502,9 +531,10 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
             "code": "payroll_employee_entry_exists",
             "existing_entry_id": duplicate,
         })
+    sources = validate_source_references(db, principal.organization_id, payload.employee_id, payload.source_references)
     row = PayrollEntry(
         organization_id=principal.organization_id, run_id=run.id,
-        created_by=principal.subject, **payload.model_dump(),
+        created_by=principal.subject, **payload.model_dump(exclude={"source_references"}), source_references=sources or None,
     )
     db.add(row)
     db.flush()

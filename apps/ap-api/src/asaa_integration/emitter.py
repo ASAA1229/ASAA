@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from asaa_ap.models import AuditEvent
 from asaa_integration import screening
 from asaa_integration.models import IntegrationEvent
 
@@ -55,8 +56,26 @@ EMITTED: dict[str, tuple[str, str, tuple[str, ...]]] = {
 }
 
 
+RETRY_PENDING = "ecosystem_event.retry_pending"
+RETRY_SETTLED = "ecosystem_event.retry_settled"  # details: pending_id, result in (staged, exhausted, dropped)
+RETRY_FAILED = "ecosystem_event.retry_failed"  # details: pending_id; one row per failed attempt
+
+
+def _record_retry(db: Session, org: str, action: str, entity_id: str, data: dict, event_id: str, correlation_id: str | None) -> None:
+    """Durable retry marker for an event that could not be staged: an append-only audit row holding only the allowlisted, screened
+    event data, so a later sweep (asaa_integration.retry.process_due) can stage the same event. Never raises."""
+    try:
+        with db.begin_nested():
+            db.add(AuditEvent(organization_id=org, actor_id="system:integration-outbox", action=RETRY_PENDING, entity_type="integration_event",
+                              entity_id=event_id, outcome="pending", correlation_id=correlation_id,
+                              details={"source_action": action, "source_entity_id": entity_id, "event_data": data}))
+    except Exception:  # noqa: BLE001 - best effort; the business audit row remains the durable record
+        logger.exception("ecosystem_event_retry_record_failed", extra={"action": action})
+
+
 def emit_for_audit(db: Session, org: str, actor: str, action: str, entity_id: str, details: dict, correlation_id: str | None) -> bool:
-    """Stage an event for an audited action if it is in the allowlist. Never raises; returns whether an event was staged."""
+    """Stage an event for an audited action if it is in the allowlist. Never raises; returns whether an event was staged.
+    A failed stage is not lost: a retry marker is written (see asaa_integration.retry) and the business transaction proceeds."""
     spec = EMITTED.get(action)
     if spec is None:
         return False
@@ -69,14 +88,16 @@ def emit_for_audit(db: Session, org: str, actor: str, action: str, entity_id: st
         logger.warning("ecosystem_event_dropped", extra={"event_type": event_type, "reason": "screening"})
         return False
     correlation = correlation_id if correlation_id and re.fullmatch(r"[A-Za-z0-9._-]{8,64}", correlation_id) else None
+    event_id = str(uuid.uuid4())
     try:
         now = datetime.now(timezone.utc)
         # A savepoint isolates the event insert: if it fails, only the event is rolled back; the business change and its audit record stay in the transaction.
         with db.begin_nested():
-            db.add(IntegrationEvent(id=str(uuid.uuid4()), organization_id=org, source="asaa", type=event_type, project="ASAA",
+            db.add(IntegrationEvent(id=event_id, organization_id=org, source="asaa", type=event_type, project="ASAA",
                                     subject=f"{entity_path}/{entity_id}"[:200], correlation_id=correlation, severity="info", declared_severity="info",
                                     occurred_at=now, received_at=now, data=data, received_by="asaa-internal"))
-    except Exception:  # an event must never break the business transaction; the failure is logged (the audit record is the durable record)
+    except Exception:  # an event must never break the business transaction
         logger.exception("ecosystem_event_stage_failed", extra={"event_type": event_type, "action": action})
+        _record_retry(db, org, action, entity_id, data, event_id, correlation)
         return False
     return True
