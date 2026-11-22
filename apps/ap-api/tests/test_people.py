@@ -637,3 +637,37 @@ def test_payroll_calculation_is_refused_until_owner_rules_are_approved(client):
     assert refused.status_code == 409
     assert refused.json()["detail"]["code"] == "policy_not_configured" and refused.json()["detail"]["policy"] == "payroll_calculation_rules"
     assert client.post("/api/v1/payroll/runs/missing/calculate").status_code == 404
+
+
+def test_payroll_entry_source_references_must_be_approved_same_employee_same_org(client):
+    from datetime import date, datetime, timezone
+    from asaa_attendance.models import AttendanceRecord
+    from asaa_identity.models import IdentitySubjectLink
+    from asaa_people.models import LeaveRequest
+    from asaa_workforce_finance.models import Timesheet
+    from tests.integration_support import db_of
+    employee = create_employee(client)
+    other = client.post("/api/v1/hr/employees", json={"employee_code": "E-002", "first_name": "Ravi", "last_name": "Iyer", "work_email": "ravi@example.invalid",
+                                                       "employment_type": "Employee", "hire_date": "2026-11-01"}).json()
+    db = db_of(client)
+
+    def leave(emp, status, org="org-a"):
+        row = LeaveRequest(organization_id=org, employee_id=emp, leave_category="annual", start_date=date(2026, 12, 1), end_date=date(2026, 12, 2), status=status, created_by="x")
+        db.add(row); db.commit(); return row.id
+    ok_leave, pending_leave, others_leave = leave(employee["id"], "Approved"), leave(employee["id"], "Submitted"), leave(other["id"], "Approved")
+    db.add(IdentitySubjectLink(organization_id="org-a", employee_id=employee["id"], subject="emp-subject", created_by="x"))
+    sheet = Timesheet(organization_id="org-a", employee_subject="emp-subject", period_start=date(2026, 12, 1), period_end=date(2026, 12, 7), status="Approved", created_by="x")
+    foreign_sheet = Timesheet(organization_id="org-b", employee_subject="emp-subject", period_start=date(2026, 12, 1), period_end=date(2026, 12, 7), status="Approved", created_by="x")
+    open_attendance = AttendanceRecord(organization_id="org-a", employee_id=employee["id"], work_date=date(2026, 12, 1), clock_in=datetime(2026, 12, 1, 9, tzinfo=timezone.utc))
+    db.add_all([sheet, foreign_sheet, open_attendance]); db.commit()
+    period = client.post("/api/v1/payroll/periods", json={"period_code": "2026-12-LIN", "start_date": "2026-12-01", "end_date": "2026-12-31"}).json()
+    run = client.post("/api/v1/payroll/runs", json={"period_id": period["id"], "run_code": "2026-12-LIN-01", "currency": "INR"}).json()
+    url = f"/api/v1/payroll/runs/{run['id']}/entries"
+    body = {"employee_id": employee["id"], "currency": "INR", "gross_amount": "100.00", "deduction_total": "0.00", "net_amount": "100.00"}
+    for bad in ({"type": "leave", "id": pending_leave}, {"type": "leave", "id": others_leave}, {"type": "timesheet", "id": foreign_sheet.id},
+                {"type": "attendance", "id": open_attendance.id}, {"type": "leave", "id": "missing"}):
+        refused = client.post(url, json=dict(body, source_references=[bad]))
+        assert refused.status_code == 409 and refused.json()["detail"]["code"] == "payroll_source_not_valid", bad
+    created = client.post(url, json=dict(body, source_references=[{"type": "leave", "id": ok_leave}, {"type": "timesheet", "id": sheet.id}]))
+    assert created.status_code == 201
+    assert created.json()["source_references"] == [{"type": "leave", "id": ok_leave}, {"type": "timesheet", "id": sheet.id}]

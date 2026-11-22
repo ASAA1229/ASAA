@@ -180,6 +180,7 @@ class PayrollEntry(Base):
     deduction_total: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     net_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     breakdown: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    source_references: Mapped[list | None] = mapped_column(JSON)  # approved source records [{type, id}]; lineage only, nothing is calculated from them
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="Draft")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
