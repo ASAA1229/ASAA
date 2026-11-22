@@ -28,7 +28,11 @@ def backup_status(principal: Annotated[Principal, Depends(require_permission("op
         return {"configured": True, "ok": False, "reason": "no backup status recorded"}
     status = json.loads(status_file.read_text())
     result = {"configured": True, "ok": False, "reason": None, "last_success_at": status.get("last_success_at"), "last_failure_at": status.get("last_failure_at"),
-              "last_artifact": status.get("last_artifact"), "age_hours": None, "limit_hours": settings.backup_max_age_hours, "retention": status.get("retention")}
+              "last_artifact": status.get("last_artifact"), "age_hours": None, "limit_hours": settings.backup_max_age_hours, "retention": status.get("retention"),
+              "restore_test": {"last_at": status.get("last_restore_test_at"), "ok": status.get("last_restore_test_ok"), "artifact": status.get("last_restore_test_artifact"),
+                               "observed_restore_seconds": status.get("last_restore_test_seconds"), "rows_verified": status.get("last_restore_test_rows"),
+                               "error": status.get("last_restore_test_error"),
+                               "note": "Observation only. RPO/RTO targets and the restore-test cadence are owner decisions and are not enforced here."}}
     if not status.get("last_success_at"):
         result["reason"] = "no successful backup recorded"
         return result
