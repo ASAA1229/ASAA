@@ -16,7 +16,7 @@ from asaa_attendance.models import AttendanceRecord
 from asaa_ap.database import get_db
 from asaa_ap.models import ARCreditNote, ARInvoice, ARReceipt, Supplier
 from asaa_ap.procurement_models import PurchaseRequest
-from asaa_ap.security import Principal, get_principal
+from asaa_ap.security import Principal, require_permission
 from asaa_delivery.models import Engagement
 from asaa_payables.models import PaymentBatch, PurchaseOrder, SupplierInvoice
 from asaa_people.models import Employee, LeaveRequest
@@ -57,15 +57,15 @@ def aware(value: datetime | None) -> datetime | None:
 
 
 @router.get("/lineage")
-def lineage(principal: Annotated[Principal, Depends(get_principal)]):
-    """Declared dataset registry and which reports read which datasets, limited to datasets the caller may read."""
+def lineage(principal: Annotated[Principal, Depends(require_permission("report:lineage:read"))]):
+    """Declared dataset registry and which reports read which datasets, limited to datasets the caller may read. Requires report:lineage:read."""
     visible = {name for name, (_, _, _, perm) in SOURCES.items() if perm in principal.permissions}
     return {"datasets": [{"name": n, "owner_module": SOURCES[n][2], "required_permission": SOURCES[n][3]} for n in sorted(visible)],
             "reports": {r: {"datasets": [d for d in ds if d in visible], "hidden_dataset_count": len([d for d in ds if d not in visible])} for r, ds in REPORT_LINEAGE.items()}}
 
 
 @router.get("/freshness")
-def freshness(db: Annotated[Session, Depends(get_db)], principal: Annotated[Principal, Depends(get_principal)], max_age_hours: float | None = Query(default=None, gt=0, le=87600)):
+def freshness(db: Annotated[Session, Depends(get_db)], principal: Annotated[Principal, Depends(require_permission("report:lineage:read"))], max_age_hours: float | None = Query(default=None, gt=0, le=87600)):
     """Newest record time, row count and age per dataset for this organization. `stale` is reported only when max_age_hours is supplied."""
     now = datetime.now(timezone.utc)
     out = []

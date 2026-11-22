@@ -232,7 +232,7 @@ def test_migration_0022_upgrades_and_downgrades(tmp_path):
 
     alembic("upgrade", "head")
     assert "identity_adoption_requests" in tables()
-    alembic("downgrade", "-1")
+    alembic("downgrade", "0021_integration_event_scope")
     assert "identity_adoption_requests" not in tables() and "integration_events" in tables()
     alembic("upgrade", "head")
     assert "identity_adoption_requests" in tables()
