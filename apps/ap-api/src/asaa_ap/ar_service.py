@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
-from asaa_ap.models import AuditEvent, ARCustomer, ARInvoice, ARInvoiceLine, ARReceipt, ARReceiptAllocation
+from asaa_ap.models import AuditEvent, ARCreditNote, ARCustomer, ARInvoice, ARInvoiceLine, ARReceipt, ARReceiptAllocation
 from asaa_ap.schemas_ar import ARCustomerCreate, ARInvoiceCreate, ARReceiptCreate
 from asaa_ap.security import Principal
 
@@ -72,15 +72,31 @@ def amount_paid(db: Session, invoice_id: str) -> Decimal:
     return money(Decimal(value or 0))
 
 
+def amount_credited(db: Session, invoice_id: str) -> Decimal:
+    """Total of approved credit notes applied to the invoice."""
+    value = db.scalar(select(func.coalesce(func.sum(ARCreditNote.amount), 0)).where(
+        ARCreditNote.invoice_id == invoice_id, ARCreditNote.status == "Approved"))
+    return money(Decimal(value or 0))
+
+
+def settled_status(total: Decimal, paid: Decimal, credited: Decimal) -> str:
+    """Invoice status after settlement: Paid (cash settled, possibly with credits), Credited (credits alone settled it) or Partially Paid."""
+    balance = money(total - paid - credited)
+    if balance == 0:
+        return "Paid" if paid > 0 else "Credited"
+    return "Partially Paid"
+
+
 def invoice_view(db: Session, invoice: ARInvoice) -> dict:
     paid = amount_paid(db, invoice.id)
+    credited = amount_credited(db, invoice.id)
     lines = db.scalars(select(ARInvoiceLine).where(ARInvoiceLine.invoice_id == invoice.id)).all()
     return {
         "id": invoice.id, "organization_id": invoice.organization_id, "customer_id": invoice.customer_id,
         "invoice_number": invoice.invoice_number, "currency": invoice.currency,
         "issue_date": invoice.issue_date, "due_date": invoice.due_date, "status": invoice.status,
         "subtotal": invoice.subtotal, "tax_total": invoice.tax_total, "total": invoice.total,
-        "amount_paid": paid, "outstanding": money(invoice.total - paid), "notes": invoice.notes,
+        "amount_paid": paid, "amount_credited": credited, "outstanding": money(invoice.total - paid - credited), "notes": invoice.notes,
         "version": invoice.version, "created_at": invoice.created_at, "created_by": invoice.created_by,
         "lines": lines,
     }
@@ -194,15 +210,13 @@ def create_receipt(db: Session, payload: ARReceiptCreate, principal: Principal, 
             if invoice.status not in {"Issued", "Partially Paid"}:
                 raise HTTPException(status_code=409, detail={"code": "invoice_not_receivable", "invoice_id": invoice.id})
             already_paid = amount_paid(db, invoice.id)
-            if money(allocation.amount) > money(invoice.total - already_paid):
+            credited = amount_credited(db, invoice.id)
+            if money(allocation.amount) > money(invoice.total - already_paid - credited):
                 raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_outstanding", "invoice_id": invoice.id})
             db.add(ARReceiptAllocation(receipt_id=receipt.id, invoice_id=invoice.id, amount=money(allocation.amount)))
             applied += money(allocation.amount)
             db.flush()
-            if money(already_paid + allocation.amount) == money(invoice.total):
-                invoice.status = "Paid"
-            else:
-                invoice.status = "Partially Paid"
+            invoice.status = settled_status(invoice.total, money(already_paid + allocation.amount), credited)
         audit(db, principal, "receipt.recorded", "ar_receipt", receipt.id, {
             "customer_id": customer.id, "currency": receipt.currency, "amount": str(receipt.amount),
             "applied_amount": str(money(applied)), "unapplied_amount": str(money(receipt.amount - applied)),
@@ -296,9 +310,10 @@ def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, am
         raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_unapplied_receipt",
                                                       "unapplied_amount": str(outstanding_receipt)})
     already_paid = amount_paid(db, invoice.id)
-    if amount > money(invoice.total - already_paid):
+    credited = amount_credited(db, invoice.id)
+    if amount > money(invoice.total - already_paid - credited):
         raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_outstanding",
-                                                      "outstanding_amount": str(money(invoice.total - already_paid))})
+                                                      "outstanding_amount": str(money(invoice.total - already_paid - credited))})
     existing = db.scalar(select(ARReceiptAllocation).where(
         ARReceiptAllocation.receipt_id == receipt.id, ARReceiptAllocation.invoice_id == invoice.id
     ))
@@ -306,7 +321,7 @@ def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, am
         existing.amount = money(existing.amount + amount)
     else:
         db.add(ARReceiptAllocation(receipt_id=receipt.id, invoice_id=invoice.id, amount=amount))
-    invoice.status = "Paid" if money(already_paid + amount) == money(invoice.total) else "Partially Paid"
+    invoice.status = settled_status(invoice.total, money(already_paid + amount), credited)
     audit(db, principal, "receipt.reallocated", "ar_receipt", receipt.id, {
         "invoice_id": invoice.id, "amount": str(amount),
         "remaining_unapplied": str(money(outstanding_receipt - amount))

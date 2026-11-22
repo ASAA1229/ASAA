@@ -137,3 +137,23 @@ class ARReceiptAllocation(Base):
     receipt_id: Mapped[str] = mapped_column(ForeignKey("ar_receipts.id", ondelete="CASCADE"), nullable=False, index=True)
     invoice_id: Mapped[str] = mapped_column(ForeignKey("ar_invoices.id"), nullable=False, index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+
+
+class ARCreditNote(Base):
+    """Credit against an issued invoice. Maker-checker: applied (reduces the invoice balance) only when approved by someone other than its maker."""
+    __tablename__ = "ar_credit_notes"
+    __table_args__ = (Index("ix_ar_credit_note_org_invoice", "organization_id", "invoice_id"),
+                      Index("ix_ar_credit_note_org_status", "organization_id", "status"))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("ar_customers.id"), nullable=False)
+    invoice_id: Mapped[str] = mapped_column(ForeignKey("ar_invoices.id"), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Pending Approval")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reviewed_by: Mapped[str | None] = mapped_column(String(128))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_reason: Mapped[str | None] = mapped_column(String(500))

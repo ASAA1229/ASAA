@@ -15,7 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from asaa_ap.database import get_db
-from asaa_ap.models import ARCustomer, ARInvoice, ARReceipt, ARReceiptAllocation, Supplier
+from asaa_ap.models import ARCreditNote, ARCustomer, ARInvoice, ARReceipt, ARReceiptAllocation, Supplier
 from asaa_ap.procurement_models import PurchaseRequest
 from asaa_ap.security import Principal, get_principal
 from asaa_governance.authority import AuthorityDelegation, GovernanceDecision
@@ -70,15 +70,19 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         billed = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARInvoice.total)).where(ARInvoice.organization_id == org, issued).group_by(ARInvoice.currency)).all())
         paid = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARReceiptAllocation.amount)).join(ARInvoice, ARInvoice.id == ARReceiptAllocation.invoice_id)
                                             .where(ARInvoice.organization_id == org, issued).group_by(ARInvoice.currency)).all())
-        outstanding = {c: str(Decimal(billed[c]) - Decimal(paid.get(c, "0"))) for c in billed}
+        credited = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARCreditNote.amount)).join(ARInvoice, ARInvoice.id == ARCreditNote.invoice_id)
+                                                .where(ARInvoice.organization_id == org, issued, ARCreditNote.status == "Approved").group_by(ARInvoice.currency)).all())
+        outstanding = {c: str(Decimal(billed[c]) - Decimal(paid.get(c, "0")) - Decimal(credited.get(c, "0"))) for c in billed}
         overdue = db.scalar(select(func.count()).where(ARInvoice.organization_id == org, issued, ARInvoice.due_date < datetime.now(timezone.utc).date())) or 0
         section("receivables", "Receivables", ["ar_invoices", "ar_receipt_allocations"],
                 {"invoices_by_status": by_status(db, ARInvoice, org), "outstanding_by_currency": outstanding, "overdue_invoices": overdue})
     if "ar:invoice:read" in perms and "expense:claim:read:all" in perms:
         issued = ARInvoice.status.in_(["Issued", "Partially Paid"])
         paid_by_invoice = select(ARReceiptAllocation.invoice_id, func.sum(ARReceiptAllocation.amount).label("paid")).group_by(ARReceiptAllocation.invoice_id).subquery()
-        open_rows = db.execute(select(ARInvoice.currency, ARInvoice.due_date, ARInvoice.total - func.coalesce(paid_by_invoice.c.paid, 0))
-                               .outerjoin(paid_by_invoice, paid_by_invoice.c.invoice_id == ARInvoice.id).where(ARInvoice.organization_id == org, issued)).all()
+        credit_by_invoice = select(ARCreditNote.invoice_id, func.sum(ARCreditNote.amount).label("credited")).where(ARCreditNote.status == "Approved").group_by(ARCreditNote.invoice_id).subquery()
+        open_rows = db.execute(select(ARInvoice.currency, ARInvoice.due_date, ARInvoice.total - func.coalesce(paid_by_invoice.c.paid, 0) - func.coalesce(credit_by_invoice.c.credited, 0))
+                               .outerjoin(paid_by_invoice, paid_by_invoice.c.invoice_id == ARInvoice.id).outerjoin(credit_by_invoice, credit_by_invoice.c.invoice_id == ARInvoice.id)
+                               .where(ARInvoice.organization_id == org, issued)).all()
         inflow: dict = {}
         for currency, due_date, amount in open_rows:  # grouped in Python so the report is identical on SQLite and PostgreSQL
             month = due_date.strftime("%Y-%m")
@@ -102,13 +106,16 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
                 exceptions.append({"type": "receipt_not_fully_allocated" if gap > 0 else "receipt_over_allocated", "reference": rid, "currency": currency, "difference": str(gap)})
         paid_per_invoice = dict(db.execute(select(ARReceiptAllocation.invoice_id, func.sum(ARReceiptAllocation.amount)).join(ARInvoice, ARInvoice.id == ARReceiptAllocation.invoice_id)
                                            .where(ARInvoice.organization_id == org).group_by(ARReceiptAllocation.invoice_id)).all())
+        credit_per_invoice = dict(db.execute(select(ARCreditNote.invoice_id, func.sum(ARCreditNote.amount)).where(ARCreditNote.organization_id == org, ARCreditNote.status == "Approved")
+                                             .group_by(ARCreditNote.invoice_id)).all())
         for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.status.in_(["Issued", "Partially Paid", "Paid"]))).all():
             paid = Decimal(paid_per_invoice.get(inv.id, 0))
-            if inv.status == "Paid" and paid != Decimal(inv.total):
-                exceptions.append({"type": "paid_invoice_allocation_mismatch", "reference": inv.id, "currency": inv.currency, "difference": str(Decimal(inv.total) - paid)})
+            credit = Decimal(credit_per_invoice.get(inv.id, 0))
+            if inv.status == "Paid" and paid + credit != Decimal(inv.total):
+                exceptions.append({"type": "paid_invoice_allocation_mismatch", "reference": inv.id, "currency": inv.currency, "difference": str(Decimal(inv.total) - paid - credit)})
             if inv.status == "Issued" and paid != 0:
                 exceptions.append({"type": "issued_invoice_has_allocations", "reference": inv.id, "currency": inv.currency, "difference": str(paid)})
-            if paid > Decimal(inv.total):
+            if paid + credit > Decimal(inv.total):
                 exceptions.append({"type": "invoice_over_allocated", "reference": inv.id, "currency": inv.currency, "difference": str(paid - Decimal(inv.total))})
         section("reconciliation", "Receivables reconciliation", ["ar_receipts", "ar_receipt_allocations", "ar_invoices"],
                 {"unallocated_receipts_by_currency": {c: str(v.quantize(Decimal("0.01"))) for c, v in unallocated.items()}, "exception_count": len(exceptions), "exceptions": exceptions[:100],
