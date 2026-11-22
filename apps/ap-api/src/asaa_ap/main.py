@@ -31,6 +31,7 @@ from asaa_notifications.api import router as notifications_router
 from asaa_registers.api import router as registers_router
 from asaa_reports.api import router as reports_router
 from asaa_reports.lineage import router as report_lineage_router
+from asaa_reports.analytics import router as report_analytics_router
 from asaa_ap.operations import router as operations_router
 from asaa_integration.manifest import router as manifest_router
 from asaa_integration.events import router as integration_events_router
@@ -79,6 +80,7 @@ app.include_router(notifications_router)
 app.include_router(registers_router)
 app.include_router(reports_router)
 app.include_router(report_lineage_router)
+app.include_router(report_analytics_router)
 app.include_router(operations_router)
 app.include_router(leave_policy_router)
 app.include_router(manifest_router)
