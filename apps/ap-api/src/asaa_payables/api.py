@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session, selectinload
 from asaa_ap.config import get_settings
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent, Supplier
+from asaa_ap.org_time import org_today
 from asaa_ap.procurement_models import PurchaseRequest
 from asaa_ap.security import Principal, require_permission
 from asaa_integration.emitter import emit_for_audit
@@ -282,6 +283,9 @@ def match_invoice(invoice_id: str, db: Db, principal: Annotated[Principal, Depen
     row = fetch(db, SupplierInvoice, invoice_id, principal.organization_id, "Supplier invoice")
     if row.status not in {"Captured", "Exception", "Matched"}:
         raise HTTPException(status_code=409, detail="Invoice is no longer eligible for matching")
+    if get_settings().ap_match_tolerance_amount is None:
+        raise HTTPException(status_code=409, detail={"code": "policy_not_configured", "policy": "ap_match_tolerance_amount",
+                                                     "message": "The owner has not set the invoice matching tolerance (ASAA_AP_AP_MATCH_TOLERANCE_AMOUNT); matching is refused."})
     result = evaluate_match(db, row)
     row.match_result, row.status = result, result["outcome"]
     audit(db, principal, "supplier_invoice.matched", "supplier_invoice", row.id, {"outcome": result["outcome"], "exceptions": result["exceptions"]}, x_correlation_id)
@@ -398,7 +402,7 @@ def record_payment(batch_id: str, payload: BatchPaid, db: Db, principal: Annotat
 @router.get("/aging")
 def payables_aging(db: Db, principal: Annotated[Principal, Depends(require_permission("ap:invoice:read"))], as_of: date | None = None):
     """Unpaid approved-or-in-flight supplier invoices bucketed by days past due, per currency (never converted across currencies)."""
-    as_of = as_of or date.today()
+    as_of = as_of or org_today(db, principal.organization_id)
     rows = db.scalars(select(SupplierInvoice).where(SupplierInvoice.organization_id == principal.organization_id,
                                                      SupplierInvoice.status.in_(["Approved", "In Payment Batch"]))).all()
     out: dict[str, dict] = {}

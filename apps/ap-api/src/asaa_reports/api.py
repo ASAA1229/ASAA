@@ -15,6 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from asaa_ap.database import get_db
+from asaa_ap.org_time import org_today_or_none
 from asaa_ap.models import ARCreditNote, ARCustomer, ARInvoice, ARReceipt, ARReceiptAllocation, Supplier
 from asaa_ap.procurement_models import PurchaseRequest
 from asaa_ap.security import Principal, get_principal
@@ -73,7 +74,8 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         credited = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARCreditNote.amount)).join(ARInvoice, ARInvoice.id == ARCreditNote.invoice_id)
                                                 .where(ARInvoice.organization_id == org, issued, ARCreditNote.status == "Approved").group_by(ARInvoice.currency)).all())
         outstanding = {c: str(Decimal(billed[c]) - Decimal(paid.get(c, "0")) - Decimal(credited.get(c, "0"))) for c in billed}
-        overdue = db.scalar(select(func.count()).where(ARInvoice.organization_id == org, issued, ARInvoice.due_date < datetime.now(timezone.utc).date())) or 0
+        today = org_today_or_none(db, org)  # None = organization time zone not configured: overdue is not judged
+        overdue = (db.scalar(select(func.count()).where(ARInvoice.organization_id == org, issued, ARInvoice.due_date < today)) or 0) if today is not None else None
         section("receivables", "Receivables", ["ar_invoices", "ar_receipt_allocations"],
                 {"invoices_by_status": by_status(db, ARInvoice, org), "outstanding_by_currency": outstanding, "overdue_invoices": overdue})
     if "ar:invoice:read" in perms and "expense:claim:read:all" in perms:

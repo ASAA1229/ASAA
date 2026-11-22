@@ -1,7 +1,6 @@
 """Attendance, shifts, rosters and holidays.
 
-Self-service clock-in/out resolves the caller's employee record through the authoritative identity link. Work dates are UTC dates until
-the owner sets an organization time zone. Overtime is computed only when the attendance policy has been approved by someone other than
+Self-service clock-in/out resolves the caller's employee record through the authoritative identity link. Work dates are dates in the organization time zone (owner policy value on the organization profile; clock-in is refused until it is set). Overtime is computed only when the attendance policy has been approved by someone other than
 its maker (BLOCKED - OWNER: the overtime threshold); no premium pay or pay rule is applied here. Corrections and overtime need an
 independent reviewer.
 """
@@ -16,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
+from asaa_ap.org_time import org_today, org_today_or_none
 from asaa_ap.security import Principal, require_permission
 from asaa_integration.emitter import emit_for_audit
 from asaa_attendance.models import AttendanceCorrection, AttendancePolicy, AttendanceRecord, Holiday, RosterAssignment, Shift
@@ -322,7 +322,8 @@ def clock_in(db: Db, principal: Annotated[Principal, Depends(require_permission(
                                                    AttendanceRecord.clock_out.is_(None)).limit(1)):
         raise HTTPException(status_code=409, detail={"code": "already_clocked_in"})
     stamp = now()
-    row = AttendanceRecord(organization_id=principal.organization_id, employee_id=employee_id, work_date=stamp.date(), clock_in=stamp, source="self")
+    work_date = org_today(db, principal.organization_id, stamp)
+    row = AttendanceRecord(organization_id=principal.organization_id, employee_id=employee_id, work_date=work_date, clock_in=stamp, source="self")
     db.add(row)
     db.flush()
     audit(db, principal, "attendance.clock_in", "att_record", row.id, {"work_date": row.work_date.isoformat()}, x_correlation_id)
@@ -454,6 +455,7 @@ def summary(db: Db, principal: Annotated[Principal, Depends(require_permission("
         return out.setdefault(eid, {"employee_id": eid, "worked_minutes": 0, "rostered_days": 0, "days_without_attendance": 0, "overtime_pending_minutes": 0, "overtime_approved_minutes": 0, "open_records": 0})
 
     present = {(r.employee_id, r.work_date) for r in records}
+    today = org_today_or_none(db, org)  # None = organization time zone not configured: missing days are not judged
     for r in records:
         b = bucket(r.employee_id)
         b["worked_minutes"] += r.worked_minutes or 0
@@ -466,8 +468,8 @@ def summary(db: Db, principal: Annotated[Principal, Depends(require_permission("
         b = bucket(a.employee_id)
         b["rostered_days"] += 1
         on_leave = any(l.employee_id == a.employee_id and l.start_date <= a.work_date <= l.end_date for l in leaves)
-        if (a.employee_id, a.work_date) not in present and a.work_date not in holidays and not on_leave and a.work_date < now().date():
+        if (a.employee_id, a.work_date) not in present and a.work_date not in holidays and not on_leave and today is not None and a.work_date < today:
             b["days_without_attendance"] += 1
     return {"date_from": date_from.isoformat(), "date_to": date_to.isoformat(), "generated_at": now().isoformat(),
             "sources": ["att_records", "att_roster_assignments", "att_holidays", "hr_leave_requests"], "overtime_policy": dump_policy(db.scalar(select(AttendancePolicy).where(AttendancePolicy.organization_id == org)))["status"],
-            "employees": list(out.values())}
+            "organization_timezone_configured": today is not None, "employees": list(out.values())}
