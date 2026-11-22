@@ -97,6 +97,7 @@ class ARInvoiceRead(BaseModel):
     tax_total: Decimal
     total: Decimal
     amount_paid: Decimal
+    amount_credited: Decimal = Decimal("0.00")
     outstanding: Decimal
     notes: str | None
     version: int
