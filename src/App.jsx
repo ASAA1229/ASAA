@@ -7,6 +7,7 @@ import PeopleWorkspace from "./PeopleWorkspace.jsx";
 import PayrollWorkspace from "./PayrollWorkspace.jsx";
 import { MODULE_GROUPS, REGISTER_WORKSPACES, ROUTED_WORKSPACES } from "./workspaces/registry.js";
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
+import { AttendancePanel, DeliveryPanel, PayablesPanel, ReceivablesControlsPanel } from "./OperationsPanels.jsx";
 import { AuditTrailWorkspace, BackupRecoveryWorkspace, EcosystemStatusPanel, GovernanceWorkspace, IntegrationEventsPanel, LeavePolicyPanel, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
 import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
 
@@ -182,6 +183,12 @@ function App() {
           {section === "Overview" && (token ? <Overview data={data} stats={stats} loading={loading} setSection={setSection} setModal={setModal}/> : <PreviewOverview setSection={setSection}/>)}
           {section === "AR · Receivables" && (token ? <ReceivablesWorkspace customers={data.customers} invoices={data.invoices} receipts={data.receipts} api={api} claims={claims} onChanged={refresh} onAddCustomer={() => setModal("customer")}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "AP · Payables" && (token ? <><SupplierWorkspace suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/><ProcurementWorkspace requests={data.purchaseRequests} suppliers={data.suppliers} api={api} claims={claims} onChanged={refresh}/></> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
+          {section === "AP · Payables" && token && <PayablesPanel api={api} claims={claims} connected={!!token}/>}
+          {section === "AR · Receivables" && token && <ReceivablesControlsPanel api={api} claims={claims} connected={!!token}/>}
+          {section === "Attendance & shifts" && token && <AttendancePanel api={api} claims={claims} connected={!!token}/>}
+          {section === "Client delivery" && token && <DeliveryPanel view="engagements" api={api} claims={claims} connected={!!token}/>}
+          {section === "Service catalogue" && token && <DeliveryPanel view="services" api={api} claims={claims} connected={!!token}/>}
+          {section === "Work orders & scheduling" && token && <DeliveryPanel view="workorders" api={api} claims={claims} connected={!!token}/>}
           {section === "Procurement" && (token ? <ProcurementWorkspace requests={data.purchaseRequests} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Timesheets" && (token ? <WorkforceFinanceWorkspace kind="timesheet" records={data.timesheets} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name={section} connected={false} setSection={setSection}/>)}
           {section === "Expenses" && (token ? <WorkforceFinanceWorkspace kind="expense" records={data.expenses} api={api} claims={claims} onChanged={refresh}/> : <ModuleWorkspace name="Expenses" connected={false} setSection={setSection}/>)}

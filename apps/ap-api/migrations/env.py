@@ -16,6 +16,9 @@ from asaa_notifications import models as notification_models  # noqa: F401
 from asaa_registers import models as register_models  # noqa: F401
 from asaa_people import leave_policy as leave_policy_models  # noqa: F401
 from asaa_integration import models as integration_models  # noqa: F401
+from asaa_payables import models as payables_models  # noqa: F401
+from asaa_attendance import models as attendance_models  # noqa: F401
+from asaa_delivery import models as delivery_models  # noqa: F401
 
 config = context.config
 if config.config_file_name:
