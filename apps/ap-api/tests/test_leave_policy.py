@@ -3,7 +3,7 @@ from datetime import date, timedelta
 
 from asaa_ap.security import Principal, get_principal
 
-PERMS = {"hr:employee:write", "hr:employee:read", "hr:leave:request", "hr:leave:review", "hr:leave:read", "hr:leave:policy:read", "hr:leave:policy:write", "hr:leave:policy:approve"}
+PERMS = {"hr:employee:write", "hr:employee:read", "hr:leave:request", "hr:leave:review", "hr:leave:read", "hr:leave:policy:read", "hr:leave:policy:write", "hr:leave:policy:approve", "hr:leave:cancel"}
 
 
 def as_p(client, subject="hr-maker", perms=PERMS, org="org-a"):
@@ -86,3 +86,77 @@ def test_leave_policy_permissions_and_organization_isolation(client):
     as_p(client, "other", PERMS, org="org-b")
     assert client.get("/api/v1/hr/leave-policies").json() == []
     assert client.get(f"/api/v1/hr/employees/{emp['id']}/leave-balance").status_code == 404
+
+
+def approve_policy(client, category="Annual"):
+    as_p(client, "owner-delegate")
+    assert client.post(f"/api/v1/hr/leave-policies/{category}/approve").status_code == 200
+    as_p(client)
+
+
+def test_working_day_counting_skips_owner_weekends_and_org_holidays_only_when_approved(client):
+    from asaa_attendance.models import Holiday
+    from tests.integration_support import db_of
+    as_p(client)
+    emp = employee(client)
+    assert client.put("/api/v1/hr/leave-policies/Annual", json={"annual_entitlement_days": "20", "count_mode": "working"}).status_code == 422  # weekend_days is an owner value
+    assert client.put("/api/v1/hr/leave-policies/Annual", json={"annual_entitlement_days": "20", "weekend_days": [5]}).status_code == 422
+    assert client.put("/api/v1/hr/leave-policies/Annual", json={"annual_entitlement_days": "20", "count_mode": "working", "weekend_days": [5, 5]}).status_code == 422
+    start = date(2030, 3, 4)  # a Monday; 4-10 March is Mon-Sun
+    db = db_of(client)
+    db.add_all([Holiday(organization_id="org-a", holiday_date=date(2030, 3, 6), name="Test day", created_by="x"),
+                Holiday(organization_id="org-a", holiday_date=date(2030, 3, 7), name="Optional day", optional=True, created_by="x"),
+                Holiday(organization_id="org-b", holiday_date=date(2030, 3, 8), name="Other org", created_by="x")])
+    db.commit()
+    client.put("/api/v1/hr/leave-policies/Annual", json={"annual_entitlement_days": "20", "count_mode": "working", "weekend_days": [5, 6], "exclude_holidays": True})
+    lr = request_leave(client, emp, start, 7).json()
+    unapproved = next(b for b in client.get(f"/api/v1/hr/employees/{emp['id']}/leave-balance?year=2030").json()["balances"] if b["leave_category"] == "Annual")
+    assert unapproved["pending_days"] == 7 and unapproved["count_mode"] == "calendar"  # nothing applies before owner approval
+    approve_policy(client)
+    assert lr["id"]
+    approved = next(b for b in client.get(f"/api/v1/hr/employees/{emp['id']}/leave-balance?year=2030").json()["balances"] if b["leave_category"] == "Annual")
+    assert approved["pending_days"] == 4 and approved["count_mode"] == "working"  # Mon, Tue, Thu, Fri; Wed is an org holiday, optional/other-org days ignored
+    weekend_only = client.post(f"/api/v1/hr/employees/{emp['id']}/leave-requests", json={"leave_category": "Annual", "start_date": "2030-04-06", "end_date": "2030-04-07"})
+    assert weekend_only.status_code == 422 and weekend_only.json()["detail"]["code"] == "leave_has_no_working_days"
+
+
+def test_monthly_accrual_applies_only_when_approved_and_checks_cross_year_requests(client):
+    as_p(client)
+    emp = employee(client)
+    client.put("/api/v1/hr/leave-policies/Annual", json={"annual_entitlement_days": "12", "carry_over_days": "1", "enforce_balance": True, "accrual_mode": "monthly"})
+    body = client.get(f"/api/v1/hr/employees/{emp['id']}/leave-balance?year=2031").json()["balances"][0]
+    assert body["entitlement_days"] == "13.00" and body["accrual_mode"] is None  # pending policy: full entitlement, informational
+    approve_policy(client)
+    assert request_leave(client, emp, date(2031, 2, 3), 4).status_code == 409  # by the end of the request, 2 months accrued = 2 days + 1 carry-over = 3
+    assert request_leave(client, emp, date(2031, 2, 3), 3).status_code == 201
+    assert request_leave(client, emp, date(2031, 12, 30), 3).status_code == 201  # 2 days in 2031 fit; the 1 day in 2032 fits (1 month accrued + 1 carry-over)
+    over = request_leave(client, emp, date(2032, 6, 1), 20)
+    assert over.status_code == 409 and over.json()["detail"]["year"] == 2032
+
+
+def test_cancellation_rules_audit_and_effect_on_balance_and_overlap(client):
+    as_p(client)
+    emp = employee(client)
+    future = date.today() + timedelta(days=60)
+    lr = request_leave(client, emp, future, 2).json()
+    as_p(client, "stranger", {"hr:leave:cancel"})
+    assert client.post(f"/api/v1/hr/leave-requests/{lr['id']}/cancel", json={}).status_code == 403
+    as_p(client, "org-b-user", PERMS | {"hr:leave:cancel"}, org="org-b")
+    assert client.post(f"/api/v1/hr/leave-requests/{lr['id']}/cancel", json={}).status_code == 404
+    as_p(client)
+    done = client.post(f"/api/v1/hr/leave-requests/{lr['id']}/cancel", json={"reason": "plans changed"})
+    assert done.status_code == 200 and done.json()["status"] == "Cancelled"
+    assert client.post(f"/api/v1/hr/leave-requests/{lr['id']}/cancel", json={}).status_code == 409
+    assert request_leave(client, emp, future, 2).status_code == 201  # cancelled leave no longer overlaps
+    started = request_leave(client, emp, date.today() + timedelta(days=1), 1).json()
+    approve_leave(client, started["id"])
+    from tests.integration_support import db_of
+    from asaa_people.models import LeaveRequest
+    db = db_of(client)
+    row = db.get(LeaveRequest, started["id"]); row.start_date = date.today(); db.commit()
+    assert client.post(f"/api/v1/hr/leave-requests/{started['id']}/cancel", json={}).json()["detail"]["code"] == "leave_already_started"
+    as_p(client)  # a reviewer may cancel someone else's future approved leave
+    later = request_leave(client, emp, date.today() + timedelta(days=90), 1).json()
+    approve_leave(client, later["id"])
+    as_p(client, "manager")
+    assert client.post(f"/api/v1/hr/leave-requests/{later['id']}/cancel", json={}).json()["status"] == "Cancelled"
