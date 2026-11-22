@@ -250,3 +250,37 @@ export function DeliveryPanel({ api, claims, connected, view = "engagements" }) 
           ["Cancel", "delivery:workorder:write", r => !["Verified", "Cancelled"].includes(r.status), needText(r => post(`/api/v1/delivery/work-orders/${r.id}/cancel`, { evidence: text.trim() }))]]} /></>}
   </div>;
 }
+
+/* ------------------------------------------------------------------ Expense policy rules (owner values, maker-checker) */
+export function ExpensePolicyPanel({ api, claims, connected }) {
+  const permissions = permissionsOf(claims);
+  const { error, notice, busy, run } = useActions();
+  const [form, setForm] = useState({ category_code: "", currency: "INR", max_amount: "", receipt_required_above: "", on_violation: "flag" });
+  const allowed = connected && permissions.includes("expense:policy:read");
+  const [data, setData] = useState({ rules: [], note: "" });
+  const [loadError, setLoadError] = useState("");
+  const load = useCallback(async () => {
+    if (!allowed) return;
+    try { setData(await api("/api/v1/workforce-finance/expense-policies")); setLoadError(""); } catch (e) { setLoadError(e.message || "Could not load policy rules."); }
+  }, [api, allowed]);
+  useEffect(() => { load(); }, [load]);
+  const save = event => {
+    event.preventDefault();
+    const body = { currency: form.currency.toUpperCase(), on_violation: form.on_violation, max_amount: form.max_amount || null, receipt_required_above: form.receipt_required_above || null };
+    run(() => api(`/api/v1/workforce-finance/expense-policies/${encodeURIComponent(form.category_code)}`, { method: "PUT", body: JSON.stringify(body) }), "Rule saved as Pending Approval. It is not enforced until someone else approves it.", load);
+  };
+  if (!allowed) return null;
+  return <div className="admin-workspace"><Messages error={error || loadError} notice={notice} />
+    {permissions.includes("expense:policy:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Expense policy rule</h2><p>Limits are owner policy values. Nothing is enforced until a rule is approved by someone other than its maker.</p></div></div>
+      <form className="form-grid" onSubmit={save}>
+        <Field label="Category code"><input required value={form.category_code} onChange={e => setForm(f => ({ ...f, category_code: e.target.value }))} /></Field>
+        <Field label="Currency"><input required maxLength={3} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} /></Field>
+        <Field label="Maximum amount (optional)"><input inputMode="decimal" value={form.max_amount} onChange={e => setForm(f => ({ ...f, max_amount: e.target.value }))} /></Field>
+        <Field label="Receipt required above (optional)"><input inputMode="decimal" value={form.receipt_required_above} onChange={e => setForm(f => ({ ...f, receipt_required_above: e.target.value }))} /></Field>
+        <Field label="On violation"><select value={form.on_violation} onChange={e => setForm(f => ({ ...f, on_violation: e.target.value }))}><option value="flag">Flag for the reviewer</option><option value="block">Block submission</option></select></Field>
+        <button className="btn btn-primary" disabled={busy}>Save rule</button></form></section>}
+    <RecordTable title="Expense policy rules" description={data.note || "Configured rules."} list={{ rows: data.rules.map(r => ({ ...r, id: r.category_code })), loading: false, error: "", reload: load }} permissions={permissions} busy={busy}
+      columns={[["Category", r => r.category_code], ["Currency", r => r.currency], ["Maximum", r => r.max_amount], ["Receipt above", r => r.receipt_required_above], ["On violation", r => r.on_violation], ["Status", r => r.status]]}
+      actions={[["Approve", "expense:policy:approve", r => r.status === "Pending Approval", r => run(() => api(`/api/v1/workforce-finance/expense-policies/${encodeURIComponent(r.category_code)}/approve`, { method: "POST" }), "Rule approved and now enforced.", load)]]} />
+  </div>;
+}
