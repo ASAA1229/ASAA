@@ -99,6 +99,11 @@ class PayrollRunCreate(StrictModel):
     currency: str = Field(pattern="^[A-Z]{3}$")
 
 
+class PayrollSourceReference(StrictModel):
+    type: str = Field(pattern="^(timesheet|leave|attendance)$")
+    id: str = Field(min_length=1, max_length=64)
+
+
 class PayrollEntryCreate(StrictModel):
     employee_id: str
     currency: str = Field(pattern="^[A-Z]{3}$")
@@ -106,6 +111,7 @@ class PayrollEntryCreate(StrictModel):
     deduction_total: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
     net_amount: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
     breakdown: dict = Field(default_factory=dict)
+    source_references: list[PayrollSourceReference] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
     def amounts_reconcile(self):
@@ -113,6 +119,8 @@ class PayrollEntryCreate(StrictModel):
             raise ValueError("deduction_total cannot exceed gross_amount")
         if self.gross_amount - self.deduction_total != self.net_amount:
             raise ValueError("net_amount must equal gross_amount minus deduction_total")
+        if len({(r.type, r.id) for r in self.source_references}) != len(self.source_references):
+            raise ValueError("source_references must not repeat a record")
         return self
 
 

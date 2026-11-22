@@ -451,6 +451,24 @@ def payroll_run_summary(run_id: str, db: Db,
     }
 
 
+@router.post("/api/v1/payroll/runs/{run_id}/calculate")
+def calculate_payroll_run(run_id: str, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
+    x_correlation_id: Annotated[str | None, Header()] = None):
+    """Statutory calculation entry point. No jurisdiction rules are approved, so it always refuses (policy_not_configured);
+    amounts are entered and reconciled manually. The refusal is audited. No rate or rule is invented here."""
+    run = db.scalar(select(PayrollRun).where(
+        PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id))
+    if not run:
+        raise HTTPException(status_code=404, detail="Payroll run not found")
+    audit(db, principal, "payroll_run.calculation_refused", "payroll_run", run.id,
+          {"policy": "payroll_calculation_rules"}, x_correlation_id)
+    db.commit()
+    raise HTTPException(status_code=409, detail={
+        "code": "policy_not_configured", "policy": "payroll_calculation_rules",
+        "message": "No owner-approved, independently validated payroll calculation rules exist; calculation is refused. Enter and reconcile amounts manually."})
+
+
 @router.post("/api/v1/payroll/runs/{run_id}/submit")
 def submit_payroll_run(run_id: str, payload: PayrollRunReview, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:run:submit"))],

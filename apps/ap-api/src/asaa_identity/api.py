@@ -125,6 +125,9 @@ def retry(job_id: str, db: Db, principal: Annotated[Principal, Depends(require_p
     job = service.retry_dead_letter(db, principal.organization_id, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Dead-letter job not found")
+    db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action="identity_sync.dead_letter_retried",
+                      entity_type="identity_sync_job", entity_id=job.id, details={"operation": job.operation}))
+    db.commit()
     return dump(job)
 
 
