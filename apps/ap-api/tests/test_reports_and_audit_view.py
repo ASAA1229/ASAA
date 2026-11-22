@@ -34,7 +34,13 @@ def test_summary_aggregates_per_currency_with_lineage_and_freshness(client):
     assert body["generated_at"] and "never converted" in body["currency_note"]
     ar = body["sections"]["receivables"]
     assert ar["data"]["outstanding_by_currency"] == {"INR": "100.00", "USD": "50.00"}  # per currency, never mixed
-    assert ar["data"]["invoices_by_status"] == {"Issued": 2} and ar["data"]["overdue_invoices"] == 2
+    # Changed assertion (D1.1): "overdue" needs the owner-set company time zone; unset -> not judged (None) instead of assuming UTC.
+    assert ar["data"]["invoices_by_status"] == {"Issued": 2} and ar["data"]["overdue_invoices"] is None
+    as_p(client, "admin", {"organization:profile:write"})
+    assert client.put("/api/v1/administration/profile", json={"display_name": "Org A", "timezone": "UTC"}).status_code == 200
+    as_p(client, "maker", ALL)
+    ar = client.get("/api/v1/reports/summary").json()["sections"]["receivables"]
+    assert ar["data"]["overdue_invoices"] == 2
     assert ar["sources"] == ["ar_invoices", "ar_receipt_allocations"]
     assert body["sections"]["suppliers"]["data"]["suppliers_by_status"] == {"Draft": 1}
     assert body["sections"]["workforce"]["data"]["employees_by_status"]

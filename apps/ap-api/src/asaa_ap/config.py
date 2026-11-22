@@ -66,7 +66,11 @@ class Settings(BaseSettings):
     keycloak_create_groups: bool = Field(default=False, validation_alias="ASAA_IDENTITY_KEYCLOAK_CREATE_GROUPS")
     # Directory written by scripts/backup_restore.py scheduled (read-only status view). Unset = backup status not configured.
     backup_dir: str | None = None
-    backup_max_age_hours: float = 26
+    # Owner policy values (D1.17). Unset = "policy not configured": backup freshness / restore time are reported but never judged against an assumed target.
+    # backup_max_age_hours is the older name of the RPO check and is used only when backup_rpo_hours is unset.
+    backup_max_age_hours: float | None = Field(default=None, gt=0, le=8760)
+    backup_rpo_hours: float | None = Field(default=None, gt=0, le=8760)
+    backup_rto_minutes: float | None = Field(default=None, gt=0, le=525600)
     # Notification delivery adapter name. "none" = not configured; "memory" is a mock for dev/test only.
     notification_provider: str = "none"
     # When set, GET /metrics requires "Authorization: Bearer <token>". In production /metrics is disabled unless set.
@@ -99,8 +103,9 @@ class Settings(BaseSettings):
     integration_event_retention_days: int = Field(default=180, ge=1, le=3650)
     # Event `time` must be within this many seconds of now (past or future).
     integration_clock_skew_seconds: int = Field(default=86400, ge=0, le=31536000)
-    # Supplier-invoice match tolerance (absolute amount, invoice currency). 0 = exact match only. Owner policy value pending (BLOCKED - OWNER).
-    ap_match_tolerance_amount: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("1000000"))
+    # Supplier-invoice match tolerance (absolute amount, invoice currency). Owner policy value (BLOCKED - OWNER). Unset = policy not configured:
+    # matching is refused rather than assuming a tolerance. Set 0 explicitly for exact-match-only.
+    ap_match_tolerance_amount: Decimal | None = Field(default=None, ge=0, le=Decimal("1000000"))
 
 
     @model_validator(mode="after")

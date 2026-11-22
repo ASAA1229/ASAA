@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from asaa_ap.ar_service import amount_credited, amount_paid, audit, get_customer, money, settled_status
 from asaa_ap.database import get_db
 from asaa_ap.models import ARCreditNote, ARInvoice, ARReceipt
+from asaa_ap.org_time import org_today
 from asaa_ap.security import Principal, require_permission
 
 router = APIRouter(prefix="/api/v1/ar", tags=["Accounts Receivable"])
@@ -132,7 +133,7 @@ def open_balances(db: Session, org: str, customer_id: str | None = None) -> list
 
 @router.get("/aging")
 def receivables_aging(db: Db, principal: Annotated[Principal, Depends(require_permission("ar:invoice:read"))], as_of: date | None = None, customer_id: str | None = None):
-    as_of = as_of or date.today()
+    as_of = as_of or org_today(db, principal.organization_id)
     out: dict[str, dict] = {}
     for invoice, balance in open_balances(db, principal.organization_id, customer_id):
         days = (as_of - invoice.due_date).days

@@ -160,8 +160,10 @@ export function ReportsWorkspace({ api, connected, name = "Reports & dashboards"
 export function BackupRecoveryWorkspace({ api, claims, connected }) {
   const allowed = permissionsOf(claims).includes("ops:backup:read");
   const { data, loading, error, reload } = useLoader(() => (connected && allowed ? api("/api/v1/operations/backup-status") : Promise.resolve(null)), [connected, allowed]);
+  const canDeployment = permissionsOf(claims).includes("ops:status:read");
+  const deployment = useLoader(() => (connected && canDeployment ? api("/api/v1/operations/deployment") : Promise.resolve(null)), [connected, canDeployment]);
   return <><div className="admin-workspace"><section className="panel list-panel">
-    <div className="list-heading"><div><h2>Backup &amp; recovery</h2><p>Freshness of the scheduled encrypted backup and the recovery plans. RPO and RTO values are pending owner approval; a backup counts only once a restore has been demonstrated.</p></div>
+    <div className="list-heading"><div><h2>Backup &amp; recovery</h2><p>Freshness of the scheduled encrypted backup, the latest restore test and the recovery plans. RPO and RTO are owner-configured values; when unset they show as not configured and nothing is judged. A backup counts only once a restore has been demonstrated.</p></div>
       <button className="btn btn-quiet" onClick={reload} disabled={loading || !allowed}><RefreshCw size={14} />Refresh</button></div>
     <Messages error={error} />
     {!connected ? <div className="admin-empty"><ShieldCheck /><b>Connect an authorized identity session</b><span>Backup status is not available in unauthenticated preview mode.</span></div>
@@ -173,7 +175,18 @@ export function BackupRecoveryWorkspace({ api, claims, connected }) {
           {data.reason && <div className="data-line"><span>Reason</span><b>{data.reason}</b></div>}
           <div className="data-line"><span>Last success</span><b>{stamp(data.last_success_at)}</b></div>
           <div className="data-line"><span>Age (hours)</span><b>{data.age_hours ?? "-"}{data.limit_hours ? ` of ${data.limit_hours} allowed` : ""}</b></div>
-          <div className="data-line"><span>Last artifact</span><b>{data.last_artifact || "-"}</b></div></section></div>}
+          <div className="data-line"><span>Last artifact</span><b>{data.last_artifact || "-"}</b></div></section>
+        <section className="panel info-panel"><div className="panel-heading"><div><h2>Recovery targets and restore test</h2><p>Targets are owner policy values</p></div></div>
+          <div className="data-line"><span>RPO (hours)</span><b>{data.rpo_hours ?? data.limit_hours ?? "Policy not configured"}</b></div>
+          <div className="data-line"><span>RTO (minutes)</span><b>{data.rto_minutes ?? "Policy not configured"}</b></div>
+          <div className="data-line"><span>Last restore test</span><b>{data.restore_test?.last_at ? `${stamp(data.restore_test.last_at)} - ${data.restore_test.ok ? "passed" : "failed"}` : "Never run"}</b></div>
+          <div className="data-line"><span>Observed restore time (s)</span><b>{data.restore_test?.observed_restore_seconds ?? "-"}</b></div>
+          <div className="data-line"><span>RTO met</span><b>{data.rto_met === null || data.rto_met === undefined ? "Not judged" : data.rto_met ? "Yes" : "No"}</b></div>
+          {data.restore_test?.error && <div className="data-line"><span>Restore test error</span><b>{data.restore_test.error}</b></div>}</section>
+        {deployment.data && <section className="panel info-panel"><div className="panel-heading"><div><h2>Deployment</h2><p>Version and schema state of this build</p></div></div>
+          <div className="data-line"><span>Version</span><b>{deployment.data.application?.version}</b></div>
+          <div className="data-line"><span>Schema up to date</span><b>{deployment.data.schema?.up_to_date === null ? "Unknown" : deployment.data.schema?.up_to_date ? "Yes" : "No"}</b></div>
+          {Object.entries(deployment.data.policies_configured || {}).map(([k, v]) => <div className="data-line" key={k}><span>{k.replaceAll("_", " ")}</span><b>{v ? "Configured" : "Policy not configured"}</b></div>)}</section>}</div>}
   </section></div>
   <RegisterWorkspace name="Recovery plans" types={["recovery_plan"]} api={api} claims={claims} connected={connected} /></>;
 }
