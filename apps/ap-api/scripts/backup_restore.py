@@ -16,7 +16,7 @@ Examples
 Encryption at rest (AES-256-GCM, authenticated chunks): --encrypt-key-file takes a file path or `env:VARIABLE` holding a
 base64 32-byte key (`python scripts/backup_restore.py keygen`). Scheduled operation:
   python scripts/backup_restore.py scheduled --database-url ... --out backups/ --encrypt-key-file env:ASAA_BACKUP_KEY
-  python scripts/backup_restore.py check-staleness --out backups/ --max-age-hours 26     # exit 2 = stale/failed (alert)
+  python scripts/backup_restore.py check-staleness --out backups/ --max-age-hours <owner RPO>     # exit 2 = stale/failed (alert)
 Key custody, off-site storage, retention and RPO/RTO values are owner decisions and are NOT
 configured here. Passwords are never accepted on the command line; use PGPASSWORD/.pgpass.
 """
@@ -290,12 +290,12 @@ def scheduled(url: str, out_dir: Path, key_source: str | None, keep: tuple[int, 
     return status
 
 
-def restore_test(out_dir: Path, key_source: str | None, scratch_url: str | None = None, artifact: Path | None = None) -> dict:
+def restore_test(out_dir: Path, key_source: str | None, scratch_url: str | None = None, artifact: Path | None = None, rto_minutes: float | None = None) -> dict:
     """Automated restore test: restore the newest (or a named) backup into a scratch database, prove it matches its manifest, record the outcome.
 
     SQLite restores into a temporary file that is deleted afterwards. PostgreSQL never creates or drops databases here: pass an explicit,
     empty scratch database URL (--scratch-database-url); it is restored with --force semantics, so it must never be a live database.
-    The measured restore time is an observation, not an RTO. RPO/RTO values and the test cadence remain owner decisions.
+    The measured restore time is an observation; it is compared with an RTO only when the owner has configured one (rto_minutes). The test cadence remains an owner decision.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     status_path = out_dir / STATUS_FILE
@@ -327,7 +327,9 @@ def restore_test(out_dir: Path, key_source: str | None, scratch_url: str | None 
                     raise BackupError(f"SQLite integrity_check failed: {integrity[:200]}")
         status = {**previous, "last_restore_test_at": now, "last_restore_test_ok": True, "last_restore_test_artifact": artifact.name,
                   "last_restore_test_seconds": result["restore_seconds"], "last_restore_test_rows": result["rows"], "last_restore_test_integrity": integrity,
-                  "last_restore_test_error": None}
+                  "last_restore_test_error": None,
+                  # None = RTO policy not configured (owner decision); the measured time is then only an observation.
+                  "last_restore_test_rto_met": None if rto_minutes is None else result["restore_seconds"] <= rto_minutes * 60}
     except (BackupError, subprocess.CalledProcessError, OSError) as exc:
         status = {**previous, "last_restore_test_at": now, "last_restore_test_ok": False, "last_restore_test_error": str(exc)[:300]}
         status_path.write_text(json.dumps(status, indent=2))
@@ -336,12 +338,30 @@ def restore_test(out_dir: Path, key_source: str | None, scratch_url: str | None 
     return {k: status[k] for k in status if k.startswith("last_restore_test")}
 
 
-def check_staleness(out_dir: Path, max_age_hours: float, now: datetime | None = None) -> dict:
+def env_number(*names: str) -> float | None:
+    """Owner policy value from the environment (first name set wins). None = not configured."""
+    for name in names:
+        raw = os.environ.get(name)
+        if raw not in (None, ""):
+            try:
+                value = float(raw)
+            except ValueError:
+                raise BackupError(f"{name} must be a number") from None
+            if value <= 0:
+                raise BackupError(f"{name} must be positive")
+            return value
+    return None
+
+
+def check_staleness(out_dir: Path, max_age_hours: float | None, now: datetime | None = None) -> dict:
     """Monitoring check: not ok when no verified backup exists, the last run failed after the last success,
     the newest backup is older than max_age_hours, or the recorded artifact is missing."""
     now = now or datetime.now(timezone.utc)
     status_path = out_dir / STATUS_FILE
     result = {"ok": False, "reason": None, "age_hours": None}
+    if max_age_hours is None:
+        result["reason"] = "policy not configured: set the backup RPO (--max-age-hours or ASAA_AP_BACKUP_RPO_HOURS); freshness is not judged"
+        return result
     if not status_path.exists():
         result["reason"] = "no backup status recorded"
         return result
@@ -524,7 +544,7 @@ def main(argv=None) -> int:
     sc.add_argument("--keep-monthly", type=int, default=6)
     st = sub.add_parser("check-staleness")
     st.add_argument("--out", type=Path, default=Path("backups"))
-    st.add_argument("--max-age-hours", type=float, default=26)
+    st.add_argument("--max-age-hours", type=float, default=None, help="owner RPO; defaults to ASAA_AP_BACKUP_RPO_HOURS, then ASAA_AP_BACKUP_MAX_AGE_HOURS; unset = refuse to judge")
     rt = sub.add_parser("restore-test")
     rt.add_argument("--out", type=Path, default=Path("backups"))
     rt.add_argument("--backup", type=Path)
@@ -541,11 +561,11 @@ def main(argv=None) -> int:
             print(generate_key())
             return 0
         if args.command == "check-staleness":
-            result = check_staleness(args.out, args.max_age_hours)
+            result = check_staleness(args.out, args.max_age_hours if args.max_age_hours is not None else env_number("ASAA_AP_BACKUP_RPO_HOURS", "ASAA_AP_BACKUP_MAX_AGE_HOURS"))
             print(json.dumps(result))
             return 0 if result["ok"] else 2
         if args.command == "restore-test":
-            print(json.dumps(restore_test(args.out, args.encrypt_key_file, args.scratch_database_url, args.backup)))
+            print(json.dumps(restore_test(args.out, args.encrypt_key_file, args.scratch_database_url, args.backup, env_number("ASAA_AP_BACKUP_RTO_MINUTES"))))
             return 0
         if args.command == "rotate":
             print(json.dumps(rotate(args.out, args.keep_daily, args.keep_weekly, args.keep_monthly)))
