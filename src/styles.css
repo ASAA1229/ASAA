@@ -121,3 +121,4 @@
 @media (max-width:900px){.dashboard-grid,.settings-grid{grid-template-columns:minmax(0,1fr)}}
 .table-wrap:focus-visible,.people-table-wrap:focus-visible,.payroll-table-wrap:focus-visible{outline:2px solid #f2ce92;outline-offset:-2px}
 .text-link{min-height:24px;padding:4px 0}
+.people-assign{display:inline-flex;gap:6px;align-items:center}.people-assign input{min-width:140px}

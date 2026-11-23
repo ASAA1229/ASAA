@@ -219,3 +219,7 @@ class PayrollEntryUpdate(StrictModel):
         if self.gross_amount - self.deduction_total != self.net_amount:
             raise ValueError("net_amount must equal gross_amount minus deduction_total")
         return self
+
+
+class LeaveRequestCancel(StrictModel):
+    reason: str | None = Field(default=None, max_length=2000)

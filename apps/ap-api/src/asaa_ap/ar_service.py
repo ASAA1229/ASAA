@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
-from asaa_ap.models import AuditEvent, ARCreditNote, ARCustomer, ARInvoice, ARInvoiceLine, ARReceipt, ARReceiptAllocation
+from asaa_ap.models import AuditEvent, ARCreditNote, ARCustomer, ARDebitNote, ARRefund, ARInvoice, ARInvoiceLine, ARReceipt, ARReceiptAllocation
 from asaa_ap.schemas_ar import ARCustomerCreate, ARInvoiceCreate, ARReceiptCreate
 from asaa_ap.security import Principal
 from asaa_integration.emitter import emit_for_audit
@@ -81,6 +81,26 @@ def amount_credited(db: Session, invoice_id: str) -> Decimal:
     return money(Decimal(value or 0))
 
 
+def amount_debited(db: Session, invoice_id: str) -> Decimal:
+    """Total of approved debit notes applied to the invoice."""
+    value = db.scalar(select(func.coalesce(func.sum(ARDebitNote.amount), 0)).where(
+        ARDebitNote.invoice_id == invoice_id, ARDebitNote.status == "Approved"))
+    return money(Decimal(value or 0))
+
+
+def net_credit(db: Session, invoice_id: str) -> Decimal:
+    """Approved credits less approved debits: subtracted (with receipts) from the invoice total to get the outstanding balance. Negative when debits exceed credits."""
+    return money(amount_credited(db, invoice_id) - amount_debited(db, invoice_id))
+
+
+def receipt_unapplied(db: Session, receipt: ARReceipt) -> Decimal:
+    """Receipt amount not allocated to invoices and not reserved by a live refund (Pending Approval, Approved or Refunded)."""
+    applied = db.scalar(select(func.coalesce(func.sum(ARReceiptAllocation.amount), 0)).where(ARReceiptAllocation.receipt_id == receipt.id))
+    refunds = db.scalar(select(func.coalesce(func.sum(ARRefund.amount), 0)).where(
+        ARRefund.receipt_id == receipt.id, ARRefund.status.in_(["Pending Approval", "Approved", "Refunded"])))
+    return money(receipt.amount - Decimal(applied or 0) - Decimal(refunds or 0))
+
+
 def settled_status(total: Decimal, paid: Decimal, credited: Decimal) -> str:
     """Invoice status after settlement: Paid (cash settled, possibly with credits), Credited (credits alone settled it) or Partially Paid."""
     balance = money(total - paid - credited)
@@ -92,13 +112,14 @@ def settled_status(total: Decimal, paid: Decimal, credited: Decimal) -> str:
 def invoice_view(db: Session, invoice: ARInvoice) -> dict:
     paid = amount_paid(db, invoice.id)
     credited = amount_credited(db, invoice.id)
+    debited = amount_debited(db, invoice.id)
     lines = db.scalars(select(ARInvoiceLine).where(ARInvoiceLine.invoice_id == invoice.id)).all()
     return {
         "id": invoice.id, "organization_id": invoice.organization_id, "customer_id": invoice.customer_id,
         "invoice_number": invoice.invoice_number, "currency": invoice.currency,
         "issue_date": invoice.issue_date, "due_date": invoice.due_date, "status": invoice.status,
         "subtotal": invoice.subtotal, "tax_total": invoice.tax_total, "total": invoice.total,
-        "amount_paid": paid, "amount_credited": credited, "outstanding": money(invoice.total - paid - credited), "notes": invoice.notes,
+        "amount_paid": paid, "amount_credited": credited, "amount_debited": debited, "outstanding": money(invoice.total - paid - credited + debited), "notes": invoice.notes,
         "version": invoice.version, "created_at": invoice.created_at, "created_by": invoice.created_by,
         "lines": lines,
     }
@@ -212,7 +233,7 @@ def create_receipt(db: Session, payload: ARReceiptCreate, principal: Principal, 
             if invoice.status not in {"Issued", "Partially Paid"}:
                 raise HTTPException(status_code=409, detail={"code": "invoice_not_receivable", "invoice_id": invoice.id})
             already_paid = amount_paid(db, invoice.id)
-            credited = amount_credited(db, invoice.id)
+            credited = net_credit(db, invoice.id)
             if money(allocation.amount) > money(invoice.total - already_paid - credited):
                 raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_outstanding", "invoice_id": invoice.id})
             db.add(ARReceiptAllocation(receipt_id=receipt.id, invoice_id=invoice.id, amount=money(allocation.amount)))
@@ -303,16 +324,13 @@ def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, am
         raise HTTPException(status_code=409, detail={"code": "currency_mismatch"})
     if invoice.status not in {"Issued", "Partially Paid"}:
         raise HTTPException(status_code=409, detail={"code": "invoice_not_receivable"})
-    applied = db.scalar(select(func.coalesce(func.sum(ARReceiptAllocation.amount), 0)).where(
-        ARReceiptAllocation.receipt_id == receipt.id
-    ))
-    outstanding_receipt = money(receipt.amount - Decimal(applied or 0))
+    outstanding_receipt = receipt_unapplied(db, receipt)
     amount = money(amount)
     if amount <= 0 or amount > outstanding_receipt:
         raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_unapplied_receipt",
                                                       "unapplied_amount": str(outstanding_receipt)})
     already_paid = amount_paid(db, invoice.id)
-    credited = amount_credited(db, invoice.id)
+    credited = net_credit(db, invoice.id)
     if amount > money(invoice.total - already_paid - credited):
         raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_outstanding",
                                                       "outstanding_amount": str(money(invoice.total - already_paid - credited))})

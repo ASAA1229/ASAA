@@ -176,6 +176,14 @@ def change_employee_lifecycle(
         },
         correlation_id=x_correlation_id,
     ))
+    from asaa_identity.service import enqueue_for_employee_change
+    job = enqueue_for_employee_change(db, principal.organization_id, employee.id, previous_status, payload.status, "lifecycle_changed", principal.subject)
+    if job:
+        db.add(AuditEvent(
+            organization_id=principal.organization_id, actor_id=principal.subject, action="employee.identity_sync_requested",
+            entity_type="hr_employee", entity_id=employee.id, details={"operation": job.operation, "job_id": job.id, "trigger": "lifecycle_changed"},
+            correlation_id=x_correlation_id,
+        ))
     db.commit()
     db.refresh(record)
     return serialize(record)

@@ -7,6 +7,7 @@ const statusClass = value => "status status-" + String(value || "unknown").toLow
 
 export default function PeopleWorkspace({ name, api, claims, connected, onChanged }) {
   const [data, setData] = useState({ employees: [], templates: [], assignments: [], leave: [], exits: [], assets: [] });
+  const [balance, setBalance] = useState(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState("");
   const [form, setForm] = useState({});
@@ -16,6 +17,7 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
   const [error, setError] = useState("");
   const [assets, setAssets] = useState([]);
   const [history, setHistory] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const apiRef = useRef(api);
   const changedRef = useRef(onChanged);
   apiRef.current = api;
@@ -80,6 +82,9 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
       if (name === "Employee assets" && selectedEmployeeId && can("hr:asset:read")) {
         setAssets(await apiRef.current("/api/v1/hr/employees/" + selectedEmployeeId + "/assets"));
       }
+      if (name === "People directory" && selectedEmployeeId && can("hr:document:read")) {
+        setDocuments(await apiRef.current("/api/v1/hr/employees/" + selectedEmployeeId + "/documents"));
+      }
     } catch (e) { setError(e.message || "The request could not be completed."); }
     finally { setBusy(false); }
   };
@@ -88,6 +93,13 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
     if (name === "Employment lifecycle" && selectedEmployeeId && connected && can("hr:employee:read")) {
       apiRef.current("/api/v1/hr/employees/" + selectedEmployeeId + "/employment-records").then(setHistory).catch(e => setError(e.message));
     } else setHistory([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
+  }, [name, selectedEmployeeId, connected, permissionKey]);
+
+  useEffect(() => {
+    if (name === "People directory" && selectedEmployeeId && connected && can("hr:document:read")) {
+      apiRef.current("/api/v1/hr/employees/" + selectedEmployeeId + "/documents").then(setDocuments).catch(e => setError(e.message));
+    } else setDocuments([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- 'can' derives from 'permissions'
   }, [name, selectedEmployeeId, connected, permissionKey]);
 
@@ -115,6 +127,12 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
     run(path, method, payload, message);
   };
   const employee = data.employees.find(item => item.id === selectedEmployeeId);
+  const assignControl = task => can("onboarding:task:assign") && !["Completed","Waived"].includes(task.status) && (() => {
+    const key = "assignee_" + task.id;
+    const value = form[key] ?? task.assigned_to ?? "";
+    return <span className="people-assign"><input aria-label={"Assignee for " + task.title} placeholder="Assignee subject" value={value} onChange={e => setForm(current => ({ ...current, [key]: e.target.value }))}/>
+      <button className="btn btn-quiet" disabled={busy} onClick={() => run("/api/v1/onboarding/tasks/" + task.id + "/assignee", "PATCH", { assigned_to: value.trim() || null }, value.trim() ? "Task assignee saved." : "Task assignee cleared.")}>{value.trim() ? "Assign" : "Clear"}</button></span>;
+  })();
 
   if (!connected) return <section className="people-panel"><Empty icon={Users} title="Connect an authorized session" text="HR records are not shown in preview mode."/></section>;
 
@@ -145,6 +163,23 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
             {data.employees.map(item => <tr key={item.id}><td><b>{item.first_name} {item.last_name}</b><small>{item.work_email || "No work email"}</small></td><td>{item.employee_code || "—"}</td><td>{item.employment_type}</td><td>{dateText(item.hire_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td>{can("hr:employee:write")&&<button className="btn btn-quiet" onClick={()=>{setEditingEmployeeId(item.id);setForm({employee_code:item.employee_code||"",first_name:item.first_name,last_name:item.last_name,preferred_name:item.preferred_name||"",work_email:item.work_email||"",work_phone:item.work_phone||""});}}>Edit</button>}</td></tr>)}
           </tbody></table>{!data.employees.length && <Empty icon={Users} title="No employee records" text="Create an employee record when authorized and supported by the approved HR process."/>}</div>}
       </section>
+      {can("hr:document:read") && <section className="people-panel">
+        <PanelHeading icon={ShieldCheck} title="Employee documents" subtitle="Registered document references with classification. File contents are never stored or shown here." count={documents.length}/>
+        {can("hr:employee:read") && <EmployeePicker employees={data.employees} value={selectedEmployeeId} onChange={setSelectedEmployeeId}/>}
+        {employee && can("hr:document:write") && <form className="people-form" onSubmit={e => submit(e, "/api/v1/hr/employees/" + employee.id + "/documents", "POST", {
+          document_type: form.document_type, title: form.document_title, storage_reference: form.storage_reference,
+          classification: form.classification || "Confidential", issued_on: form.document_issued || null, expires_on: form.document_expires || null
+        }, "Document reference registered.")}>
+          {field("document_type", "Document type")}{field("document_title", "Title")}{field("storage_reference", "Private storage reference")}
+          {selectField("classification", "Classification", ["Internal", "Confidential", "Restricted"], false)}
+          {field("document_issued", "Issued on", "date", false)}{field("document_expires", "Expires on", "date", false)}
+          <button className="btn btn-primary" disabled={busy}>Register document</button>
+        </form>}
+        <div className="people-record-list">{documents.map(item => <article className="people-record-card" key={item.id}><div><b>{item.title}</b><span className={statusClass(item.classification)}>{item.classification}</span></div>
+          <small>{item.document_type} · Issued {dateText(item.issued_on)} · Expires {dateText(item.expires_on)}</small>
+          {can("hr:document:write") && <button className="btn btn-quiet" disabled={busy} onClick={() => run("/api/v1/hr/documents/" + item.id + "/status", "PATCH", { status: "Archived" }, "Document archived.")}>Archive</button>}</article>)}</div>
+        {employee && !documents.length && <Empty icon={ClipboardList} title="No active documents" text="Registered documents for the selected employee appear here."/>}
+      </section>}
     </>}
 
     {name === "Employment lifecycle" && <>
@@ -199,7 +234,7 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
           {field("assignment_target", "Target date", "date", false)}<button className="btn btn-primary" disabled={busy}>Assign onboarding</button>
         </form>}
         <div className="people-record-list">{data.assignments.map(item=><article className="people-record-card" key={item.id}><div><b>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</b><span className={statusClass(item.status)}>{item.status}</span></div><small>Target: {dateText(item.target_date)} · Template v{item.template_version}</small>
-          {(item.tasks || []).map(task=><div className="people-task" key={task.id}><div><b>{task.title}</b><small>{task.owner_role} · {task.required ? "Required" : "Optional"}</small></div><span className={statusClass(task.status)}>{task.status}</span>{can("onboarding:task:update") && !["Completed","Waived"].includes(task.status) && <button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/onboarding/tasks/"+task.id,"PATCH",{status:"Completed"},"Checklist task completed.")}>Mark complete</button>}</div>)}
+          {(item.tasks || []).map(task=><div className="people-task" key={task.id}><div><b>{task.title}</b><small>{task.owner_role} · {task.required ? "Required" : "Optional"}{task.assigned_to ? " · Assigned to " + task.assigned_to : ""}</small></div><span className={statusClass(task.status)}>{task.status}</span>{assignControl(task)}{can("onboarding:task:update") && !["Completed","Waived"].includes(task.status) && <button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/onboarding/tasks/"+task.id,"PATCH",{status:"Completed"},"Checklist task completed.")}>Mark complete</button>}</div>)}
         </article>)}</div>
       </section>
     </>}
@@ -221,7 +256,7 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
           {field("exit_notes", "Notes", "text", false)}<button className="btn btn-primary" disabled={busy}>Open exit case</button>
         </form>}
         <div className="people-record-list">{data.exits.map(item=><article className="people-record-card" key={item.id}><div><b>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</b><span className={statusClass(item.status)}>{item.status}</span></div><small>Last day: {dateText(item.planned_last_day)} · {item.reason_category}</small>
-          {item.checklist_assignment_id && <div className="people-offboarding-tasks"><b>Required offboarding checklist</b>{(data.assignments.find(x=>x.id===item.checklist_assignment_id)?.tasks||[]).map(task=><div className="people-task" key={task.id}><div><b>{task.title}</b><small>{task.owner_role} · {task.required?"Required":"Optional"}</small></div><span className={statusClass(task.status)}>{task.status}</span>{can("onboarding:task:update")&&!["Completed","Waived"].includes(task.status)&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/onboarding/tasks/"+task.id,"PATCH",{status:"Completed"},"Offboarding checklist task completed.")}>Mark complete</button>}</div>)}</div>}
+          {item.checklist_assignment_id && <div className="people-offboarding-tasks"><b>Required offboarding checklist</b>{(data.assignments.find(x=>x.id===item.checklist_assignment_id)?.tasks||[]).map(task=><div className="people-task" key={task.id}><div><b>{task.title}</b><small>{task.owner_role} · {task.required?"Required":"Optional"}{task.assigned_to?" · Assigned to "+task.assigned_to:""}</small></div><span className={statusClass(task.status)}>{task.status}</span>{assignControl(task)}{can("onboarding:task:update")&&!["Completed","Waived"].includes(task.status)&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/onboarding/tasks/"+task.id,"PATCH",{status:"Completed"},"Offboarding checklist task completed.")}>Mark complete</button>}</div>)}</div>}
           {can("hr:exit:complete")&&item.status==="Open"&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/hr/exit-cases/"+item.id+"/complete","POST",undefined,"Exit case completed after server-side closure checks.")}>Complete exit case</button>}</article>)}</div>
       </section>
     </>}
@@ -236,8 +271,13 @@ export default function PeopleWorkspace({ name, api, claims, connected, onChange
           {field("leave_category", "Leave category")}{field("leave_start", "Start date", "date")}{field("leave_end", "End date", "date")}{field("leave_reason", "Reason", "text", false)}
           <button className="btn btn-primary" disabled={busy}>Submit leave request</button>
         </form>}
+        {can("hr:leave:read") && can("hr:employee:read") && <div className="people-form">
+          <label className="people-field">Leave balance for employee<select value={balance?.employee_id || ""} onChange={e => { const id = e.target.value; if (!id) { setBalance(null); return; } api("/api/v1/hr/employees/" + id + "/leave-balance").then(setBalance).catch(err => setBalance({ employee_id: id, error: err.message })); }}><option value="">Select employee…</option>{data.employees.map(x => <option key={x.id} value={x.id}>{x.first_name} {x.last_name}</option>)}</select></label>
+          {balance?.error && <small>{balance.error}</small>}
+          {balance?.balances?.map(b => <small key={b.leave_category}><b>{b.leave_category}</b>: entitlement {b.entitlement_days ?? "not configured"}, used {b.used_days}, pending {b.pending_days}, remaining {b.remaining_days ?? "n/a"} · {b.policy_status}{b.note ? " · " + b.note : ""}</small>)}
+        </div>}
         <div className="people-table-wrap" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="people-table"><thead><tr><th>Employee</th><th>Leave type</th><th>Dates</th><th>Status</th><th>Decision</th></tr></thead><tbody>
-          {data.leave.map(item=><tr key={item.id}><td>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</td><td>{item.leave_category}</td><td>{dateText(item.start_date)} – {dateText(item.end_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td>{item.status==="Submitted"&&can("hr:leave:review")?<div className="people-inline-actions"><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Approved",review_note:"Reviewed in HR workspace"},"Leave request approved.")}>Approve</button><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Rejected",review_note:"Reviewed in HR workspace"},"Leave request rejected.")}>Reject</button></div>:item.reviewer_subject||"—"}</td></tr>)}
+          {data.leave.map(item=><tr key={item.id}><td>{data.employees.find(x=>x.id===item.employee_id)?.first_name || item.employee_id}</td><td>{item.leave_category}</td><td>{dateText(item.start_date)} – {dateText(item.end_date)}</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td>{["Submitted","Approved"].includes(item.status)&&can("hr:leave:cancel")&&(item.created_by===claims.sub||can("hr:leave:review"))&&<button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/cancel","POST",{reason:"Cancelled in HR workspace"},"Leave request cancelled.")}>Cancel</button>}{item.status==="Submitted"&&can("hr:leave:review")?<div className="people-inline-actions"><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Approved",review_note:"Reviewed in HR workspace"},"Leave request approved.")}>Approve</button><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/hr/leave-requests/"+item.id+"/review","POST",{decision:"Rejected",review_note:"Reviewed in HR workspace"},"Leave request rejected.")}>Reject</button></div>:item.reviewer_subject||"—"}</td></tr>)}
         </tbody></table>{!data.leave.length&&<Empty icon={CalendarDays} title="No leave requests" text="Submitted requests will appear here."/>}</div>
       </section>
     </>}

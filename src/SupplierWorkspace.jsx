@@ -28,6 +28,7 @@ export default function SupplierWorkspace({ suppliers = [], api, claims = {}, on
   const [reason, setReason] = useState("");
   const [nextStatus, setNextStatus] = useState("Pending Verification");
   const [form, setForm] = useState({});
+  const [dupes, setDupes] = useState(null);
   const selected = suppliers.find(row => row.id === selectedId) || null;
   const filtered = useMemo(() => suppliers.filter(row =>
     [row.legal_name, row.trading_name, row.supplier_code, row.email, row.category, row.status]
@@ -43,7 +44,17 @@ export default function SupplierWorkspace({ suppliers = [], api, claims = {}, on
     setCreating(false); setEditing(true); setError(""); setNotice("");
     setForm(Object.fromEntries(fields.map(([key]) => [key, selected[key] || ""])));
   };
-  const closeEdit = () => { setEditing(false); setCreating(false); setError(""); };
+  const closeEdit = () => { setEditing(false); setCreating(false); setError(""); setDupes(null); };
+  const checkDuplicates = async () => {
+    const legal = (form.legal_name || "").trim();
+    if (legal.length < 2) { setError("Enter a legal name of at least 2 characters to check for duplicates."); return; }
+    setError(""); setDupes(null);
+    const params = new URLSearchParams({ legal_name: legal });
+    if ((form.email || "").trim()) params.set("email", form.email.trim());
+    if ((form.registration_reference || "").trim()) params.set("registration_reference", form.registration_reference.trim());
+    try { setDupes(await api(`/api/v1/ap/suppliers/duplicates?${params}`)); }
+    catch (err) { setError(err.message || "The duplicate check could not be completed."); }
+  };
   const setField = (key, value) => setForm(current => ({ ...current, [key]: value }));
 
   const save = async event => {
@@ -102,6 +113,8 @@ export default function SupplierWorkspace({ suppliers = [], api, claims = {}, on
           {editing && (creating || selected) ? <form className="supplier-form" onSubmit={save}>
             <div className="supplier-detail-heading"><div><h3>{creating ? "New supplier" : "Edit supplier"}</h3><p>{creating ? "New suppliers begin in Draft." : `Record version ${selected.version}`}</p></div><button type="button" className="icon-btn" onClick={closeEdit} aria-label="Close editor"><X size={17}/></button></div>
             {fields.map(([key, label, type, required]) => <label key={key}>{label}<input type={type} required={required} value={form[key] || ""} onChange={e => setField(key, e.target.value)}/></label>)}
+            {creating && <div className="form-actions"><button type="button" className="btn btn-quiet" onClick={checkDuplicates}>Check for duplicates</button>
+              {dupes && (dupes.length ? <ul role="status">{dupes.map(d => <li key={d.id}>{d.legal_name} ({d.supplier_code || d.status}) matches on {d.matched_on.join(", ")}</li>)}</ul> : <small role="status">No existing supplier matches.</small>)}</div>}
             <div className="modal-actions"><button type="button" className="btn btn-quiet" onClick={closeEdit}>Cancel</button><button className="btn btn-primary" disabled={busy}><Save size={14}/>{busy ? "Saving…" : "Save supplier"}</button></div>
           </form> : selected ? <>
             <div className="supplier-detail-heading"><div><span className="eyebrow">SUPPLIER RECORD</span><h3>{selected.legal_name}</h3><p>{selected.trading_name || selected.supplier_code || selected.id}</p></div>
