@@ -9,7 +9,7 @@ Creates, idempotently: organization profile, units/departments, about ten fictio
 records and manager links, a payroll run with fictional entries, customers with invoices, suppliers, two engagements with a milestone and
 work orders, one active role template per scope type and approved assignments with mixed scopes. Nothing here is real personal data.
 
-  DEMO_ORG_ID=asaa python scripts/seed_identity_fixtures.py          (DEMO_ORG_ID unset: defaults to "asaa", the realm's org_id claim)
+  DEMO_ORG_ID=asaa python scripts/seed_identity_fixtures.py          (also runs scripts/seed_demo_workspace.py; DEMO_ORG_ID unset: defaults to "asaa", the realm's org_id claim)
   DEMO_USER_EMAIL=<owner email> DEMO_USER_SUBJECT=<token sub> python scripts/seed_identity_fixtures.py
 
 DEMO_USER_EMAIL / DEMO_USER_SUBJECT are read from the environment only (never committed): the HR record is matched by work email and
@@ -238,8 +238,10 @@ def main() -> int:
     Base.metadata.create_all(engine)
     with SessionLocal() as db:
         result = seed_fixtures(db, org_id, owner_email, owner_subject)
+        import seed_demo_workspace  # same directory (E3:D3.23): demo records for the remaining workspaces
+        demo = seed_demo_workspace.seed_demo(db, org_id, result, owner_subject)
     print(f"Seeded fictional organization {org_id!r}: {len(result['employees'])} people, {len(result['customers'])} customers, "
-          f"{len(result['units'])} units, {len(result['assignments'])} approved assignments. Safe to re-run.")
+          f"{len(result['units'])} units, {len(result['assignments'])} approved assignments; demo workspace: {sum(demo.values())} rows across {len(demo)} tables. Safe to re-run.")
     return 0
 
 
