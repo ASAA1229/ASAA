@@ -11,7 +11,7 @@ from statistics import median
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import false, func, select
 from sqlalchemy.orm import Session
 
 from asaa_ap.ar_service import amount_paid, net_credit
@@ -19,7 +19,7 @@ from asaa_ap.database import get_db
 from asaa_ap.models import ARInvoice
 from asaa_ap.security import Principal, require_permission
 from asaa_payables.models import PurchaseOrder, SupplierInvoice
-from asaa_reports.lineage import REPORT_LINEAGE, SOURCES, aware
+from asaa_reports.lineage import REPORT_LINEAGE, SOURCES, aware, scoped_filter
 from asaa_workforce_finance.models import ExpenseClaim
 
 router = APIRouter(prefix="/api/v1/reports/analytics", tags=["Reports"])
@@ -40,18 +40,21 @@ REVIEWED = {
 }
 
 
-def provenance(db: Session, org: str, names: list[str]) -> list[dict]:
+def provenance(db: Session, principal: Principal, names: list[str]) -> list[dict]:
+    org = principal.organization_id
     out = []
     for name in names:
         model, column, owner, _ = SOURCES[name]
-        count, newest = db.execute(select(func.count(), func.max(column)).where(model.organization_id == org)).one()
+        narrowed = scoped_filter(db, principal, name)
+        count, newest = db.execute(select(func.count(), func.max(column)).where(model.organization_id == org, narrowed if narrowed is not None else false())).one()
         newest = aware(newest)
         out.append({"dataset": name, "owner_module": owner, "record_count": count, "newest_record_at": newest.isoformat() if newest else None})
     return out
 
 
-def readable(principal: Principal, names: list[str]) -> tuple[list[str], list[str]]:
-    ok = [n for n in names if SOURCES[n][3] in principal.permissions]
+def readable(db: Session, principal: Principal, names: list[str]) -> tuple[list[str], list[str]]:
+    """Datasets the caller may use: the read permission held and, when its data scope is restricted, a dataset that can be narrowed by it."""
+    ok = [n for n in names if scoped_filter(db, principal, n) is not None]
     return ok, [n for n in names if n not in ok]
 
 
@@ -68,41 +71,43 @@ def trends(db: Db, principal: Annotated[Principal, ANALYTICS], dataset: str = Qu
     """Records created per period for one declared dataset (zero-filled gaps are not invented: only periods with records appear)."""
     if dataset not in SOURCES:
         raise HTTPException(status_code=404, detail={"code": "unknown_dataset"})
-    if SOURCES[dataset][3] not in principal.permissions:
+    narrowed = scoped_filter(db, principal, dataset)
+    if narrowed is None:
         raise HTTPException(status_code=403, detail="Permission denied")
     model, column, _, _ = SOURCES[dataset]
     counts: dict[str, int] = defaultdict(int)
-    for (stamp,) in db.execute(select(column).where(model.organization_id == principal.organization_id)).all():
+    for (stamp,) in db.execute(select(column).where(model.organization_id == principal.organization_id, narrowed)).all():
         if stamp is not None:
             counts[period_key(stamp, grain)] += 1
     keys = sorted(counts)[-periods:]
-    return {"dataset": dataset, "grain": grain, "series": [{"period": k, "records": counts[k]} for k in keys], "lineage": provenance(db, principal.organization_id, [dataset]),
+    return {"dataset": dataset, "grain": grain, "series": [{"period": k, "records": counts[k]} for k in keys], "lineage": provenance(db, principal, [dataset]),
             "generated_at": datetime.now(timezone.utc).isoformat()}
 
 
 @router.get("/review-cycle-times")
 def review_cycle_times(db: Db, principal: Annotated[Principal, ANALYTICS]):
     """Hours from creation to independent review, for reviewed records, per dataset (count, mean, median, longest)."""
-    names, withheld = readable(principal, list(REVIEWED))
+    names, withheld = readable(db, principal, list(REVIEWED))
     out = {}
     for name in names:
         model, created, reviewed = REVIEWED[name]
-        hours = [(aware(r) - aware(c)).total_seconds() / 3600 for c, r in db.execute(select(created, reviewed).where(model.organization_id == principal.organization_id, reviewed.is_not(None))).all()]
+        hours = [(aware(r) - aware(c)).total_seconds() / 3600 for c, r in db.execute(select(created, reviewed).where(
+            model.organization_id == principal.organization_id, reviewed.is_not(None), scoped_filter(db, principal, name))).all()]
         out[name] = {"reviewed_records": len(hours), "mean_hours": round(sum(hours) / len(hours), 2) if hours else None, "median_hours": round(median(hours), 2) if hours else None,
                      "longest_hours": round(max(hours), 2) if hours else None}
-    return {"cycle_times": out, "withheld": withheld, "lineage": provenance(db, principal.organization_id, names), "generated_at": datetime.now(timezone.utc).isoformat()}
+    return {"cycle_times": out, "withheld": withheld, "lineage": provenance(db, principal, names), "generated_at": datetime.now(timezone.utc).isoformat()}
 
 
 @router.get("/working-capital-position")
 def working_capital_position(db: Db, principal: Annotated[Principal, ANALYTICS]):
     """Receivables outstanding versus approved-but-unpaid payables per currency. A derived position, NOT a cash balance."""
     names = REPORT_LINEAGE["working_capital_position"]
-    ok, withheld = readable(principal, names)
+    ok, withheld = readable(db, principal, names)
     org = principal.organization_id
     ar: dict[str, Decimal] = defaultdict(Decimal)
     ap: dict[str, Decimal] = defaultdict(Decimal)
     if "ar_invoices" in ok:
-        for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.status.in_(["Issued", "Partially Paid"]))).all():
+        for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, scoped_filter(db, principal, "ar_invoices"), ARInvoice.status.in_(["Issued", "Partially Paid"]))).all():
             ar[inv.currency] += inv.total - amount_paid(db, inv.id) - net_credit(db, inv.id)
     if "ap_supplier_invoices" in ok:
         for inv in db.scalars(select(SupplierInvoice).where(SupplierInvoice.organization_id == org, SupplierInvoice.status.in_(["Approved", "In Payment Batch"]))).all():
@@ -110,5 +115,5 @@ def working_capital_position(db: Db, principal: Annotated[Principal, ANALYTICS])
     currencies = sorted(set(ar) | set(ap))
     return {"by_currency": {c: {"receivables_outstanding": str(ar.get(c, Decimal("0")).quantize(Decimal("0.01"))), "payables_approved_unpaid": str(ap.get(c, Decimal("0")).quantize(Decimal("0.01"))),
                                "net": str((ar.get(c, Decimal("0")) - ap.get(c, Decimal("0"))).quantize(Decimal("0.01")))} for c in currencies},
-            "withheld": withheld, "lineage": provenance(db, org, ok), "generated_at": datetime.now(timezone.utc).isoformat(),
+            "withheld": withheld, "lineage": provenance(db, principal, ok), "generated_at": datetime.now(timezone.utc).isoformat(),
             "note": "Derived from invoices only. Excludes payroll, expenses awaiting reimbursement, bank balances and unapproved supplier invoices."}

@@ -13,6 +13,8 @@ from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
 from asaa_integration.emitter import emit_for_audit
+from asaa_governance.scope import AccessScope, require_scoped_permission
+from asaa_people.scoping import check_payroll_run_scope, payroll_entry_clause
 from asaa_people.models import PayrollEntry, PayrollEntryLine, PayrollPeriod, PayrollRuleLine, PayrollRuleSet, PayrollRun
 from asaa_people.schemas import CompensationDecision, StrictModel
 
@@ -150,7 +152,12 @@ def compute_line(line, gross: Decimal, mode: str):
 
 
 @router.get("/runs/{run_id}/entries/{entry_id}/lines")
-def list_entry_lines(run_id: str, entry_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("payroll:read"))]):
+def list_entry_lines(run_id: str, entry_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("payroll:read"))],
+                     scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:read"))]):
+    if not scope.unrestricted and not db.scalar(select(PayrollEntry.id).where(
+            PayrollEntry.id == entry_id, PayrollEntry.run_id == run_id, PayrollEntry.organization_id == principal.organization_id,
+            payroll_entry_clause(scope, principal.organization_id))):
+        raise HTTPException(status_code=404, detail="Payroll entry not found")  # an entry outside the data scope is not found
     rows = db.scalars(select(PayrollEntryLine).where(
         PayrollEntryLine.organization_id == principal.organization_id, PayrollEntryLine.run_id == run_id, PayrollEntryLine.entry_id == entry_id)
         .order_by(PayrollEntryLine.created_at, PayrollEntryLine.code)).all()
@@ -160,12 +167,14 @@ def list_entry_lines(run_id: str, entry_id: str, db: Db, principal: Annotated[Pr
 @router.post("/runs/{run_id}/calculate")
 def calculate_payroll_run(run_id: str, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:entry:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     """Apply the single APPROVED rule set whose effective dates cover the run period to each entry's entered gross amount.
     With none, refuse (policy_not_configured). Recalculation replaces earlier calculated lines. Every outcome is audited."""
     run = db.scalar(select(PayrollRun).where(PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id).with_for_update())
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
+    check_payroll_run_scope(db, run, principal.organization_id, scope, whole=True)  # recalculation touches every entry of the run
     period = db.scalar(select(PayrollPeriod).where(PayrollPeriod.id == run.period_id, PayrollPeriod.organization_id == principal.organization_id))
     candidates = [r for r in db.scalars(select(PayrollRuleSet).where(
         PayrollRuleSet.organization_id == principal.organization_id, PayrollRuleSet.currency == run.currency, PayrollRuleSet.status == "Approved")).all()

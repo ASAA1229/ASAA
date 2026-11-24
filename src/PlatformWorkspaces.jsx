@@ -162,7 +162,7 @@ export function ReportsWorkspace({ api, connected, name = "Reports & dashboards"
     {loading && !data ? <div className="admin-empty" role="status">Loading report...</div> : !sections.length ? <div className="admin-empty"><b>No report sections available</b><span>This session has no read permission for the underlying records.</span></div>
       : <div className="settings-grid">{sections.map(([key, section]) => <section className="panel info-panel" key={key} aria-label={section.label}><div className="panel-heading"><div><h2>{section.label}</h2><p>Source: {section.sources.join(", ")}</p></div></div>
         {Object.entries(section.data).map(([metric, value]) => Array.isArray(value) ? <div className="data-line" key={metric}><span>{label(metric)}</span><b>{value.length ? <ul>{value.map((item, i) => <li key={i}>{Object.values(item).join(" - ")}</li>)}</ul> : "none"}</b></div>
-          : <div className="data-line" key={metric}><span>{label(metric)}</span><b>{typeof value === "object" ? (Object.keys(value).length ? Object.entries(value).map(([k, v]) => `${k}: ${typeof v === "object" ? Object.entries(v).map(([a, b]) => `${a} ${b}`).join(", ") : v}`).join(" · ") : "none") : String(value)}</b></div>)}</section>)}</div>}
+          : <div className="data-line" key={metric}><span>{label(metric)}</span><b>{value === null || value === undefined ? "not available (not configured)" : typeof value === "object" ? (Object.keys(value).length ? Object.entries(value).map(([k, v]) => `${k}: ${v !== null && typeof v === "object" ? Object.entries(v).map(([a, b]) => `${a} ${b}`).join(", ") : v}`).join(" · ") : "none") : String(value)}</b></div>)}</section>)}</div>}
   </section></div></Gate>;
 }
 

@@ -10,7 +10,7 @@ from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
 from asaa_governance.scope import AccessScope, require_scoped_permission
-from asaa_people.scoping import employee_clause, payroll_entry_clause
+from asaa_people.scoping import employee_clause, payroll_entry_clause, payroll_run_clause
 from asaa_people.models import (
     Employee, EmploymentRecord, OnboardingTemplate, OnboardingTaskTemplate,
     OnboardingAssignment, OnboardingTask, CompensationRecord, PayrollPeriod,
@@ -489,9 +489,11 @@ def create_payroll_run(payload: PayrollRunCreate, db: Db,
 
 @payroll_router.get("/runs")
 def list_payroll_runs(db: Db,
-    principal: Annotated[Principal, Depends(require_permission("payroll:read"))]):
+    principal: Annotated[Principal, Depends(require_permission("payroll:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:read"))]):
     rows = db.scalars(select(PayrollRun).where(
-        PayrollRun.organization_id == principal.organization_id
+        PayrollRun.organization_id == principal.organization_id,
+        payroll_run_clause(scope, principal.organization_id),
     ).order_by(PayrollRun.created_at.desc())).all()
     return [view(row) for row in rows]
 
