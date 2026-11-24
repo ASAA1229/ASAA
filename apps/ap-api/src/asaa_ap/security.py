@@ -4,7 +4,8 @@ from urllib.parse import urlparse
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.security import HTTPBearer, OAuth2AuthorizationCodeBearer
 
 from asaa_ap.config import get_settings
 
@@ -27,7 +28,25 @@ class Principal:
     client_id: str | None = None  # the token's azp (authorized party); identifies service-account producers
 
 
-def get_principal(authorization: Annotated[str | None, Header()] = None) -> Principal:
+def build_bearer_scheme(settings=None):
+    """The declared OpenAPI security scheme. auto_error=False keeps the 401/503 behaviour and messages of get_principal unchanged:
+    the scheme only describes the bearer token (Swagger UI Authorize button); it never rejects a request itself."""
+    settings = settings or get_settings()
+    if settings.docs_oidc_authorization_url and settings.docs_oidc_token_url:
+        return OAuth2AuthorizationCodeBearer(authorizationUrl=settings.docs_oidc_authorization_url, tokenUrl=settings.docs_oidc_token_url,
+                                             scopes={"openid": "OpenID Connect sign-in"}, scheme_name="asaa_oidc", auto_error=False)
+    return HTTPBearer(scheme_name="asaa_bearer", bearerFormat="JWT", description="Paste an RS256 access token issued by the configured identity provider.", auto_error=False)
+
+
+bearer_scheme = build_bearer_scheme()
+
+
+def authorization_header(request: Request, _declared=Security(bearer_scheme)) -> str | None:
+    """The raw Authorization header; get_principal validates it exactly as before."""
+    return request.headers.get("authorization")
+
+
+def get_principal(authorization: Annotated[str | None, Depends(authorization_header)] = None) -> Principal:
     settings = get_settings()
     if not (settings.jwt_public_key or settings.jwt_jwks_url) or not settings.jwt_issuer or not settings.jwt_audience:
         raise HTTPException(status_code=503, detail="Identity verification is not configured")

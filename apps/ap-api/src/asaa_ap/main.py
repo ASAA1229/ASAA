@@ -48,9 +48,12 @@ configure_logging(settings.log_level)
 logger = logging.getLogger("asaa.api")
 # Interactive API docs and the OpenAPI document are disabled in production (docs/SECURITY.md section 8).
 _production = settings.environment == "production"
+# Swagger sign-in: a public PKCE client (no secret) when the docs OIDC settings are present; otherwise the Authorize dialog takes a pasted bearer token.
+_docs_oauth = ({"clientId": settings.docs_oidc_client_id, "usePkceWithAuthorizationCodeGrant": True, "scopes": "openid"}
+               if settings.docs_oidc_client_id and settings.docs_oidc_authorization_url and settings.docs_oidc_token_url and not _production else None)
 app = FastAPI(title=settings.app_name, version="0.4.0",
               docs_url=None if _production else "/docs", redoc_url=None if _production else "/redoc",
-              openapi_url=None if _production else "/openapi.json")
+              openapi_url=None if _production else "/openapi.json", swagger_ui_init_oauth=_docs_oauth)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
