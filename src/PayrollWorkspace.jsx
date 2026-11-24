@@ -6,12 +6,13 @@ const dateText = value => value ? new Date(value).toLocaleDateString("en-IN", { 
 const statusClass = value => "status status-" + String(value || "unknown").toLowerCase().replaceAll(" ", "-");
 
 export default function PayrollWorkspace({ api, claims, connected, onChanged }) {
-  const [data, setData] = useState({ employees: [], periods: [], runs: [] });
+  const [data, setData] = useState({ employees: [], periods: [], runs: [], ruleSets: [] });
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedRunId, setSelectedRunId] = useState("");
   const [compensation, setCompensation] = useState([]);
   const [entries, setEntries] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [lines, setLines] = useState(null);
   const [form, setForm] = useState({});
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,11 +35,12 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
       jobs.push(["periods", "/api/v1/payroll/periods"]);
       jobs.push(["runs", "/api/v1/payroll/runs"]);
     }
+    if (can("payroll:rules:read")) jobs.push(["ruleSets", "/api/v1/payroll/rule-sets"]);
     const results = await Promise.all(jobs.map(async ([key, path]) => {
       try { return [key, await apiRef.current(path), ""]; }
       catch (e) { return [key, [], e.message]; }
     }));
-    const next = { employees: [], periods: [], runs: [] };
+    const next = { employees: [], periods: [], runs: [], ruleSets: [] };
     const failures = [];
     results.forEach(([key, value, message]) => { next[key] = Array.isArray(value) ? value : []; if (message) failures.push(key + ": " + message); });
     setData(next);
@@ -132,6 +134,24 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
       </form>
     </section>}
 
+    {can("payroll:rules:read") && <section className="payroll-panel">
+      <Heading icon={ShieldCheck} title="Payroll rule sets" subtitle="Owner-entered rules; only an independently approved set covering the run period is ever applied. No rates are built in." count={data.ruleSets.length}/>
+      {can("payroll:rules:write") && <form className="payroll-form" onSubmit={e=>{
+        const lines=(form.rs_lines||"").split("\n").map(x=>x.trim()).filter(Boolean).map(row=>{const [line_type,code,basis,value,cap,borne_by]=row.split(",").map(x=>x.trim());
+          return {line_type,code,basis,...(basis==="fixed"?{fixed_amount:value}:{rate:value}),cap_amount:cap||null,borne_by:borne_by||"employee"};});
+        submit(e,"/api/v1/payroll/rule-sets",{code:form.rs_code,currency:(form.rs_currency||"").toUpperCase(),effective_from:form.rs_from,effective_to:form.rs_to||null,rounding_mode:form.rs_rounding,lines},"Rule set proposed for independent approval.");}}>
+        {field("rs_code","Rule set code")}{field("rs_currency","Currency")}{field("rs_from","Effective from","date")}{field("rs_to","Effective to","date",false)}
+        {selectField("rs_rounding","Rounding mode",["half_up","half_even","down","up","ceiling","floor"].map(x=>({value:x,label:x})))}
+        <label className="payroll-field">Lines, one per row: type,code,basis,rate-or-amount,cap,borne_by
+          <textarea required rows={4} value={form.rs_lines??""} placeholder="deduction,CODE1,gross,0.000000,," onChange={e=>setForm(current=>({...current,rs_lines:e.target.value}))}/></label>
+        <button className="btn btn-primary" disabled={busy}>Propose rule set</button>
+      </form>}
+      <div className="payroll-card-grid">{data.ruleSets.map(item=><article className="payroll-record" key={item.id}><div><b>{item.code} · {item.currency}</b><span className={statusClass(item.status)}>{item.status}</span></div>
+        <small>{dateText(item.effective_from)} – {dateText(item.effective_to)} · {item.rounding_mode} · {item.lines.length} lines</small>
+        {item.status==="Pending Approval" && can("payroll:rules:approve") && <div className="payroll-actions"><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/payroll/rule-sets/"+item.id+"/decision","POST",{decision:"Approved",approval_note:"Independently reviewed"},"Rule set approved.")}>Approve</button><button className="btn btn-quiet" disabled={busy||item.created_by===claims.sub} onClick={()=>run("/api/v1/payroll/rule-sets/"+item.id+"/decision","POST",{decision:"Rejected",approval_note:"Not accepted"},"Rule set rejected.")}>Reject</button></div>}
+      </article>)}</div>
+    </section>}
+
     {can("payroll:read") && <section className="payroll-panel">
       <Heading icon={CalendarDays} title="Payroll periods" subtitle="Period dates and lifecycle are controlled by the API" count={data.periods.length}/>
       {can("payroll:period:write") && <form className="payroll-form" onSubmit={e=>submit(e,"/api/v1/payroll/periods",{period_code:form.period_code,start_date:form.period_start,end_date:form.period_end},"Payroll period created.")}>
@@ -164,8 +184,16 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
         {field("entry_currency","Currency")} {field("entry_gross","Gross amount","number")} {field("entry_deductions","Deduction total","number")} {field("entry_net","Net amount","number")} {field("entry_note","Input source / note","text",false)}
         <button className="btn btn-primary" disabled={busy}>Add entry</button>
       </form>}
-      <div className="payroll-table-wrap" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="payroll-table"><thead><tr><th>Employee reference</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th></tr></thead><tbody>{entries.map(item=><tr key={item.id}><td>{item.employee_id}</td><td>{money(item.gross_amount,item.currency)}</td><td>{money(item.deduction_total,item.currency)}</td><td><b>{money(item.net_amount,item.currency)}</b></td><td><span className={statusClass(item.status)}>{item.status}</span></td></tr>)}</tbody></table></div>
+      <div className="payroll-table-wrap" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="payroll-table"><thead><tr><th>Employee reference</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th>{can("payroll:entry:write")&&<th>Correct</th>}</tr></thead><tbody>{entries.map(item=><tr key={item.id}><td>{item.employee_id}</td><td>{money(item.gross_amount,item.currency)}</td><td>{money(item.deduction_total,item.currency)}</td><td><b>{money(item.net_amount,item.currency)}</b></td><td><span className={statusClass(item.status)}>{item.status}</span></td>{can("payroll:entry:write")&&<td>{["Draft","Changes Requested"].includes(summary?.status)&&<button type="button" className="btn btn-quiet" disabled={busy} onClick={()=>setForm({corr_id:item.id,corr_currency:item.currency,corr_gross:item.gross_amount,corr_deductions:item.deduction_total,corr_net:item.net_amount,corr_note:""})}>Correct</button>}</td>}</tr>)}</tbody></table></div>
+      {can("payroll:entry:write") && form.corr_id && <form className="payroll-form" onSubmit={e=>{e.preventDefault();run("/api/v1/payroll/entries/"+form.corr_id,"PATCH",{currency:form.corr_currency,gross_amount:form.corr_gross,deduction_total:form.corr_deductions,net_amount:form.corr_net,breakdown:{source:"User-supplied payroll correction",note:form.corr_note||""}},"Payroll entry corrected; totals recalculated from persisted values.");}}>
+        <h3>Correct payroll entry (only while the run is Draft or Changes Requested)</h3>
+        {field("corr_gross","Gross amount","number")} {field("corr_deductions","Deduction total","number")} {field("corr_net","Net amount","number")} {field("corr_note","Reason for correction","text",false)}
+        <button className="btn btn-primary" disabled={busy}>Save correction</button> <button type="button" className="btn btn-quiet" onClick={()=>setForm({})}>Cancel</button>
+      </form>}
+      {lines && <div className="payroll-table-wrap" tabIndex={0} role="region" aria-label="Calculated lines"><table className="payroll-table"><thead><tr><th>Line</th><th>Type</th><th>Borne by</th><th>Basis</th><th>Rate</th><th>Amount</th><th>Rounding</th><th>Rule set</th></tr></thead><tbody>{lines.map(l=><tr key={l.id}><td>{l.code}</td><td>{l.line_type}</td><td>{l.borne_by}</td><td>{l.basis_amount}</td><td>{l.rate ?? "fixed"}</td><td>{l.amount}</td><td>{l.rounding_mode}</td><td>{String(l.rule_set_id).slice(0,8)}</td></tr>)}</tbody></table>{!lines.length&&<Empty title="No calculated lines" text="Lines appear after a calculation from an approved rule set."/>}</div>}
       <div className="payroll-actions">
+        {entries.slice(0,50).map(item=><button key={item.id} type="button" className="btn btn-quiet" onClick={()=>apiRef.current("/api/v1/payroll/runs/"+selectedRunId+"/entries/"+item.id+"/lines").then(setLines).catch(e=>setError(e.message))}>Lines: {String(item.employee_id).slice(0,8)}</button>)}
+        {can("payroll:entry:write") && ["Draft","Changes Requested"].includes(summary?.status) && summary?.entry_count>0 && <button className="btn btn-quiet" disabled={busy} onClick={()=>run("/api/v1/payroll/runs/"+selectedRunId+"/calculate","POST",undefined,"Deductions calculated from the approved rule set.")}>Calculate from approved rules</button>}
         {can("payroll:run:submit") && ["Draft","Changes Requested"].includes(summary?.status) && <button className="btn btn-primary" disabled={busy||!summary?.entry_count||!summary?.entries_reconciled} onClick={()=>run("/api/v1/payroll/runs/"+selectedRunId+"/submit","POST",{review_note:"Submitted after arithmetic reconciliation"},"Payroll run submitted for independent review.")}>Submit for review</button>}
         {can("payroll:run:approve") && summary?.status==="In Review" && <><button className="btn btn-quiet" disabled={busy||data.runs.find(x=>x.id===selectedRunId)?.created_by===claims.sub} onClick={()=>run("/api/v1/payroll/runs/"+selectedRunId+"/decision","POST",{decision:"Approved",approval_note:"Independently reviewed"},"Payroll run approved.")}>Approve run</button><button className="btn btn-quiet" disabled={busy||data.runs.find(x=>x.id===selectedRunId)?.created_by===claims.sub} onClick={()=>run("/api/v1/payroll/runs/"+selectedRunId+"/decision","POST",{decision:"Rejected",approval_note:"Changes required after review"},"Payroll run returned for correction.")}>Return run</button></>}
         {can("payroll:run:close") && summary?.status==="Approved" && <button className="btn btn-primary" disabled={busy} onClick={()=>run("/api/v1/payroll/runs/"+selectedRunId+"/close","POST",undefined,"Approved payroll run closed.")}>Close payroll run</button>}
@@ -173,7 +201,7 @@ export default function PayrollWorkspace({ api, claims, connected, onChanged }) 
       {summary?.status && <p className="payroll-footnote">Current run status: <b>{summary.status}</b>. Payment initiation and statutory filing are not performed here.</p>}
     </section>}
 
-    <div className="payroll-boundary"><ShieldCheck size={15}/><span>Compensation is shown only with payroll:compensation:read. API authorization is authoritative. This workspace validates supplied arithmetic; it does not calculate tax, statutory deductions, leave-based pay or initiate salary payments.</span></div>
+    <div className="payroll-boundary"><ShieldCheck size={15}/><span>Compensation is shown only with payroll:compensation:read. API authorization is authoritative. This workspace validates supplied arithmetic; calculation uses only an owner-entered, independently approved rule set and never initiates salary payments.</span></div>
   </div>;
 }
 

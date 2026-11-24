@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from asaa_ap.ar_service import amount_credited, amount_paid
+from asaa_ap.ar_service import amount_paid, net_credit
 from asaa_ap.database import get_db
 from asaa_ap.models import ARInvoice
 from asaa_ap.security import Principal, require_permission
@@ -103,7 +103,7 @@ def working_capital_position(db: Db, principal: Annotated[Principal, ANALYTICS])
     ap: dict[str, Decimal] = defaultdict(Decimal)
     if "ar_invoices" in ok:
         for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.status.in_(["Issued", "Partially Paid"]))).all():
-            ar[inv.currency] += inv.total - amount_paid(db, inv.id) - amount_credited(db, inv.id)
+            ar[inv.currency] += inv.total - amount_paid(db, inv.id) - net_credit(db, inv.id)
     if "ap_supplier_invoices" in ok:
         for inv in db.scalars(select(SupplierInvoice).where(SupplierInvoice.organization_id == org, SupplierInvoice.status.in_(["Approved", "In Payment Batch"]))).all():
             ap[inv.currency] += inv.total

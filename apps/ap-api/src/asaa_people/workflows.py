@@ -17,7 +17,7 @@ from asaa_people.models import (
 )
 from asaa_people.schemas import (
     EmployeeDocumentCreate, EmployeeAssetCreate, EmployeeAssetReturn,
-    LeaveRequestCreate, LeaveRequestReview, EmployeeExitCreate,
+    LeaveRequestCreate, LeaveRequestReview, LeaveRequestCancel, EmployeeExitCreate,
     OnboardingTemplateStatusUpdate, OnboardingTaskAssignment,
     CompensationDecision, PayrollRunReview, OnboardingTemplateReplace,
     EmployeeDocumentStatusUpdate, PayrollEntryUpdate,
@@ -451,22 +451,32 @@ def payroll_run_summary(run_id: str, db: Db,
     }
 
 
-@router.post("/api/v1/payroll/runs/{run_id}/calculate")
-def calculate_payroll_run(run_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
+@router.post("/api/v1/hr/leave-requests/{request_id}/cancel")
+def cancel_leave_request(request_id: str, payload: LeaveRequestCancel, db: Db,
+    principal: Annotated[Principal, Depends(require_permission("hr:leave:cancel"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
-    """Statutory calculation entry point. No jurisdiction rules are approved, so it always refuses (policy_not_configured);
-    amounts are entered and reconciled manually. The refusal is audited. No rate or rule is invented here."""
-    run = db.scalar(select(PayrollRun).where(
-        PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id))
-    if not run:
-        raise HTTPException(status_code=404, detail="Payroll run not found")
-    audit(db, principal, "payroll_run.calculation_refused", "payroll_run", run.id,
-          {"policy": "payroll_calculation_rules"}, x_correlation_id)
+    """The requester, or a leave reviewer, may cancel a Submitted request or an Approved one that has not started. Cancelled leave leaves balances and overlap checks."""
+    row = db.scalar(select(LeaveRequest).where(
+        LeaveRequest.id == request_id, LeaveRequest.organization_id == principal.organization_id
+    ).with_for_update())
+    if not row:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    if row.created_by != principal.subject and "hr:leave:review" not in principal.permissions:
+        raise HTTPException(status_code=403, detail={"code": "only_requester_or_reviewer_can_cancel"})
+    if row.status not in {"Submitted", "Approved"}:
+        raise HTTPException(status_code=409, detail={"code": "leave_request_not_cancellable", "current_status": row.status})
+    if row.status == "Approved" and row.start_date <= date.today():
+        raise HTTPException(status_code=409, detail={"code": "leave_already_started"})
+    previous = row.status
+    row.status = "Cancelled"
+    audit(db, principal, "leave_request.cancelled", "hr_leave_request", row.id,
+          {"previous_status": previous, "reason": payload.reason}, x_correlation_id)
+    from asaa_notifications.service import enqueue as enqueue_notification
+    enqueue_notification(db, principal.organization_id, row.created_by, "leave.cancelled", {"previous_status": previous},
+                         idempotency_key=f"leave.cancelled:{row.id}", correlation_id=x_correlation_id)
     db.commit()
-    raise HTTPException(status_code=409, detail={
-        "code": "policy_not_configured", "policy": "payroll_calculation_rules",
-        "message": "No owner-approved, independently validated payroll calculation rules exist; calculation is refused. Enter and reconcile amounts manually."})
+    db.refresh(row)
+    return serialize(row)
 
 
 @router.post("/api/v1/payroll/runs/{run_id}/submit")

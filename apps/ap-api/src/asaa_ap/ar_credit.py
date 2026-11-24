@@ -13,11 +13,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from asaa_ap.ar_service import amount_credited, amount_paid, audit, get_customer, money, settled_status
+from asaa_ap.ar_service import amount_credited, amount_debited, amount_paid, audit, get_customer, money, net_credit, settled_status
 from asaa_ap.database import get_db
-from asaa_ap.models import ARCreditNote, ARInvoice, ARReceipt
+from asaa_ap.models import ARCreditNote, ARDebitNote, ARInvoice, ARReceipt, ARRefund
 from asaa_ap.org_time import org_today
 from asaa_ap.security import Principal, require_permission
+from asaa_governance.scope import AccessScope, require_scoped_permission
 
 router = APIRouter(prefix="/api/v1/ar", tags=["Accounts Receivable"])
 Db = Annotated[Session, Depends(get_db)]
@@ -62,7 +63,7 @@ def create_credit_note(payload: CreditNoteCreate, db: Db, principal: Annotated[P
     if invoice.status not in OPEN:
         raise HTTPException(status_code=409, detail={"code": "invoice_not_creditable", "status": invoice.status})
     pending = sum((c.amount for c in db.scalars(select(ARCreditNote).where(ARCreditNote.invoice_id == invoice.id, ARCreditNote.status == "Pending Approval"))), Decimal("0"))
-    outstanding = money(invoice.total - amount_paid(db, invoice.id) - amount_credited(db, invoice.id))
+    outstanding = money(invoice.total - amount_paid(db, invoice.id) - net_credit(db, invoice.id))
     if money(payload.amount) + pending > outstanding:
         raise HTTPException(status_code=409, detail={"code": "credit_exceeds_outstanding", "outstanding_amount": str(outstanding), "pending_credit_amount": str(pending)})
     row = ARCreditNote(organization_id=principal.organization_id, customer_id=invoice.customer_id, invoice_id=invoice.id, currency=invoice.currency,
@@ -99,7 +100,7 @@ def review_credit_note(credit_id: str, payload: CreditNoteReview, db: Db, princi
         note.status = "Rejected"
     else:
         invoice = locked_invoice(db, note.invoice_id, principal.organization_id)
-        paid, credited = amount_paid(db, invoice.id), amount_credited(db, invoice.id)
+        paid, credited = amount_paid(db, invoice.id), net_credit(db, invoice.id)
         if invoice.status not in OPEN or note.amount > money(invoice.total - paid - credited):
             raise HTTPException(status_code=409, detail={"code": "credit_exceeds_outstanding", "outstanding_amount": str(money(invoice.total - paid - credited))})
         note.status = "Approved"
@@ -116,7 +117,7 @@ def void_invoice(invoice_id: str, payload: VoidInvoice, db: Db, principal: Annot
     if invoice.status != "Issued":
         raise HTTPException(status_code=409, detail={"code": "invoice_not_voidable", "status": invoice.status,
                                                      "message": "Only an Issued invoice with no receipts or credits can be voided; use a credit note otherwise"})
-    if amount_paid(db, invoice.id) != 0 or amount_credited(db, invoice.id) != 0 or db.scalar(select(ARCreditNote.id).where(ARCreditNote.invoice_id == invoice.id, ARCreditNote.status == "Pending Approval").limit(1)):
+    if amount_paid(db, invoice.id) != 0 or amount_credited(db, invoice.id) != 0 or amount_debited(db, invoice.id) != 0 or db.scalar(select(ARCreditNote.id).where(ARCreditNote.invoice_id == invoice.id, ARCreditNote.status == "Pending Approval").limit(1)) or db.scalar(select(ARDebitNote.id).where(ARDebitNote.invoice_id == invoice.id, ARDebitNote.status == "Pending Approval").limit(1)):
         raise HTTPException(status_code=409, detail={"code": "invoice_has_settlements"})
     invoice.status = "Void"
     audit(db, principal, "invoice.voided", "ar_invoice", invoice.id, {"reason": payload.reason, "total": str(invoice.total)}, x_correlation_id)
@@ -128,7 +129,7 @@ def open_balances(db: Session, org: str, customer_id: str | None = None) -> list
     stmt = select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.status.in_(OPEN))
     if customer_id:
         stmt = stmt.where(ARInvoice.customer_id == customer_id)
-    return [(i, money(i.total - amount_paid(db, i.id) - amount_credited(db, i.id))) for i in db.scalars(stmt).all()]
+    return [(i, money(i.total - amount_paid(db, i.id) - net_credit(db, i.id))) for i in db.scalars(stmt).all()]
 
 
 @router.get("/aging")
@@ -142,15 +143,16 @@ def receivables_aging(db: Db, principal: Annotated[Principal, Depends(require_pe
         b[label] = str(money(Decimal(b[label]) + balance))
         b["total"] = str(money(Decimal(b["total"]) + balance))
         b["invoice_count"] += 1
-    return {"as_of": as_of.isoformat(), "generated_at": datetime.now(timezone.utc).isoformat(), "sources": ["ar_invoices", "ar_receipt_allocations", "ar_credit_notes"],
-            "by_currency": out, "note": "Outstanding = total less recorded receipts and approved credit notes. Bucket boundaries are a reporting convention, not a payment-terms rule."}
+    return {"as_of": as_of.isoformat(), "generated_at": datetime.now(timezone.utc).isoformat(), "sources": ["ar_invoices", "ar_receipt_allocations", "ar_credit_notes", "ar_debit_notes"],
+            "by_currency": out, "note": "Outstanding = total less recorded receipts and approved credit notes, plus approved debit notes. Bucket boundaries are a reporting convention, not a payment-terms rule."}
 
 
 @router.get("/customers/{customer_id}/statement")
-def customer_statement(customer_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:invoice:read"))], date_from: date | None = None, date_to: date | None = None):
+def customer_statement(customer_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:invoice:read"))],
+                       scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:invoice:read"))], date_from: date | None = None, date_to: date | None = None):
     """Chronological invoices, receipts and approved credits with a running balance per currency."""
     org = principal.organization_id
-    get_customer(db, customer_id, org)
+    get_customer(db, customer_id, org, scope)
     entries: list[dict] = []
     for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.customer_id == customer_id, ARInvoice.status.in_(["Issued", "Partially Paid", "Paid", "Credited"]))):
         entries.append({"date": inv.issue_date, "type": "invoice", "reference": inv.invoice_number or inv.id, "currency": inv.currency, "amount": inv.total})
@@ -158,6 +160,10 @@ def customer_statement(customer_id: str, db: Db, principal: Annotated[Principal,
         entries.append({"date": rec.received_date, "type": "receipt", "reference": rec.reference or rec.id, "currency": rec.currency, "amount": -rec.amount})
     for note in db.scalars(select(ARCreditNote).where(ARCreditNote.organization_id == org, ARCreditNote.customer_id == customer_id, ARCreditNote.status == "Approved")):
         entries.append({"date": (note.reviewed_at or note.created_at).date(), "type": "credit_note", "reference": note.id, "currency": note.currency, "amount": -note.amount})
+    for dn in db.scalars(select(ARDebitNote).where(ARDebitNote.organization_id == org, ARDebitNote.customer_id == customer_id, ARDebitNote.status == "Approved")):
+        entries.append({"date": (dn.reviewed_at or dn.created_at).date(), "type": "debit_note", "reference": dn.id, "currency": dn.currency, "amount": dn.amount})
+    for rf in db.scalars(select(ARRefund).where(ARRefund.organization_id == org, ARRefund.customer_id == customer_id, ARRefund.status == "Refunded")):
+        entries.append({"date": (rf.refunded_at or rf.created_at).date(), "type": "refund", "reference": rf.payment_reference or rf.id, "currency": rf.currency, "amount": rf.amount})
     entries.sort(key=lambda e: (e["date"], e["type"]))
     running: dict[str, Decimal] = {}
     rows = []

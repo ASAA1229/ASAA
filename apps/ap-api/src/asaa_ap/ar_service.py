@@ -7,9 +7,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
-from asaa_ap.models import AuditEvent, ARCreditNote, ARCustomer, ARInvoice, ARInvoiceLine, ARReceipt, ARReceiptAllocation
+from asaa_ap.models import AuditEvent, ARCreditNote, ARCustomer, ARDebitNote, ARRefund, ARInvoice, ARInvoiceLine, ARReceipt, ARReceiptAllocation
 from asaa_ap.schemas_ar import ARCustomerCreate, ARInvoiceCreate, ARReceiptCreate
 from asaa_ap.security import Principal
+from asaa_governance.scope import AccessScope
 from asaa_integration.emitter import emit_for_audit
 
 
@@ -29,7 +30,9 @@ def audit(db: Session, principal: Principal, action: str, entity_type: str, enti
     emit_for_audit(db, principal.organization_id, principal.subject, action, entity_id, details, correlation_id)
 
 
-def create_customer(db: Session, payload: ARCustomerCreate, principal: Principal, correlation_id: str | None):
+def create_customer(db: Session, payload: ARCustomerCreate, principal: Principal, correlation_id: str | None, scope: AccessScope | None = None):
+    if scope is not None:
+        scope.require_unrestricted()  # a new customer cannot be placed inside a restricted scope
     stmt = select(ARCustomer).where(ARCustomer.organization_id == principal.organization_id)
     rows = db.scalars(stmt).all()
     normalized = " ".join(payload.legal_name.casefold().split())
@@ -56,10 +59,24 @@ def create_customer(db: Session, payload: ARCustomerCreate, principal: Principal
         raise HTTPException(status_code=409, detail={"code": "customer_code_conflict"}) from None
 
 
-def get_customer(db: Session, customer_id: str, organization_id: str):
-    row = db.scalar(select(ARCustomer).where(
-        ARCustomer.id == customer_id, ARCustomer.organization_id == organization_id
-    ))
+def customer_clause(scope: AccessScope):
+    return scope.clause(customer=ARCustomer.id, record=ARCustomer.id)
+
+
+def invoice_clause(scope: AccessScope):
+    return scope.clause(customer=ARInvoice.customer_id, record=ARInvoice.id)
+
+
+def receipt_clause(scope: AccessScope):
+    return scope.clause(customer=ARReceipt.customer_id, record=ARReceipt.id)
+
+
+def get_customer(db: Session, customer_id: str, organization_id: str, scope: AccessScope | None = None):
+    """With a data scope, a customer outside it is reported as not found."""
+    stmt = select(ARCustomer).where(ARCustomer.id == customer_id, ARCustomer.organization_id == organization_id)
+    if scope is not None:
+        stmt = stmt.where(customer_clause(scope))
+    row = db.scalar(stmt)
     if not row:
         raise HTTPException(status_code=404, detail="Customer not found")
     return row
@@ -81,6 +98,26 @@ def amount_credited(db: Session, invoice_id: str) -> Decimal:
     return money(Decimal(value or 0))
 
 
+def amount_debited(db: Session, invoice_id: str) -> Decimal:
+    """Total of approved debit notes applied to the invoice."""
+    value = db.scalar(select(func.coalesce(func.sum(ARDebitNote.amount), 0)).where(
+        ARDebitNote.invoice_id == invoice_id, ARDebitNote.status == "Approved"))
+    return money(Decimal(value or 0))
+
+
+def net_credit(db: Session, invoice_id: str) -> Decimal:
+    """Approved credits less approved debits: subtracted (with receipts) from the invoice total to get the outstanding balance. Negative when debits exceed credits."""
+    return money(amount_credited(db, invoice_id) - amount_debited(db, invoice_id))
+
+
+def receipt_unapplied(db: Session, receipt: ARReceipt) -> Decimal:
+    """Receipt amount not allocated to invoices and not reserved by a live refund (Pending Approval, Approved or Refunded)."""
+    applied = db.scalar(select(func.coalesce(func.sum(ARReceiptAllocation.amount), 0)).where(ARReceiptAllocation.receipt_id == receipt.id))
+    refunds = db.scalar(select(func.coalesce(func.sum(ARRefund.amount), 0)).where(
+        ARRefund.receipt_id == receipt.id, ARRefund.status.in_(["Pending Approval", "Approved", "Refunded"])))
+    return money(receipt.amount - Decimal(applied or 0) - Decimal(refunds or 0))
+
+
 def settled_status(total: Decimal, paid: Decimal, credited: Decimal) -> str:
     """Invoice status after settlement: Paid (cash settled, possibly with credits), Credited (credits alone settled it) or Partially Paid."""
     balance = money(total - paid - credited)
@@ -92,20 +129,21 @@ def settled_status(total: Decimal, paid: Decimal, credited: Decimal) -> str:
 def invoice_view(db: Session, invoice: ARInvoice) -> dict:
     paid = amount_paid(db, invoice.id)
     credited = amount_credited(db, invoice.id)
+    debited = amount_debited(db, invoice.id)
     lines = db.scalars(select(ARInvoiceLine).where(ARInvoiceLine.invoice_id == invoice.id)).all()
     return {
         "id": invoice.id, "organization_id": invoice.organization_id, "customer_id": invoice.customer_id,
         "invoice_number": invoice.invoice_number, "currency": invoice.currency,
         "issue_date": invoice.issue_date, "due_date": invoice.due_date, "status": invoice.status,
         "subtotal": invoice.subtotal, "tax_total": invoice.tax_total, "total": invoice.total,
-        "amount_paid": paid, "amount_credited": credited, "outstanding": money(invoice.total - paid - credited), "notes": invoice.notes,
+        "amount_paid": paid, "amount_credited": credited, "amount_debited": debited, "outstanding": money(invoice.total - paid - credited + debited), "notes": invoice.notes,
         "version": invoice.version, "created_at": invoice.created_at, "created_by": invoice.created_by,
         "lines": lines,
     }
 
 
-def create_invoice(db: Session, payload: ARInvoiceCreate, principal: Principal, correlation_id: str | None):
-    customer = get_customer(db, payload.customer_id, principal.organization_id)
+def create_invoice(db: Session, payload: ARInvoiceCreate, principal: Principal, correlation_id: str | None, scope: AccessScope | None = None):
+    customer = get_customer(db, payload.customer_id, principal.organization_id, scope)
     if customer.status != "Active":
         raise HTTPException(status_code=409, detail="Customer account is not active")
     subtotal = Decimal("0")
@@ -145,8 +183,10 @@ def create_invoice(db: Session, payload: ARInvoiceCreate, principal: Principal, 
         raise HTTPException(status_code=409, detail={"code": "invoice_number_conflict"}) from None
 
 
-def list_invoices(db: Session, principal: Principal, status: str | None, customer_id: str | None, limit: int, offset: int):
+def list_invoices(db: Session, principal: Principal, status: str | None, customer_id: str | None, limit: int, offset: int, scope: AccessScope | None = None):
     stmt = select(ARInvoice).where(ARInvoice.organization_id == principal.organization_id)
+    if scope is not None:
+        stmt = stmt.where(invoice_clause(scope))
     if status:
         stmt = stmt.where(ARInvoice.status == status)
     if customer_id:
@@ -155,19 +195,21 @@ def list_invoices(db: Session, principal: Principal, status: str | None, custome
     return [invoice_view(db, row) for row in rows]
 
 
-def get_invoice(db: Session, invoice_id: str, principal: Principal):
-    row = db.scalar(select(ARInvoice).where(
-        ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id
-    ))
+def get_invoice(db: Session, invoice_id: str, principal: Principal, scope: AccessScope | None = None):
+    stmt = select(ARInvoice).where(ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id)
+    if scope is not None:
+        stmt = stmt.where(invoice_clause(scope))
+    row = db.scalar(stmt)
     if not row:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return invoice_view(db, row)
 
 
-def issue_invoice(db: Session, invoice_id: str, expected_version: int, reason: str, principal: Principal, correlation_id: str | None):
-    row = db.scalar(select(ARInvoice).where(
-        ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id
-    ))
+def issue_invoice(db: Session, invoice_id: str, expected_version: int, reason: str, principal: Principal, correlation_id: str | None, scope: AccessScope | None = None):
+    stmt = select(ARInvoice).where(ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id)
+    if scope is not None:
+        stmt = stmt.where(invoice_clause(scope))
+    row = db.scalar(stmt)
     if not row:
         raise HTTPException(status_code=404, detail="Invoice not found")
     if row.version != expected_version:
@@ -186,8 +228,8 @@ def issue_invoice(db: Session, invoice_id: str, expected_version: int, reason: s
     return invoice_view(db, row)
 
 
-def create_receipt(db: Session, payload: ARReceiptCreate, principal: Principal, correlation_id: str | None):
-    customer = get_customer(db, payload.customer_id, principal.organization_id)
+def create_receipt(db: Session, payload: ARReceiptCreate, principal: Principal, correlation_id: str | None, scope: AccessScope | None = None):
+    customer = get_customer(db, payload.customer_id, principal.organization_id, scope)
     if customer.status != "Active":
         raise HTTPException(status_code=409, detail="Customer account is not active")
     receipt = ARReceipt(
@@ -212,7 +254,7 @@ def create_receipt(db: Session, payload: ARReceiptCreate, principal: Principal, 
             if invoice.status not in {"Issued", "Partially Paid"}:
                 raise HTTPException(status_code=409, detail={"code": "invoice_not_receivable", "invoice_id": invoice.id})
             already_paid = amount_paid(db, invoice.id)
-            credited = amount_credited(db, invoice.id)
+            credited = net_credit(db, invoice.id)
             if money(allocation.amount) > money(invoice.total - already_paid - credited):
                 raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_outstanding", "invoice_id": invoice.id})
             db.add(ARReceiptAllocation(receipt_id=receipt.id, invoice_id=invoice.id, amount=money(allocation.amount)))
@@ -240,10 +282,11 @@ def create_receipt(db: Session, payload: ARReceiptCreate, principal: Principal, 
         raise HTTPException(status_code=409, detail={"code": "receipt_allocation_conflict"}) from None
 
 
-def update_draft_invoice(db: Session, invoice_id: str, payload, principal: Principal, correlation_id: str | None):
-    row = db.scalar(select(ARInvoice).where(
-        ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id
-    ).with_for_update())
+def update_draft_invoice(db: Session, invoice_id: str, payload, principal: Principal, correlation_id: str | None, scope: AccessScope | None = None):
+    stmt = select(ARInvoice).where(ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id)
+    if scope is not None:
+        stmt = stmt.where(invoice_clause(scope))
+    row = db.scalar(stmt.with_for_update())
     if not row:
         raise HTTPException(status_code=404, detail="Invoice not found")
     if row.version != payload.expected_version:
@@ -285,10 +328,11 @@ def update_draft_invoice(db: Session, invoice_id: str, payload, principal: Princ
 
 
 def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, amount: Decimal,
-                               principal: Principal, correlation_id: str | None):
-    receipt = db.scalar(select(ARReceipt).where(
-        ARReceipt.id == receipt_id, ARReceipt.organization_id == principal.organization_id
-    ).with_for_update())
+                               principal: Principal, correlation_id: str | None, scope: AccessScope | None = None):
+    stmt = select(ARReceipt).where(ARReceipt.id == receipt_id, ARReceipt.organization_id == principal.organization_id)
+    if scope is not None:
+        stmt = stmt.where(receipt_clause(scope))
+    receipt = db.scalar(stmt.with_for_update())
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
     if receipt.status != "Recorded":
@@ -303,16 +347,13 @@ def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, am
         raise HTTPException(status_code=409, detail={"code": "currency_mismatch"})
     if invoice.status not in {"Issued", "Partially Paid"}:
         raise HTTPException(status_code=409, detail={"code": "invoice_not_receivable"})
-    applied = db.scalar(select(func.coalesce(func.sum(ARReceiptAllocation.amount), 0)).where(
-        ARReceiptAllocation.receipt_id == receipt.id
-    ))
-    outstanding_receipt = money(receipt.amount - Decimal(applied or 0))
+    outstanding_receipt = receipt_unapplied(db, receipt)
     amount = money(amount)
     if amount <= 0 or amount > outstanding_receipt:
         raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_unapplied_receipt",
                                                       "unapplied_amount": str(outstanding_receipt)})
     already_paid = amount_paid(db, invoice.id)
-    credited = amount_credited(db, invoice.id)
+    credited = net_credit(db, invoice.id)
     if amount > money(invoice.total - already_paid - credited):
         raise HTTPException(status_code=409, detail={"code": "allocation_exceeds_outstanding",
                                                       "outstanding_amount": str(money(invoice.total - already_paid - credited))})

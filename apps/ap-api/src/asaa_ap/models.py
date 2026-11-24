@@ -157,3 +157,68 @@ class ARCreditNote(Base):
     reviewed_by: Mapped[str | None] = mapped_column(String(128))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     review_reason: Mapped[str | None] = mapped_column(String(500))
+
+
+class ARDebitNote(Base):
+    """Additional charge against an Issued or Partially Paid invoice. Maker-checker: the invoice balance grows only when approved by someone other than its maker."""
+    __tablename__ = "ar_debit_notes"
+    __table_args__ = (Index("ix_ar_debit_note_org_invoice", "organization_id", "invoice_id"),
+                      Index("ix_ar_debit_note_org_status", "organization_id", "status"))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("ar_customers.id"), nullable=False)
+    invoice_id: Mapped[str] = mapped_column(ForeignKey("ar_invoices.id"), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Pending Approval")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reviewed_by: Mapped[str | None] = mapped_column(String(128))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_reason: Mapped[str | None] = mapped_column(String(500))
+
+
+class ARRefund(Base):
+    """Refund of the unapplied part of a recorded receipt. Pending Approval -> Approved (second person) -> Refunded (payment execution recorded with a reference).
+    The amount is reserved from the receipt's unapplied balance from the request until it is Rejected."""
+    __tablename__ = "ar_refunds"
+    __table_args__ = (Index("ix_ar_refund_org_receipt", "organization_id", "receipt_id"),
+                      Index("ix_ar_refund_org_status", "organization_id", "status"))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("ar_customers.id"), nullable=False)
+    receipt_id: Mapped[str] = mapped_column(ForeignKey("ar_receipts.id"), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Pending Approval")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reviewed_by: Mapped[str | None] = mapped_column(String(128))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_reason: Mapped[str | None] = mapped_column(String(500))
+    refunded_by: Mapped[str | None] = mapped_column(String(128))
+    refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    payment_reference: Mapped[str | None] = mapped_column(String(200))
+
+
+class ARDispute(Base):
+    """Customer dispute of an invoice. Informational for balances: resolving it never changes an amount; an upheld dispute may reference the credit note that corrects it."""
+    __tablename__ = "ar_disputes"
+    __table_args__ = (Index("ix_ar_dispute_org_invoice", "organization_id", "invoice_id"),
+                      Index("ix_ar_dispute_org_status", "organization_id", "status"))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("ar_customers.id"), nullable=False)
+    invoice_id: Mapped[str] = mapped_column(ForeignKey("ar_invoices.id"), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    disputed_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Open")  # Open | Upheld | Rejected | Withdrawn
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    resolved_by: Mapped[str | None] = mapped_column(String(128))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolution_note: Mapped[str | None] = mapped_column(String(500))
+    credit_note_id: Mapped[str | None] = mapped_column(ForeignKey("ar_credit_notes.id"))

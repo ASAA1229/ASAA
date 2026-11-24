@@ -28,6 +28,18 @@ DOCS_CSP = (
 DOCS_PATHS = {"/docs", "/docs/", "/docs/oauth2-redirect"}
 
 
+def docs_csp() -> bytes:
+    """Swagger CSP; with docs sign-in configured the browser may also call the identity provider's token endpoint (and only that origin)."""
+    from urllib.parse import urlparse
+    from asaa_ap.config import get_settings
+    token_url = get_settings().docs_oidc_token_url
+    if not token_url:
+        return DOCS_CSP
+    parsed = urlparse(token_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}".encode()
+    return DOCS_CSP.replace(b"connect-src 'self'", b"connect-src 'self' " + origin)
+
+
 class BodyTooLarge(HTTPException):
     """Raised from the receive wrapper once the streamed request body passes the limit (with or without Content-Length).
     An HTTPException so FastAPI's body parsing re-raises it as a 413 instead of masking it as a generic 400."""
@@ -74,7 +86,7 @@ class HardeningMiddleware:
                 security_headers = SECURITY_HEADERS
                 if path in DOCS_PATHS:
                     security_headers = [
-                        (key, DOCS_CSP if key == b"content-security-policy" else value)
+                        (key, docs_csp() if key == b"content-security-policy" else value)
                         for key, value in SECURITY_HEADERS
                     ]
                 extra = [(k, v) for k, v in security_headers if k not in existing]
