@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class StrictModel(BaseModel):
@@ -99,6 +99,11 @@ class PayrollRunCreate(StrictModel):
     currency: str = Field(pattern="^[A-Z]{3}$")
 
 
+class PayrollSourceReference(StrictModel):
+    type: str = Field(pattern="^(timesheet|leave|attendance)$")
+    id: str = Field(min_length=1, max_length=64)
+
+
 class PayrollEntryCreate(StrictModel):
     employee_id: str
     currency: str = Field(pattern="^[A-Z]{3}$")
@@ -106,6 +111,7 @@ class PayrollEntryCreate(StrictModel):
     deduction_total: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
     net_amount: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
     breakdown: dict = Field(default_factory=dict)
+    source_references: list[PayrollSourceReference] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
     def amounts_reconcile(self):
@@ -113,6 +119,8 @@ class PayrollEntryCreate(StrictModel):
             raise ValueError("deduction_total cannot exceed gross_amount")
         if self.gross_amount - self.deduction_total != self.net_amount:
             raise ValueError("net_amount must equal gross_amount minus deduction_total")
+        if len({(r.type, r.id) for r in self.source_references}) != len(self.source_references):
+            raise ValueError("source_references must not repeat a record")
         return self
 
 
@@ -123,6 +131,21 @@ class EmployeeDocumentCreate(StrictModel):
     classification: str = Field(default="Confidential", pattern="^(Internal|Confidential|Restricted)$")
     issued_on: date | None = None
     expires_on: date | None = None
+
+    @field_validator("storage_reference")
+    @classmethod
+    def storage_reference_is_a_plain_key(cls, value: str):
+        """A name/key in approved storage: no traversal, no control characters, no URL carrying credentials or a signed query string."""
+        import re
+        lowered = value.lower()
+        if ".." in value.replace("\\", "/").split("/") or re.search(r"[\x00-\x1f\x7f\\]", value):
+            raise ValueError("storage_reference must be a plain storage key (no path traversal or control characters)")
+        if "://" in lowered:
+            from urllib.parse import urlparse
+            parsed = urlparse(value)
+            if parsed.scheme not in {"private-object", "https", "s3", "gs", "az"} or parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError("storage_reference must not be a link carrying credentials, a signed query string or an insecure scheme")
+        return value
 
     @model_validator(mode="after")
     def document_dates_valid(self):
@@ -211,3 +234,7 @@ class PayrollEntryUpdate(StrictModel):
         if self.gross_amount - self.deduction_total != self.net_amount:
             raise ValueError("net_amount must equal gross_amount minus deduction_total")
         return self
+
+
+class LeaveRequestCancel(StrictModel):
+    reason: str | None = Field(default=None, max_length=2000)

@@ -180,7 +180,7 @@ def create_delegation(
 def list_delegations(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("governance:delegation:read")),
-    status: str | None = Query(default=None, pattern="^(Pending Approval|Approved|Rejected|Revoked)$"),
+    status: str | None = Query(default=None, pattern="^(Pending Approval|Approved|Rejected|Revoked|Expired)$"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
@@ -192,6 +192,28 @@ def list_delegations(
     rows = db.scalars(stmt.order_by(AuthorityDelegation.created_at.desc())
                       .offset(offset).limit(limit)).all()
     return [serialize(row) for row in rows]
+
+
+@router.post("/delegations/expire-due")
+def expire_due_delegations(
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("governance:delegation:revoke")),
+    x_correlation_id: str | None = Header(default=None),
+):
+    """Persist expiry: Approved delegations whose window has ended become Expired (audited). Read-time evaluation of
+    effective_now is unchanged; this makes the lapsed state durable and visible in lists and reports."""
+    now = utcnow()
+    rows = db.scalars(select(AuthorityDelegation).where(
+        AuthorityDelegation.organization_id == principal.organization_id,
+        AuthorityDelegation.status == "Approved")).all()
+    expired = [row for row in rows if as_utc(row.effective_to) <= now]
+    for row in expired:
+        row.status = "Expired"
+        db.flush()
+        audit(db, principal, "authority_delegation.expired", "authority_delegation", row.id,
+              {"effective_to": as_utc(row.effective_to).isoformat(), "version": row.version}, x_correlation_id)
+    db.commit()
+    return {"expired": len(expired), "ids": [row.id for row in expired]}
 
 
 @router.post("/delegations/{delegation_id}/approve")

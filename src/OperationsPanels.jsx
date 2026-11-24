@@ -161,6 +161,9 @@ export function ReceivablesControlsPanel({ api, claims, connected }) {
   const create = event => { event.preventDefault(); run(() => post("/api/v1/ar/credit-notes", form), "Credit note submitted for independent approval.", async () => { setForm({ invoice_id: "", amount: "", reason: "" }); await notes.reload(); }); };
   const decide = decision => row => run(() => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return post(`/api/v1/ar/credit-notes/${row.id}/review`, { decision, reason: reason.trim() }); }, "Decision recorded.", notes.reload);
   const canVoid = connected && permissions.includes("ar:invoice:void") && permissions.includes("ar:invoice:read");
+  const [statementCustomer, setStatementCustomer] = useState("");
+  const [statement, setStatement] = useState(null);
+  const loadStatement = event => { event.preventDefault(); run(async () => setStatement(await api(`/api/v1/ar/customers/${encodeURIComponent(statementCustomer.trim())}/statement`)), "Statement loaded."); };
   const issued = useList(api, "/api/v1/ar/invoices", canVoid);
   if (!connected || (!canRead && !canAging && !canVoid)) return null;
   return <div className="admin-workspace"><Messages error={error} notice={notice} /><ReasonField value={reason} onChange={setReason} />
@@ -177,7 +180,78 @@ export function ReceivablesControlsPanel({ api, claims, connected }) {
       <RecordTable title="Credit notes" description="Pending credit notes need an independent decision." list={notes} permissions={permissions} busy={busy}
         columns={[["Invoice", r => r.invoice_id], ["Amount", r => `${r.amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Maker", r => r.created_by]]}
         actions={[["Approve", "ar:credit:approve", r => r.status === "Pending Approval", decide("approve")], ["Reject", "ar:credit:approve", r => r.status === "Pending Approval", decide("reject")]]} /></>}
+    {canAging && <section className="panel list-panel"><div className="list-heading"><div><h2>Customer statement</h2><p>Invoices, receipts and approved credits with a running balance. Enter a customer id.</p></div></div>
+      <form className="form-grid" onSubmit={loadStatement}><Field label="Customer id"><input required value={statementCustomer} onChange={e => setStatementCustomer(e.target.value)} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Load statement</button></form>
+      {statement && <><div className="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th>Currency</th><th>Amount</th><th>Running balance</th></tr></thead>
+        <tbody>{statement.entries.map((e, i) => <tr key={i}><td>{e.date}</td><td>{e.type}</td><td>{cell(e.reference)}</td><td>{e.currency}</td><td>{e.amount}</td><td>{e.running_balance}</td></tr>)}</tbody></table></div>
+        {Object.entries(statement.closing_balance_by_currency || {}).map(([c, v]) => <div className="data-line" key={c}><span>Closing balance {c}</span><b>{v}</b></div>)}
+        <p>{statement.note}</p></>}</section>}
     <AgingTable report={aging} />
+  </div>;
+}
+
+/* ------------------------------------------------------------------ Receivables: debit notes, refunds and disputes */
+export function ReceivablesAdjustmentsPanel({ api, claims, connected }) {
+  const permissions = permissionsOf(claims);
+  const { error, notice, busy, run } = useActions();
+  const [reason, setReason] = useState("");
+  const [debit, setDebit] = useState({ invoice_id: "", amount: "", reason: "" });
+  const [refund, setRefund] = useState({ receipt_id: "", amount: "", reason: "" });
+  const [dispute, setDispute] = useState({ invoice_id: "", disputed_amount: "", reason: "" });
+  const [paymentRef, setPaymentRef] = useState("");
+  const [alloc, setAlloc] = useState({ receipt_id: "", invoice_id: "", amount: "" });
+  const on = p => connected && permissions.includes(p);
+  const debits = useList(api, "/api/v1/ar/debit-notes", on("ar:debit:read"));
+  const refunds = useList(api, "/api/v1/ar/refunds", on("ar:refund:read"));
+  const disputes = useList(api, "/api/v1/ar/disputes", on("ar:dispute:read"));
+  const post = (path, body) => api(path, { method: "POST", ...(body ? { body: JSON.stringify(body) } : {}) });
+  const needReason = () => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return reason.trim(); };
+  const submit = (event, path, body, message, reset, list) => { event.preventDefault(); run(() => post(path, body), message, async () => { reset(); await list.reload(); }); };
+  if (!on("ar:debit:read") && !on("ar:refund:read") && !on("ar:dispute:read") && !on("ar:receipt:allocate")) return null;
+  return <div className="admin-workspace"><Messages error={error} notice={notice} /><ReasonField value={reason} onChange={setReason} label="Reason or note for the next decision" />
+    {on("ar:receipt:allocate") && <section className="panel list-panel"><div className="list-heading"><div><h2>Allocate unapplied receipt</h2><p>Applies part of the unapplied amount of a recorded receipt to an open invoice of the same customer and currency.</p></div></div>
+      <form className="form-grid" onSubmit={e => { e.preventDefault(); run(() => post(`/api/v1/ar/receipts/${encodeURIComponent(alloc.receipt_id.trim())}/allocations`, { invoice_id: alloc.invoice_id.trim(), amount: alloc.amount }), "Receipt allocated.", () => setAlloc({ receipt_id: "", invoice_id: "", amount: "" })); }}>
+        <Field label="Receipt id"><input required value={alloc.receipt_id} onChange={e => setAlloc(f => ({ ...f, receipt_id: e.target.value }))} /></Field>
+        <Field label="Invoice id"><input required value={alloc.invoice_id} onChange={e => setAlloc(f => ({ ...f, invoice_id: e.target.value }))} /></Field>
+        <Field label="Amount"><input required inputMode="decimal" value={alloc.amount} onChange={e => setAlloc(f => ({ ...f, amount: e.target.value }))} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Allocate</button></form></section>}
+    {on("ar:debit:read") && <>
+      {on("ar:debit:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Debit note</h2><p>Adds a charge to an issued invoice once approved by someone other than the maker.</p></div></div>
+        <form className="form-grid" onSubmit={e => submit(e, "/api/v1/ar/debit-notes", debit, "Debit note submitted for independent approval.", () => setDebit({ invoice_id: "", amount: "", reason: "" }), debits)}>
+          <Field label="Invoice id"><input required value={debit.invoice_id} onChange={e => setDebit(f => ({ ...f, invoice_id: e.target.value }))} /></Field>
+          <Field label="Amount"><input required inputMode="decimal" value={debit.amount} onChange={e => setDebit(f => ({ ...f, amount: e.target.value }))} /></Field>
+          <Field label="Reason"><input required minLength={3} value={debit.reason} onChange={e => setDebit(f => ({ ...f, reason: e.target.value }))} /></Field>
+          <button className="btn btn-primary" disabled={busy}>Submit debit note</button></form></section>}
+      <RecordTable title="Debit notes" description="Pending debit notes need an independent decision." list={debits} permissions={permissions} busy={busy}
+        columns={[["Invoice", r => r.invoice_id], ["Amount", r => `${r.amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Maker", r => r.created_by]]}
+        actions={[["Approve", "ar:debit:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/debit-notes/${r.id}/review`, { decision: "approve", reason: needReason() }), "Decision recorded.", debits.reload)],
+          ["Reject", "ar:debit:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/debit-notes/${r.id}/review`, { decision: "reject", reason: needReason() }), "Decision recorded.", debits.reload)]]} /></>}
+    {on("ar:refund:read") && <>
+      {on("ar:refund:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Refund</h2><p>Returns the unapplied part of a recorded receipt. Approval and payout recording are separate people; ASAA does not initiate the payment.</p></div></div>
+        <form className="form-grid" onSubmit={e => submit(e, "/api/v1/ar/refunds", refund, "Refund requested for independent approval.", () => setRefund({ receipt_id: "", amount: "", reason: "" }), refunds)}>
+          <Field label="Receipt id"><input required value={refund.receipt_id} onChange={e => setRefund(f => ({ ...f, receipt_id: e.target.value }))} /></Field>
+          <Field label="Amount"><input required inputMode="decimal" value={refund.amount} onChange={e => setRefund(f => ({ ...f, amount: e.target.value }))} /></Field>
+          <Field label="Reason"><input required minLength={3} value={refund.reason} onChange={e => setRefund(f => ({ ...f, reason: e.target.value }))} /></Field>
+          <button className="btn btn-primary" disabled={busy}>Request refund</button></form></section>}
+      {on("ar:refund:record") && <Field label="Payment reference for recording a payout"><input value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="Bank or provider reference" /></Field>}
+      <RecordTable title="Refunds" description="Pending Approval, then Approved, then Refunded once the payout is recorded." list={refunds} permissions={permissions} busy={busy}
+        columns={[["Receipt", r => r.receipt_id], ["Amount", r => `${r.amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Reference", r => r.payment_reference]]}
+        actions={[["Approve", "ar:refund:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/refunds/${r.id}/review`, { decision: "approve", reason: needReason() }), "Decision recorded.", refunds.reload)],
+          ["Reject", "ar:refund:approve", r => r.status === "Pending Approval", r => run(() => post(`/api/v1/ar/refunds/${r.id}/review`, { decision: "reject", reason: needReason() }), "Decision recorded.", refunds.reload)],
+          ["Record payout", "ar:refund:record", r => r.status === "Approved", r => run(() => { if (!paymentRef.trim()) throw new Error("Enter the payment reference first."); return post(`/api/v1/ar/refunds/${r.id}/record-payment`, { payment_reference: paymentRef.trim() }); }, "Payout recorded.", refunds.reload)]]} /></>}
+    {on("ar:dispute:read") && <>
+      {on("ar:dispute:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Dispute</h2><p>Records a customer dispute of an invoice. Resolving it never changes a balance; issue a credit note to correct one.</p></div></div>
+        <form className="form-grid" onSubmit={e => submit(e, "/api/v1/ar/disputes", dispute, "Dispute recorded.", () => setDispute({ invoice_id: "", disputed_amount: "", reason: "" }), disputes)}>
+          <Field label="Invoice id"><input required value={dispute.invoice_id} onChange={e => setDispute(f => ({ ...f, invoice_id: e.target.value }))} /></Field>
+          <Field label="Disputed amount"><input required inputMode="decimal" value={dispute.disputed_amount} onChange={e => setDispute(f => ({ ...f, disputed_amount: e.target.value }))} /></Field>
+          <Field label="Reason"><input required minLength={3} value={dispute.reason} onChange={e => setDispute(f => ({ ...f, reason: e.target.value }))} /></Field>
+          <button className="btn btn-primary" disabled={busy}>Record dispute</button></form></section>}
+      <RecordTable title="Disputes" description="An open dispute is resolved by someone other than the person who raised it." list={disputes} permissions={permissions} busy={busy}
+        columns={[["Invoice", r => r.invoice_id], ["Disputed", r => `${r.disputed_amount} ${r.currency}`], ["Reason", r => r.reason], ["Status", r => r.status], ["Raised by", r => r.created_by]]}
+        actions={[["Uphold", "ar:dispute:resolve", r => r.status === "Open", r => run(() => post(`/api/v1/ar/disputes/${r.id}/resolve`, { outcome: "Upheld", note: needReason() }), "Dispute resolved.", disputes.reload)],
+          ["Reject", "ar:dispute:resolve", r => r.status === "Open", r => run(() => post(`/api/v1/ar/disputes/${r.id}/resolve`, { outcome: "Rejected", note: needReason() }), "Dispute resolved.", disputes.reload)],
+          ["Withdraw", "ar:dispute:write", r => r.status === "Open", r => run(() => post(`/api/v1/ar/disputes/${r.id}/withdraw`), "Dispute withdrawn.", disputes.reload)]]} /></>}
   </div>;
 }
 
@@ -190,8 +264,25 @@ export function AttendancePanel({ api, claims, connected }) {
   const range = `date_from=${plusDays(-30)}&date_to=${today()}`;
   const canRecords = connected && permissions.includes("attendance:record:read");
   const records = useList(api, `/api/v1/attendance/records?${range}`, canRecords);
+  const [summaryRange, setSummaryRange] = useState({ date_from: plusDays(-30), date_to: today() });
+  const [summary, setSummary] = useState({ data: null, error: "" });
+  const loadSummary = async event => {
+    event?.preventDefault();
+    setSummary({ data: null, error: "" });
+    try { setSummary({ data: await api(`/api/v1/attendance/summary?date_from=${summaryRange.date_from}&date_to=${summaryRange.date_to}`), error: "" }); }
+    catch (e) { setSummary({ data: null, error: e.message || "Could not load the summary." }); }
+  };
   const corrections = useList(api, "/api/v1/attendance/corrections", connected && permissions.includes("attendance:correction:read"));
   const shifts = useList(api, "/api/v1/attendance/shifts", connected && permissions.includes("attendance:shift:read"));
+  const canRoster = connected && permissions.includes("attendance:roster:read");
+  const roster = useList(api, `/api/v1/attendance/roster?date_from=${today()}&date_to=${plusDays(30)}`, canRoster);
+  const canHolidays = connected && permissions.includes("attendance:holiday:read");
+  const holidays = useList(api, `/api/v1/attendance/holidays?year=${new Date().getFullYear()}`, canHolidays);
+  const [assign, setAssign] = useState({ employee_id: "", shift_id: "", work_date: today() });
+  const [holiday, setHoliday] = useState({ holiday_date: today(), name: "", optional: false });
+  const sendJson = (method, path, body) => api(path, { method, body: JSON.stringify(body) });
+  const assignRoster = event => { event.preventDefault(); run(() => sendJson("PUT", "/api/v1/attendance/roster", assign), "Roster assignment saved.", roster.reload); };
+  const addHoliday = event => { event.preventDefault(); run(() => sendJson("POST", "/api/v1/attendance/holidays", holiday), "Holiday added.", async () => { setHoliday(h => ({ ...h, name: "" })); await holidays.reload(); }); };
   const post = (path, body) => api(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
   const reloadAll = async () => { await Promise.all([records.reload(), corrections.reload()]); };
   const decide = (base, decision) => row => run(() => { if (reason.trim().length < 3) throw new Error("Enter a reason first."); return post(`${base}/${row.id}/${base.endsWith("records") ? "overtime-review" : "review"}`, { decision, reason: reason.trim() }); }, "Decision recorded.", reloadAll);
@@ -207,7 +298,7 @@ export function AttendancePanel({ api, claims, connected }) {
   useEffect(() => { loadPolicy(); }, [loadPolicy]);
   const savePolicy = event => { event.preventDefault(); run(() => api("/api/v1/attendance/policy", { method: "PUT", body: JSON.stringify({ overtime_threshold_minutes: threshold === "" ? null : Number(threshold) }) }), "Policy saved as Pending Approval. It is not applied until someone else approves it.", loadPolicy); };
   if (!connected) return null;
-  if (!canRecords && !canPolicy && !permissions.includes("attendance:clock") && !permissions.includes("attendance:shift:read")) return null;
+  if (!canRecords && !canPolicy && !canRoster && !canHolidays && !permissions.includes("attendance:clock") && !permissions.includes("attendance:shift:read")) return null;
   return <div className="admin-workspace"><Messages error={error} notice={notice} />
     {canPolicy && <section className="panel list-panel"><div className="list-heading"><div><h2>Attendance policy</h2><p>The overtime threshold is an owner value. Overtime is not computed until a policy is approved by someone other than its maker. The company time zone is set on the organization profile; clock-in is refused until it is set.</p></div></div>
       <div className="data-line"><span>Status</span><b>{policy?.status ?? "-"}</b></div>
@@ -221,6 +312,16 @@ export function AttendancePanel({ api, claims, connected }) {
     {canRecords && <RecordTable title="Attendance records (last 30 days)" description="Overtime is computed only when an owner-approved attendance policy exists." list={records} permissions={permissions} busy={busy}
       columns={[["Date", r => r.work_date], ["Employee", r => r.employee_id], ["In", r => r.clock_in], ["Out", r => r.clock_out], ["Worked (min)", r => r.worked_minutes], ["Overtime (min)", r => r.overtime_minutes], ["Overtime status", r => r.overtime_status]]}
       actions={[["Approve overtime", "attendance:overtime:review", r => r.overtime_status === "Pending", decide("/api/v1/attendance/records", "approve")], ["Reject overtime", "attendance:overtime:review", r => r.overtime_status === "Pending", decide("/api/v1/attendance/records", "reject")]]} />}
+    {canRecords && <section className="panel list-panel"><div className="list-heading"><div><h2>Attendance summary</h2><p>Per employee worked minutes, rostered days, days without attendance (approved leave and holidays excluded) and overtime. Ranges up to 92 days.</p></div></div>
+      <form className="form-grid" onSubmit={loadSummary}>
+        <Field label="From"><input required type="date" value={summaryRange.date_from} onChange={e => setSummaryRange(r => ({ ...r, date_from: e.target.value }))} /></Field>
+        <Field label="To"><input required type="date" value={summaryRange.date_to} onChange={e => setSummaryRange(r => ({ ...r, date_to: e.target.value }))} /></Field>
+        <button className="btn btn-primary">Show summary</button></form>
+      {summary.error && <div className="notice" role="alert">{summary.error}</div>}
+      {summary.data && <><small className="field-help">Overtime policy: {summary.data.overtime_policy || "not configured"}. {summary.data.organization_timezone_configured ? "" : "Organization time zone is not configured, so days without attendance are not judged."}</small>
+        {!summary.data.employees.length ? <div className="admin-empty"><b>No attendance or roster data</b><span>Nothing in this range.</span></div>
+          : <div className="table-wrap"><table><thead><tr><th>Employee</th><th>Worked (min)</th><th>Rostered days</th><th>Days without attendance</th><th>Open records</th><th>Overtime pending (min)</th><th>Overtime approved (min)</th></tr></thead>
+            <tbody>{summary.data.employees.map(e => <tr key={e.employee_id}><td>{e.employee_id}</td><td>{e.worked_minutes}</td><td>{e.rostered_days}</td><td>{e.days_without_attendance}</td><td>{e.open_records}</td><td>{e.overtime_pending_minutes}</td><td>{e.overtime_approved_minutes}</td></tr>)}</tbody></table></div>}</>}</section>}
     {permissions.includes("attendance:correction:request") && <section className="panel list-panel"><div className="list-heading"><div><h2>Request a correction</h2><p>Missed or wrong clock times need an independent reviewer.</p></div></div>
       <form className="form-grid" onSubmit={requestCorrection}>
         <Field label="Work date"><input required type="date" value={correction.work_date} onChange={e => setCorrection(c => ({ ...c, work_date: e.target.value }))} /></Field>
@@ -233,6 +334,24 @@ export function AttendancePanel({ api, claims, connected }) {
       actions={[["Approve", "attendance:correction:review", r => r.status === "Pending", decide("/api/v1/attendance/corrections", "approve")], ["Reject", "attendance:correction:review", r => r.status === "Pending", decide("/api/v1/attendance/corrections", "reject")]]} />}
     {permissions.includes("attendance:shift:read") && <RecordTable title="Shifts" description="Shift definitions used by the roster." list={shifts} permissions={permissions} busy={busy}
       columns={[["Code", r => r.code], ["Name", r => r.name], ["Start", r => r.start_time], ["End", r => r.end_time], ["Break (min)", r => r.break_minutes], ["Arrangement", r => r.work_arrangement], ["Status", r => r.status]]} />}
+    {permissions.includes("attendance:roster:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Assign a shift</h2><p>One shift per employee per day. Refused for approved leave and non-optional holidays.</p></div></div>
+      <form className="form-grid" onSubmit={assignRoster}>
+        <Field label="Employee id"><input required value={assign.employee_id} onChange={e => setAssign(a => ({ ...a, employee_id: e.target.value }))} /></Field>
+        <Field label="Shift id"><input required value={assign.shift_id} onChange={e => setAssign(a => ({ ...a, shift_id: e.target.value }))} /></Field>
+        <Field label="Work date"><input required type="date" value={assign.work_date} onChange={e => setAssign(a => ({ ...a, work_date: e.target.value }))} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Assign</button></form></section>}
+    {canRoster && <RecordTable title="Roster (next 30 days)" description="Published shift assignments." list={roster} permissions={permissions} busy={busy}
+      columns={[["Date", r => r.work_date], ["Employee", r => r.employee_id], ["Shift", r => r.shift_id]]}
+      actions={[["Remove", "attendance:roster:write", () => true, r => run(() => api(`/api/v1/attendance/roster/${r.id}`, { method: "DELETE" }), "Assignment removed.", roster.reload)]]} />}
+    {permissions.includes("attendance:holiday:write") && <section className="panel list-panel"><div className="list-heading"><div><h2>Add a holiday</h2><p>Non-optional holidays block roster assignments.</p></div></div>
+      <form className="form-grid" onSubmit={addHoliday}>
+        <Field label="Date"><input required type="date" value={holiday.holiday_date} onChange={e => setHoliday(h => ({ ...h, holiday_date: e.target.value }))} /></Field>
+        <Field label="Name"><input required minLength={2} value={holiday.name} onChange={e => setHoliday(h => ({ ...h, name: e.target.value }))} /></Field>
+        <Field label="Optional holiday"><input type="checkbox" checked={holiday.optional} onChange={e => setHoliday(h => ({ ...h, optional: e.target.checked }))} /></Field>
+        <button className="btn btn-primary" disabled={busy}>Add holiday</button></form></section>}
+    {canHolidays && <RecordTable title="Holidays (this year)" description="Holiday calendar." list={holidays} permissions={permissions} busy={busy}
+      columns={[["Date", r => r.holiday_date], ["Name", r => r.name], ["Optional", r => (r.optional ? "Yes" : "No")]]}
+      actions={[["Delete", "attendance:holiday:write", () => true, r => run(() => api(`/api/v1/attendance/holidays/${r.id}`, { method: "DELETE" }), "Holiday deleted.", holidays.reload)]]} />}
   </div>;
 }
 
@@ -323,20 +442,36 @@ export function AnalyticsPanel({ api, claims, connected }) {
   const permissions = permissionsOf(claims);
   const analytics = connected && permissions.includes("report:analytics:read");
   const lineage = connected && permissions.includes("report:lineage:read");
-  const [state, setState] = useState({ capital: null, cycles: null, freshness: null, error: "" });
+  const [state, setState] = useState({ capital: null, cycles: null, freshness: null, lineageMap: null, error: "" });
+  const [trend, setTrend] = useState({ dataset: "", grain: "month", result: null, error: "" });
+  const loadTrend = async event => {
+    event.preventDefault();
+    setTrend(t => ({ ...t, result: null, error: "" }));
+    try { const result = await api(`/api/v1/reports/analytics/trends?dataset=${encodeURIComponent(trend.dataset.trim())}&grain=${trend.grain}`); setTrend(t => ({ ...t, result })); }
+    catch (e) { setTrend(t => ({ ...t, error: e.message || "Could not load the trend." })); }
+  };
   const load = useCallback(async () => {
     try {
-      const [capital, cycles, freshness] = await Promise.all([
+      const [capital, cycles, freshness, lineageMap] = await Promise.all([
         analytics ? api("/api/v1/reports/analytics/working-capital-position") : null,
         analytics ? api("/api/v1/reports/analytics/review-cycle-times") : null,
-        lineage ? api("/api/v1/reports/freshness") : null]);
-      setState({ capital, cycles, freshness, error: "" });
+        lineage ? api("/api/v1/reports/freshness") : null,
+        lineage ? api("/api/v1/reports/lineage") : null]);
+      setState({ capital, cycles, freshness, lineageMap, error: "" });
     } catch (e) { setState(s => ({ ...s, error: e.message || "Could not load analytics." })); }
   }, [api, analytics, lineage]);
   useEffect(() => { if (analytics || lineage) load(); }, [load, analytics, lineage]);
   if (!analytics && !lineage) return null;
-  const { capital, cycles, freshness, error } = state;
+  const { capital, cycles, freshness, lineageMap, error } = state;
   return <div className="admin-workspace"><Messages error={error} />
+    {analytics && <section className="panel list-panel"><div className="list-heading"><div><h2>Trends</h2><p>Records created per period for one dataset. Only periods with records appear.</p></div></div>
+      <form className="form-grid" onSubmit={loadTrend}>
+        <Field label="Dataset"><input required list="trend-datasets" pattern="[a-z_]{3,40}" value={trend.dataset} onChange={e => setTrend(t => ({ ...t, dataset: e.target.value }))} /></Field>
+        <datalist id="trend-datasets">{(freshness?.datasets || []).map(d => <option key={d.dataset} value={d.dataset} />)}</datalist>
+        <Field label="Grain"><select value={trend.grain} onChange={e => setTrend(t => ({ ...t, grain: e.target.value }))}><option value="month">Month</option><option value="week">Week</option></select></Field>
+        <button className="btn btn-primary">Show trend</button></form>
+      {trend.error && <div className="notice" role="alert">{trend.error}</div>}
+      {trend.result && <div className="table-wrap"><table><thead><tr><th>Period</th><th>Records</th></tr></thead><tbody>{trend.result.series.map(r => <tr key={r.period}><td>{r.period}</td><td>{r.records}</td></tr>)}</tbody></table></div>}</section>}
     {capital && <section className="panel list-panel"><div className="list-heading"><div><h2>Working-capital position</h2><p>Receivables outstanding versus approved unpaid payables, per currency. Derived from records; not a cash balance.</p></div>
       <button className="btn btn-quiet" onClick={load}><RefreshCw size={14} />Refresh</button></div>
       <div className="table-wrap"><table><thead><tr><th>Currency</th><th>Receivables</th><th>Payables</th><th>Net</th></tr></thead><tbody>{Object.entries(capital.by_currency || {}).map(([c, v]) => <tr key={c}><td>{c}</td><td>{v.receivables_outstanding}</td><td>{v.payables_approved_unpaid}</td><td>{v.net}</td></tr>)}</tbody></table></div></section>}
@@ -344,5 +479,7 @@ export function AnalyticsPanel({ api, claims, connected }) {
       <div className="table-wrap"><table><thead><tr><th>Dataset</th><th>Reviewed</th><th>Mean (h)</th><th>Median (h)</th><th>Longest (h)</th></tr></thead><tbody>{Object.entries(cycles.cycle_times || {}).map(([n, v]) => <tr key={n}><td>{n}</td><td>{v.reviewed_records}</td><td>{cell(v.mean_hours)}</td><td>{cell(v.median_hours)}</td><td>{cell(v.longest_hours)}</td></tr>)}</tbody></table></div></section>}
     {freshness && <section className="panel list-panel"><div className="list-heading"><div><h2>Data freshness and lineage</h2><p>{freshness.note}</p></div></div>
       <div className="table-wrap"><table><thead><tr><th>Dataset</th><th>Owner module</th><th>Records</th><th>Newest record</th><th>Age (h)</th></tr></thead><tbody>{(freshness.datasets || []).map(d => <tr key={d.dataset}><td>{d.dataset}</td><td>{d.owner_module}</td><td>{d.record_count}</td><td>{cell(d.newest_record_at)}</td><td>{cell(d.age_hours)}</td></tr>)}</tbody></table></div></section>}
+    {lineageMap && <section className="panel list-panel"><div className="list-heading"><div><h2>Report lineage</h2><p>Which datasets each report reads. Datasets you may not read are counted, not named.</p></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Report</th><th>Datasets read</th><th>Hidden datasets</th></tr></thead><tbody>{Object.entries(lineageMap.reports || {}).map(([r, v]) => <tr key={r}><td>{r}</td><td>{(v.datasets || []).join(", ") || "-"}</td><td>{v.hidden_dataset_count}</td></tr>)}</tbody></table></div></section>}
   </div>;
 }

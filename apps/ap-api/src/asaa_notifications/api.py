@@ -127,6 +127,9 @@ def retry(message_id: str, db: Db, principal: Annotated[Principal, Depends(requi
     message = service.retry_dead_letter(db, principal.organization_id, message_id)
     if message is None:
         raise HTTPException(status_code=404, detail="Dead-letter message not found")
+    db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action="notification.dead_letter_retried",
+                      entity_type="notification_message", entity_id=message.id, details={"template": message.template_code}))
+    db.commit()
     return dump(message)
 
 
@@ -148,5 +151,7 @@ def set_my_preference(payload: PreferenceWrite, db: Db, principal: Annotated[Pri
         db.add(pref)
     pref.enabled = payload.enabled
     pref.updated_at = service.utcnow()
+    db.add(AuditEvent(organization_id=principal.organization_id, actor_id=principal.subject, action="notification_preference.changed",
+                      entity_type="notification_preference", entity_id=payload.channel, details={"channel": payload.channel, "enabled": payload.enabled}))
     db.commit()
     return {"channel": payload.channel, "enabled": pref.enabled}

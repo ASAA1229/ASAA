@@ -628,3 +628,76 @@ def test_payroll_run_rejects_duplicate_employee_entries(client):
     assert duplicate.status_code == 409
     assert duplicate.json()["detail"]["code"] == "payroll_employee_entry_exists"
     assert duplicate.json()["detail"]["existing_entry_id"] == first.json()["id"]
+
+
+def test_payroll_calculation_is_refused_until_owner_rules_are_approved(client):
+    period = client.post("/api/v1/payroll/periods", json={"period_code": "2027-01-CALC", "start_date": "2027-01-01", "end_date": "2027-01-31"})
+    run = client.post("/api/v1/payroll/runs", json={"period_id": period.json()["id"], "run_code": "2027-01-CALC-01", "currency": "INR"})
+    refused = client.post(f"/api/v1/payroll/runs/{run.json()['id']}/calculate")
+    assert refused.status_code == 409
+    assert refused.json()["detail"]["code"] == "policy_not_configured" and refused.json()["detail"]["policy"] == "payroll_calculation_rules"
+    assert client.post("/api/v1/payroll/runs/missing/calculate").status_code == 404
+
+
+def test_payroll_entry_source_references_must_be_approved_same_employee_same_org(client):
+    from datetime import date, datetime, timezone
+    from asaa_attendance.models import AttendanceRecord
+    from asaa_identity.models import IdentitySubjectLink
+    from asaa_people.models import LeaveRequest
+    from asaa_workforce_finance.models import Timesheet
+    from tests.integration_support import db_of
+    employee = create_employee(client)
+    other = client.post("/api/v1/hr/employees", json={"employee_code": "E-002", "first_name": "Ravi", "last_name": "Iyer", "work_email": "ravi@example.invalid",
+                                                       "employment_type": "Employee", "hire_date": "2026-11-01"}).json()
+    db = db_of(client)
+
+    def leave(emp, status, org="org-a"):
+        row = LeaveRequest(organization_id=org, employee_id=emp, leave_category="annual", start_date=date(2026, 12, 1), end_date=date(2026, 12, 2), status=status, created_by="x")
+        db.add(row); db.commit(); return row.id
+    ok_leave, pending_leave, others_leave = leave(employee["id"], "Approved"), leave(employee["id"], "Submitted"), leave(other["id"], "Approved")
+    db.add(IdentitySubjectLink(organization_id="org-a", employee_id=employee["id"], subject="emp-subject", created_by="x"))
+    sheet = Timesheet(organization_id="org-a", employee_subject="emp-subject", period_start=date(2026, 12, 1), period_end=date(2026, 12, 7), status="Approved", created_by="x")
+    foreign_sheet = Timesheet(organization_id="org-b", employee_subject="emp-subject", period_start=date(2026, 12, 1), period_end=date(2026, 12, 7), status="Approved", created_by="x")
+    open_attendance = AttendanceRecord(organization_id="org-a", employee_id=employee["id"], work_date=date(2026, 12, 1), clock_in=datetime(2026, 12, 1, 9, tzinfo=timezone.utc))
+    db.add_all([sheet, foreign_sheet, open_attendance]); db.commit()
+    period = client.post("/api/v1/payroll/periods", json={"period_code": "2026-12-LIN", "start_date": "2026-12-01", "end_date": "2026-12-31"}).json()
+    run = client.post("/api/v1/payroll/runs", json={"period_id": period["id"], "run_code": "2026-12-LIN-01", "currency": "INR"}).json()
+    url = f"/api/v1/payroll/runs/{run['id']}/entries"
+    body = {"employee_id": employee["id"], "currency": "INR", "gross_amount": "100.00", "deduction_total": "0.00", "net_amount": "100.00"}
+    for bad in ({"type": "leave", "id": pending_leave}, {"type": "leave", "id": others_leave}, {"type": "timesheet", "id": foreign_sheet.id},
+                {"type": "attendance", "id": open_attendance.id}, {"type": "leave", "id": "missing"}):
+        refused = client.post(url, json=dict(body, source_references=[bad]))
+        assert refused.status_code == 409 and refused.json()["detail"]["code"] == "payroll_source_not_valid", bad
+    created = client.post(url, json=dict(body, source_references=[{"type": "leave", "id": ok_leave}, {"type": "timesheet", "id": sheet.id}]))
+    assert created.status_code == 201
+    assert created.json()["source_references"] == [{"type": "leave", "id": ok_leave}, {"type": "timesheet", "id": sheet.id}]
+
+
+def test_workforce_changes_queue_provider_convergence_for_linked_accounts_only(client):
+    from sqlalchemy import select
+    from asaa_ap.models import AuditEvent
+    from asaa_identity.models import IdentitySubjectLink, IdentitySyncJob
+    from tests.integration_support import db_of
+    linked, unlinked = create_employee(client), client.post("/api/v1/hr/employees", json={"employee_code": "E-009", "first_name": "Uma", "last_name": "Nair", "employment_type": "Employee"}).json()
+    db = db_of(client)
+    db.add(IdentitySubjectLink(organization_id="org-a", employee_id=linked["id"], subject="linked-subject", created_by="x"))
+    db.commit()
+
+    def jobs():
+        db.expire_all()
+        return [(j.operation, j.reason) for j in db.scalars(select(IdentitySyncJob).order_by(IdentitySyncJob.requested_at)).all()]
+    day = lambda n: (date.today() - timedelta(days=n)).isoformat()
+    assert client.post(f"/api/v1/hr/employees/{unlinked['id']}/lifecycle", json={"status": "Active", "effective_from": day(10), "reason": "start"}).status_code == 201
+    assert jobs() == []  # no linked account, nothing to converge
+    assert client.post(f"/api/v1/hr/employees/{linked['id']}/lifecycle", json={"status": "Active", "effective_from": day(10), "reason": "start"}).status_code == 201
+    assert jobs() == [("mover", "lifecycle_changed")]  # Preboarding is already active-class: the account exists, so converge attributes only
+    # a transfer / role change takes effect now: mover; a suspension is a mover whose level-triggered job disables the account
+    moved = client.post(f"/api/v1/hr/employees/{linked['id']}/employment-records", json={"position_title": "Senior Analyst", "employment_type": "Employee", "status": "Active", "effective_from": day(5)})
+    assert moved.status_code == 201
+    assert jobs() == [("mover", "lifecycle_changed")]  # pending mover work is de-duplicated; the change is still audited below
+    assert client.post(f"/api/v1/hr/employees/{linked['id']}/lifecycle", json={"status": "Suspended", "effective_from": day(2), "reason": "case"}).status_code == 201
+    assert jobs() == [("mover", "lifecycle_changed")]
+    assert client.post(f"/api/v1/hr/employees/{linked['id']}/lifecycle", json={"status": "Active", "effective_from": day(1), "reason": "cleared"}).status_code == 201
+    assert jobs()[-1] == ("joiner", "lifecycle_changed")  # reactivation is a joiner: the only operation allowed to re-enable a disabled account
+    audited = [a.details["trigger"] for a in db.scalars(select(AuditEvent).where(AuditEvent.action == "employee.identity_sync_requested")).all()]
+    assert audited.count("lifecycle_changed") == 3 and audited.count("employment_record_changed") == 1

@@ -26,6 +26,21 @@ def owned_timesheet(db, timesheet_id, org):
         raise HTTPException(status_code=404, detail="Timesheet not found")
     return row
 
+def check_timesheet_rules(db, org, subject, start, end, entries, exclude_id=None):
+    """Duplicate entries (same date, project and task) are rejected, and an employee may not hold two non-rejected timesheets with overlapping periods."""
+    seen = set()
+    for e in entries:
+        key = (e.work_date, (e.project_reference or "").strip().lower(), (e.task_reference or "").strip().lower())
+        if key in seen:
+            raise HTTPException(status_code=409, detail={"code": "duplicate_time_entry", "work_date": e.work_date.isoformat()})
+        seen.add(key)
+    stmt = select(Timesheet.id).where(Timesheet.organization_id == org, Timesheet.employee_subject == subject, Timesheet.status != "Rejected",
+                                      Timesheet.period_start <= end, Timesheet.period_end >= start)
+    if exclude_id:
+        stmt = stmt.where(Timesheet.id != exclude_id)
+    if db.scalar(stmt.limit(1)):
+        raise HTTPException(status_code=409, detail={"code": "timesheet_period_overlap"})
+
 def owned_expense(db, claim_id, org):
     row = db.scalar(select(ExpenseClaim).where(ExpenseClaim.id == claim_id, ExpenseClaim.organization_id == org))
     if not row:
@@ -36,6 +51,7 @@ def owned_expense(db, claim_id, org):
 def create_timesheet(payload: TimesheetCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("tms:timesheet:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
+    check_timesheet_rules(db, principal.organization_id, principal.subject, payload.period_start, payload.period_end, payload.entries)
     row = Timesheet(organization_id=principal.organization_id, employee_subject=principal.subject,
         employee_reference=payload.employee_reference, period_start=payload.period_start,
         period_end=payload.period_end, status="Draft",
@@ -228,6 +244,7 @@ def update_timesheet(timesheet_id: str, payload: TimesheetUpdate, db: Db, princi
         raise HTTPException(status_code=409, detail="Only the owner can edit a Draft or Rejected timesheet")
     if row.version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"code": "version_conflict", "current_version": row.version})
+    check_timesheet_rules(db, principal.organization_id, principal.subject, payload.period_start, payload.period_end, payload.entries, exclude_id=row.id)
     db.query(TimeEntry).filter(TimeEntry.timesheet_id == row.id).delete(synchronize_session=False)
     for entry in payload.entries:
         db.add(TimeEntry(organization_id=principal.organization_id, timesheet_id=row.id, work_date=entry.work_date, project_reference=entry.project_reference,

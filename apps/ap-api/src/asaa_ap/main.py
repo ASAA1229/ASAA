@@ -10,9 +10,11 @@ from asaa_ap.api import router as ap_router
 from asaa_ap.purchase_requests import router as purchase_requests_router
 from asaa_ap.ar_api import router as ar_router
 from asaa_ap.ar_credit import router as ar_credit_router
+from asaa_ap.ar_adjustments import router as ar_adjustments_router
 from asaa_people.api import hr_router, onboarding_router, payroll_router
 from asaa_people.lifecycle import router as hr_lifecycle_router
 from asaa_people.workflows import router as people_workflows_router
+from asaa_people.payroll_rules import router as payroll_rules_router
 from asaa_payables.api import router as payables_router
 from asaa_attendance.api import router as attendance_router
 from asaa_delivery.api import router as delivery_router
@@ -25,6 +27,7 @@ from asaa_governance.api import router as master_data_router
 from asaa_governance.authority import router as governance_router
 from asaa_governance.administration import router as administration_router
 from asaa_governance.authorization import router as authorization_router
+from asaa_governance.scope import router as authorization_scope_router
 from asaa_workforce_finance.api import router as workforce_finance_router
 from asaa_identity.api import router as identity_sync_router
 from asaa_notifications.api import router as notifications_router
@@ -45,9 +48,12 @@ configure_logging(settings.log_level)
 logger = logging.getLogger("asaa.api")
 # Interactive API docs and the OpenAPI document are disabled in production (docs/SECURITY.md section 8).
 _production = settings.environment == "production"
+# Swagger sign-in: a public PKCE client (no secret) when the docs OIDC settings are present; otherwise the Authorize dialog takes a pasted bearer token.
+_docs_oauth = ({"clientId": settings.docs_oidc_client_id, "usePkceWithAuthorizationCodeGrant": True, "scopes": "openid"}
+               if settings.docs_oidc_client_id and settings.docs_oidc_authorization_url and settings.docs_oidc_token_url and not _production else None)
 app = FastAPI(title=settings.app_name, version="0.4.0",
               docs_url=None if _production else "/docs", redoc_url=None if _production else "/redoc",
-              openapi_url=None if _production else "/openapi.json")
+              openapi_url=None if _production else "/openapi.json", swagger_ui_init_oauth=_docs_oauth)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -65,15 +71,18 @@ app.include_router(attendance_router)
 app.include_router(delivery_router)
 app.include_router(ar_router)
 app.include_router(ar_credit_router)
+app.include_router(ar_adjustments_router)
 app.include_router(hr_router)
 app.include_router(hr_lifecycle_router)
 app.include_router(onboarding_router)
 app.include_router(payroll_router)
 app.include_router(people_workflows_router)
+app.include_router(payroll_rules_router)
 app.include_router(master_data_router)
 app.include_router(governance_router)
 app.include_router(administration_router)
 app.include_router(authorization_router)
+app.include_router(authorization_scope_router)
 app.include_router(workforce_finance_router)
 app.include_router(identity_sync_router)
 app.include_router(notifications_router)

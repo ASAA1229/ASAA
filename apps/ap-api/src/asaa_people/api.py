@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
+from asaa_governance.scope import AccessScope, require_scoped_permission
+from asaa_people.scoping import employee_clause, payroll_entry_clause
 from asaa_people.models import (
     Employee, EmploymentRecord, OnboardingTemplate, OnboardingTaskTemplate,
     OnboardingAssignment, OnboardingTask, CompensationRecord, PayrollPeriod,
@@ -40,10 +42,12 @@ def view(row):
     return {key: value for key, value in row.__dict__.items() if not key.startswith("_")}
 
 
-def employee_or_404(db: Session, employee_id: str, org_id: str):
-    row = db.scalar(select(Employee).where(
-        Employee.id == employee_id, Employee.organization_id == org_id
-    ))
+def employee_or_404(db: Session, employee_id: str, org_id: str, scope: AccessScope | None = None):
+    """Org-scoped lookup; with a data scope, an employee outside it is reported as not found (existence does not leak)."""
+    stmt = select(Employee).where(Employee.id == employee_id, Employee.organization_id == org_id)
+    if scope is not None:
+        stmt = stmt.where(employee_clause(scope, org_id))
+    row = db.scalar(stmt)
     if not row:
         raise HTTPException(status_code=404, detail="Employee not found")
     return row
@@ -52,7 +56,9 @@ def employee_or_404(db: Session, employee_id: str, org_id: str):
 @hr_router.post("/employees", status_code=201)
 def create_employee(payload: EmployeeCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("hr:employee:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
+    scope.require_unrestricted()  # a new employee has no unit yet, so it cannot be placed inside a restricted scope
     if payload.employee_code:
         duplicate = db.scalar(select(Employee.id).where(
             Employee.organization_id == principal.organization_id,
@@ -76,9 +82,10 @@ def create_employee(payload: EmployeeCreate, db: Db,
 @hr_router.get("/employees")
 def list_employees(db: Db,
     principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:read"))],
     status: str | None = None, limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0)):
-    stmt = select(Employee).where(Employee.organization_id == principal.organization_id)
+    stmt = select(Employee).where(Employee.organization_id == principal.organization_id, employee_clause(scope, principal.organization_id))
     if status:
         stmt = stmt.where(Employee.status == status)
     rows = db.scalars(stmt.order_by(Employee.created_at.desc()).offset(offset).limit(limit)).all()
@@ -87,16 +94,20 @@ def list_employees(db: Db,
 
 @hr_router.get("/employees/{employee_id}")
 def get_employee(employee_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))]):
-    return view(employee_or_404(db, employee_id, principal.organization_id))
+    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:read"))]):
+    return view(employee_or_404(db, employee_id, principal.organization_id, scope))
 
 
 @hr_router.post("/employees/{employee_id}/employment-records", status_code=201)
 def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("hr:employment:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employment:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
-    employee = employee_or_404(db, employee_id, principal.organization_id)
+    employee = employee_or_404(db, employee_id, principal.organization_id, scope)
     require_department(db, principal.organization_id, payload.department_id)
+    if payload.department_id is not None and not scope.allows_unit(payload.department_id):
+        raise HTTPException(status_code=403, detail={"code": "authorization_out_of_scope"})  # cannot move someone into a unit outside your scope
     if payload.manager_employee_id:
         if payload.manager_employee_id == employee_id:
             raise HTTPException(status_code=422, detail={"code": "employee_cannot_manage_self"})
@@ -116,15 +127,21 @@ def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db:
         organization_id=principal.organization_id, employee_id=employee_id,
         created_by=principal.subject, **payload.model_dump(),
     )
-    if payload.effective_from <= date.today() and (
-        payload.effective_to is None or payload.effective_to >= date.today()
-    ):
+    previous_status = employee.status
+    takes_effect_now = payload.effective_from <= date.today() and (payload.effective_to is None or payload.effective_to >= date.today())
+    if takes_effect_now:
         employee.status = payload.status
         employee.employment_type = payload.employment_type
     db.add(row)
     db.flush()
     audit(db, principal, "employment_record.created", "hr_employment_record", row.id,
           {"effective_from": payload.effective_from.isoformat(), "status": payload.status}, x_correlation_id)
+    if takes_effect_now:  # transfer, role/manager or status change: converge the linked provider account (mover/joiner) in the same transaction
+        from asaa_identity.service import enqueue_for_employee_change
+        job = enqueue_for_employee_change(db, principal.organization_id, employee.id, previous_status, employee.status, "employment_record_changed", principal.subject)
+        if job:
+            audit(db, principal, "employee.identity_sync_requested", "hr_employee", employee.id,
+                  {"operation": job.operation, "job_id": job.id, "trigger": "employment_record_changed"}, x_correlation_id)
     db.commit()
     db.refresh(row)
     return view(row)
@@ -132,8 +149,9 @@ def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db:
 
 @hr_router.get("/employees/{employee_id}/employment-records")
 def employment_history(employee_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))]):
-    employee_or_404(db, employee_id, principal.organization_id)
+    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:read"))]):
+    employee_or_404(db, employee_id, principal.organization_id, scope)
     rows = db.scalars(select(EmploymentRecord).where(
         EmploymentRecord.organization_id == principal.organization_id,
         EmploymentRecord.employee_id == employee_id
@@ -478,9 +496,39 @@ def list_payroll_runs(db: Db,
     return [view(row) for row in rows]
 
 
+def validate_source_references(db: Session, org: str, employee_id: str, refs) -> list[dict]:
+    """Every referenced source must exist in this organization, belong to this employee and be approved. Lineage only: nothing is calculated.
+    Attendance has no approval state of its own: a record qualifies when it is complete (clocked out) and has no overtime decision pending."""
+    from asaa_attendance.models import AttendanceRecord
+    from asaa_identity.models import IdentitySubjectLink
+    from asaa_people.models import LeaveRequest
+    from asaa_workforce_finance.models import Timesheet
+    checked = []
+    for ref in refs:
+        ok = False
+        if ref.type == "leave":
+            ok = db.scalar(select(LeaveRequest.id).where(LeaveRequest.id == ref.id, LeaveRequest.organization_id == org,
+                                                         LeaveRequest.employee_id == employee_id, LeaveRequest.status == "Approved")) is not None
+        elif ref.type == "attendance":
+            rec = db.scalar(select(AttendanceRecord).where(AttendanceRecord.id == ref.id, AttendanceRecord.organization_id == org,
+                                                           AttendanceRecord.employee_id == employee_id))
+            ok = rec is not None and rec.clock_out is not None and rec.overtime_status != "Pending"
+        else:
+            sheet = db.scalar(select(Timesheet).where(Timesheet.id == ref.id, Timesheet.organization_id == org, Timesheet.status == "Approved"))
+            if sheet is not None:
+                ok = db.scalar(select(IdentitySubjectLink.id).where(IdentitySubjectLink.organization_id == org, IdentitySubjectLink.employee_id == employee_id,
+                                                                   IdentitySubjectLink.subject == sheet.employee_subject)) is not None
+        if not ok:
+            raise HTTPException(status_code=409, detail={"code": "payroll_source_not_valid", "type": ref.type, "id": ref.id,
+                                                         "message": "The referenced record must exist in this organization, belong to this employee and be approved."})
+        checked.append({"type": ref.type, "id": ref.id})
+    return checked
+
+
 @payroll_router.post("/runs/{run_id}/entries", status_code=201)
 def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:entry:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
@@ -489,7 +537,7 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
         raise HTTPException(status_code=404, detail="Payroll run not found")
     if run.status not in {"Draft", "Changes Requested"}:
         raise HTTPException(status_code=409, detail={"code": "payroll_run_not_editable"})
-    employee_or_404(db, payload.employee_id, principal.organization_id)
+    employee_or_404(db, payload.employee_id, principal.organization_id, scope)
     if payload.currency != run.currency:
         raise HTTPException(status_code=409, detail={"code": "payroll_currency_mismatch"})
     duplicate = db.scalar(select(PayrollEntry.id).where(
@@ -502,9 +550,10 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
             "code": "payroll_employee_entry_exists",
             "existing_entry_id": duplicate,
         })
+    sources = validate_source_references(db, principal.organization_id, payload.employee_id, payload.source_references)
     row = PayrollEntry(
         organization_id=principal.organization_id, run_id=run.id,
-        created_by=principal.subject, **payload.model_dump(),
+        created_by=principal.subject, **payload.model_dump(exclude={"source_references"}), source_references=sources or None,
     )
     db.add(row)
     db.flush()
@@ -518,7 +567,8 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
 
 @payroll_router.get("/runs/{run_id}/entries")
 def list_payroll_entries(run_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("payroll:read"))]):
+    principal: Annotated[Principal, Depends(require_permission("payroll:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:read"))]):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
     ))
@@ -526,6 +576,7 @@ def list_payroll_entries(run_id: str, db: Db,
         raise HTTPException(status_code=404, detail="Payroll run not found")
     rows = db.scalars(select(PayrollEntry).where(
         PayrollEntry.organization_id == principal.organization_id,
-        PayrollEntry.run_id == run_id
+        PayrollEntry.run_id == run_id,
+        payroll_entry_clause(scope, principal.organization_id),
     )).all()
     return [view(row) for row in rows]

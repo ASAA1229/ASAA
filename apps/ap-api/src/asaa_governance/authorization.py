@@ -58,6 +58,29 @@ class AuthorizationAssignment(Base):
     review_reason: Mapped[str | None] = mapped_column(String(1000))
 
 
+class AuthorizationScopeSetting(Base):
+    """Per-organization data-scope enforcement mode. No row means the default (narrow)."""
+    __tablename__ = "authorization_scope_settings"
+    organization_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    mode: Mapped[str] = mapped_column(String(16), nullable=False, default="narrow")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    updated_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(1000))
+
+
+SCOPE_TYPES = ("Organization", "Unit", "Department", "Project", "Customer", "Record")
+SCOPE_TYPE_PATTERN = "^(" + "|".join(SCOPE_TYPES) + ")$"
+SCOPE_MODES = ("token", "narrow", "strict")
+DEFAULT_SCOPE_MODE = "narrow"
+# Privileged and sensitive access is granted separately: these permissions are never implied by a broader grant and are flagged
+# on every role audit record. A template (any scope) can only become Active through the independent review step.
+SENSITIVE_PERMISSION_PATTERNS = ("payroll:", "hr:document:", "audit:read", "authorization:")
+
+
+def is_sensitive_permission(permission: str) -> bool:
+    return any(permission == p or permission.startswith(p) for p in SENSITIVE_PERMISSION_PATTERNS)
+
+
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -66,7 +89,7 @@ class RoleCreate(StrictModel):
     role_code: str = Field(min_length=2, max_length=80, pattern="^[a-z][a-z0-9_.-]+$")
     name: str = Field(min_length=2, max_length=160)
     description: str | None = Field(default=None, max_length=1000)
-    scope_type: str = Field(pattern="^(Organization|Department|Project|Record)$")
+    scope_type: str = Field(pattern=SCOPE_TYPE_PATTERN)
     permissions: list[str] = Field(min_length=1, max_length=200)
 
     @model_validator(mode="after")
@@ -82,7 +105,7 @@ class RoleUpdate(StrictModel):
     expected_version: int = Field(ge=1)
     name: str | None = Field(default=None, min_length=2, max_length=160)
     description: str | None = Field(default=None, max_length=1000)
-    scope_type: str | None = Field(default=None, pattern="^(Organization|Department|Project|Record)$")
+    scope_type: str | None = Field(default=None, pattern=SCOPE_TYPE_PATTERN)
     permissions: list[str] | None = Field(default=None, min_length=1, max_length=200)
 
     @model_validator(mode="after")
@@ -187,7 +210,8 @@ def create_role(payload: RoleCreate, db: Session = Depends(get_db),
         **payload.model_dump(), status="Proposed", created_by=principal.subject)
     db.add(row); db.flush()
     audit(db, principal, "authorization_role.proposed", "authorization_role_template", row.id,
-          {"role_code": row.role_code, "scope_type": row.scope_type, "permissions": row.permissions}, x_correlation_id)
+          {"role_code": row.role_code, "scope_type": row.scope_type, "permissions": row.permissions,
+           "sensitive_permissions": sorted(p for p in row.permissions if is_sensitive_permission(p))}, x_correlation_id)
     db.commit(); db.refresh(row)
     return dump(row)
 
@@ -227,7 +251,8 @@ def review_role(role_id: str, payload: RoleReview, db: Session = Depends(get_db)
     row.reviewed_by = principal.subject; row.reviewed_at = utcnow(); row.review_reason = payload.reason
     db.flush()
     audit(db, principal, "authorization_role.reviewed", "authorization_role_template", row.id,
-          {"decision": payload.decision, "status": row.status, "reason": payload.reason}, x_correlation_id)
+          {"decision": payload.decision, "status": row.status, "reason": payload.reason,
+           "sensitive_permissions": sorted(p for p in row.permissions if is_sensitive_permission(p))}, x_correlation_id)
     db.commit(); db.refresh(row)
     return dump(row)
 
@@ -251,6 +276,8 @@ def create_assignment(payload: AssignmentCreate, db: Session = Depends(get_db),
         raise HTTPException(status_code=409, detail={"code": "authorization_role_not_active"})
     if not payload.scope_reference.startswith(role.scope_type.lower() + ":"):
         raise HTTPException(status_code=422, detail={"code": "authorization_scope_type_mismatch"})
+    from asaa_governance.scope import check_scope_reference_exists
+    check_scope_reference_exists(db, principal.organization_id, role.scope_type, payload.scope_reference)
     row = AuthorizationAssignment(organization_id=principal.organization_id,
         **payload.model_dump(), status="Pending Approval", created_by=principal.subject)
     db.add(row); db.flush()

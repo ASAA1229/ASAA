@@ -318,3 +318,13 @@ def reconcile(db: Session, provider: IdentityProvider, organization_id: str, now
             "in_sync": not drifts, "drift_count": len(drifts), "drift_by_kind": by_kind, "drifts": drifts,
             "unmanaged_active_users": unmanaged, "unlinked_subjects_with_grants": sorted(unlinked),
             "repair_jobs_queued": repaired, "jobs": status_summary(db, organization_id, now)}
+
+
+def enqueue_for_employee_change(db: Session, organization_id: str, employee_id: str, previous_status: str, new_status: str, reason: str,
+                                requested_by: str) -> IdentitySyncJob | None:
+    """Queue provider convergence after a workforce change in the caller's transaction (caller audits and commits). Returns None when no account is linked.
+    Becoming active-class from a non-active status is a joiner (the only operation allowed to re-enable an account); anything else is a mover, and the
+    level-triggered job disables the account when the new status is not active-class."""
+    was_active, now_active = previous_status in ACTIVE_EMPLOYEE_STATUSES, new_status in ACTIVE_EMPLOYEE_STATUSES
+    operation = "joiner" if now_active and not was_active else "mover"
+    return enqueue_for_employee(db, organization_id, employee_id, operation, reason, requested_by)

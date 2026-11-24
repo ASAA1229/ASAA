@@ -180,6 +180,7 @@ class PayrollEntry(Base):
     deduction_total: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     net_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     breakdown: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    source_references: Mapped[list | None] = mapped_column(JSON)  # approved source records [{type, id}]; lineage only, nothing is calculated from them
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="Draft")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -258,5 +259,62 @@ class EmployeeExitCase(Base):
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="Open")
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_by: Mapped[str | None] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+
+
+class PayrollRuleSet(Base):
+    """Owner-entered payroll rule set. No rate or statutory value is seeded; nothing applies until Approved by someone other than its maker."""
+    __tablename__ = "payroll_rule_sets"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_payroll_rule_set_org_code"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    code: Mapped[str] = mapped_column(String(64), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500))
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    effective_from: Mapped[date] = mapped_column(Date, nullable=False)
+    effective_to: Mapped[date | None] = mapped_column(Date)
+    rounding_mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="Pending Approval")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    approved_by: Mapped[str | None] = mapped_column(String(128))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_note: Mapped[str | None] = mapped_column(Text)
+
+
+class PayrollRuleLine(Base):
+    __tablename__ = "payroll_rule_lines"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    rule_set_id: Mapped[str] = mapped_column(ForeignKey("payroll_rule_sets.id", ondelete="CASCADE"), nullable=False, index=True)
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    line_type: Mapped[str] = mapped_column(String(16), nullable=False)  # deduction | contribution | tax
+    code: Mapped[str] = mapped_column(String(64), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(300))
+    basis: Mapped[str] = mapped_column(String(16), nullable=False)  # gross | fixed
+    rate: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))  # fraction of the basis, e.g. 0.05 is 5 percent
+    fixed_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
+    cap_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
+    borne_by: Mapped[str] = mapped_column(String(16), nullable=False, default="employee")  # employer lines are recorded, never deducted
+
+
+class PayrollEntryLine(Base):
+    """A calculated line on a payroll entry, tied to the rule line that produced it and the entry's approved source records."""
+    __tablename__ = "payroll_entry_lines"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    entry_id: Mapped[str] = mapped_column(ForeignKey("payroll_entries.id", ondelete="CASCADE"), nullable=False, index=True)
+    run_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    rule_set_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    rule_line_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    line_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    code: Mapped[str] = mapped_column(String(64), nullable=False)
+    borne_by: Mapped[str] = mapped_column(String(16), nullable=False)
+    basis_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    rate: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    rounding_mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_references: Mapped[list | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(128), nullable=False)

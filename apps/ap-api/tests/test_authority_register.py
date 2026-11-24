@@ -151,3 +151,28 @@ def test_governance_records_are_organization_scoped_and_permissions_separate(cli
     as_subject(client, "other-org", ALL_GOVERNANCE, org="org-b")
     assert client.get("/api/v1/governance/decisions").json() == []
     assert client.get("/api/v1/governance/delegations").json() == []
+
+
+def test_expire_due_persists_lapsed_delegations_audited_and_org_scoped(client):
+    from sqlalchemy import select
+    from asaa_ap.models import AuditEvent
+    from asaa_governance.authority import AuthorityDelegation
+    from tests.integration_support import db_of
+
+    row = client.post("/api/v1/governance/delegations", json=delegation_payload()).json()
+    as_subject(client, "independent-reviewer")
+    assert client.post(f"/api/v1/governance/delegations/{row['id']}/approve", json={"expected_version": 1, "reason": "Verified authority"}).status_code == 200
+    assert client.post("/api/v1/governance/delegations/expire-due").json()["expired"] == 0  # still inside its window
+    db = db_of(client)
+    record = db.get(AuthorityDelegation, row["id"])
+    record.effective_to = datetime.now(timezone.utc) - timedelta(minutes=1)
+    db.commit()
+    as_subject(client, "other-org-admin", org="org-b")
+    assert client.post("/api/v1/governance/delegations/expire-due").json()["expired"] == 0  # another organization cannot expire it
+    as_subject(client, "independent-reviewer", permissions={"governance:delegation:read"})
+    assert client.post("/api/v1/governance/delegations/expire-due").status_code == 403
+    as_subject(client, "independent-reviewer")
+    assert client.post("/api/v1/governance/delegations/expire-due").json()["ids"] == [row["id"]]
+    listed = client.get("/api/v1/governance/delegations", params={"status": "Expired"}).json()
+    assert [r["id"] for r in listed] == [row["id"]] and listed[0]["effective_now"] is False
+    assert db_of(client).scalar(select(AuditEvent).where(AuditEvent.action == "authority_delegation.expired")) is not None
