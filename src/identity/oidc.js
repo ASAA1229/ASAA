@@ -5,6 +5,22 @@ const SCOPE = import.meta.env.VITE_OIDC_SCOPES || "openid profile email";
 import { assertHttps } from "./urlPolicy.js";
 
 const TRANSACTION_KEY = "asaa.oidc.transaction.v1";
+// Marks that this tab signed in through SSO. It holds no token: after a reload the portal asks the identity provider for a fresh
+// token without a login screen (prompt=none), which succeeds only while the provider's own session (already MFA-verified) is alive.
+const SESSION_HINT_KEY = "asaa.oidc.session.v1";
+const SILENT_ERRORS = new Set(["login_required", "interaction_required", "consent_required", "account_selection_required"]);
+
+function readHint() { try { return sessionStorage.getItem(SESSION_HINT_KEY) === "1"; } catch { return false; } }
+function writeHint(on) { try { if (on) sessionStorage.setItem(SESSION_HINT_KEY, "1"); else sessionStorage.removeItem(SESSION_HINT_KEY); } catch { /* storage unavailable */ } }
+
+// True when the previous page in this tab had an SSO session and the URL is not itself an SSO callback.
+export function shouldResumeSso() {
+  if (!isSsoConfigured || !readHint()) return false;
+  const params = new URL(window.location.href).searchParams;
+  return !params.has("code") && !params.has("error");
+}
+
+export function clearSsoSession() { writeHint(false); }
 
 function decodeBase64Url(value) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -59,7 +75,7 @@ async function discovery() {
 
 export const isSsoConfigured = Boolean(AUTHORITY && CLIENT_ID);
 
-export async function startSsoSignIn() {
+export async function startSsoSignIn({ silent = false } = {}) {
   const metadata = await discovery();
   const state = randomString();
   const nonce = randomString();
@@ -67,8 +83,10 @@ export async function startSsoSignIn() {
   const codeChallenge = await challenge(verifier);
   sessionStorage.setItem(TRANSACTION_KEY, JSON.stringify({
     state, nonce, verifier, tokenEndpoint: metadata.token_endpoint, jwksUri: metadata.jwks_uri,
-    issuer: metadata.issuer, redirectUri: REDIRECT_URI, createdAt: Date.now()
+    issuer: metadata.issuer, redirectUri: REDIRECT_URI, createdAt: Date.now(), silent
   }));
+  // The hint is set again only after a verified token exchange, so a failed silent attempt can never loop.
+  writeHint(false);
   const url = new URL(metadata.authorization_endpoint);
   url.searchParams.set("client_id", CLIENT_ID);
   url.searchParams.set("response_type", "code");
@@ -78,6 +96,7 @@ export async function startSsoSignIn() {
   url.searchParams.set("nonce", nonce);
   url.searchParams.set("code_challenge", codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
+  if (silent) url.searchParams.set("prompt", "none");
   window.location.assign(url.toString());
 }
 
@@ -90,9 +109,11 @@ export async function completeSsoSignIn() {
   window.history.replaceState({}, document.title, current.pathname + current.hash);
   const raw = sessionStorage.getItem(TRANSACTION_KEY);
   sessionStorage.removeItem(TRANSACTION_KEY);
+  const transaction = raw ? JSON.parse(raw) : null;
+  // The provider session has ended: a silent resume quietly falls back to the normal sign-in screen.
+  if (providerError && transaction?.silent && SILENT_ERRORS.has(providerError)) return null;
   if (providerError) throw new Error(current.searchParams.get("error_description") || providerError);
-  if (!raw) throw new Error("The sign-in transaction is missing or expired. Start sign-in again.");
-  const transaction = JSON.parse(raw);
+  if (!transaction) throw new Error("The sign-in transaction is missing or expired. Start sign-in again.");
   if (!returnedState || returnedState !== transaction.state || Date.now() - transaction.createdAt > 10 * 60 * 1000) {
     throw new Error("The sign-in state is invalid or expired. Start sign-in again.");
   }
@@ -107,5 +128,6 @@ export async function completeSsoSignIn() {
   const result = await response.json();
   if (!result.access_token || result.token_type?.toLowerCase() !== "bearer") throw new Error("The identity provider did not return a bearer access token.");
   await verifyIdToken(result.id_token, transaction);
+  writeHint(true);
   return result.access_token;
 }

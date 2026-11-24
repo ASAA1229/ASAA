@@ -9,7 +9,7 @@ import { MODULE_GROUPS, REGISTER_WORKSPACES, ROUTED_WORKSPACES } from "./workspa
 import RegisterWorkspace from "./RegisterWorkspace.jsx";
 import { AnalyticsPanel, AttendancePanel, DeliveryPanel, ExpensePolicyPanel, PayablesPanel, ReceivablesAdjustmentsPanel, ReceivablesControlsPanel } from "./OperationsPanels.jsx";
 import { AuditTrailWorkspace, BackupRecoveryWorkspace, EcosystemStatusPanel, GovernanceWorkspace, IdentitySyncPanel, IntegrationEventsPanel, LeavePolicyPanel, NotificationsWorkspace, ReportsWorkspace } from "./PlatformWorkspaces.jsx";
-import { completeSsoSignIn, isSsoConfigured, startSsoSignIn } from "./identity/oidc.js";
+import { clearSsoSession, completeSsoSignIn, isSsoConfigured, shouldResumeSso, startSsoSignIn } from "./identity/oidc.js";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -135,7 +135,14 @@ function App() {
   // refresh closes over the current token/claims; it must only re-run when the token changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (token) refresh(); }, [token]);
-  useEffect(() => { completeSsoSignIn().then(accessToken => { if (accessToken) { setToken(accessToken); setTokenInput(""); setSsoError(""); } }).catch(err => setSsoError(err.message || "SSO sign-in failed.")); }, []);
+  useEffect(() => {
+    completeSsoSignIn()
+      .then(accessToken => {
+        if (accessToken) { setToken(accessToken); setTokenInput(""); setSsoError(""); }
+        else if (shouldResumeSso()) startSsoSignIn({ silent: true }).catch(() => clearSsoSession());
+      })
+      .catch(err => setSsoError(err.message || "SSO sign-in failed."));
+  }, []);
   const signInSso = async () => { try { setSsoError(""); await startSsoSignIn(); } catch (err) { setSsoError(err.message || "SSO sign-in could not start."); } };
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(""), 2800); return () => clearTimeout(id); }, [toast]);
 
@@ -164,7 +171,7 @@ function App() {
         {NAV.map(group => <div className="nav-group" key={group.group}><small className="nav-caption">{group.group}</small>{group.items.filter(([name])=>name.toLowerCase().includes(navSearch.toLowerCase())).map(([name, Icon]) => <button key={name} className={`nav-item ${section === name ? "active" : ""}`} onClick={() => { setSection(name); setMobileNav(false); }}><Icon size={17}/><span>{name}</span>{name === "Expenses" && stats.pendingExpenses > 0 && token && <i>{stats.pendingExpenses}</i>}</button>)}</div>)}
       </nav>
       <div className="sidebar-bottom"><div className="secure-note"><ShieldCheck size={16}/><span>Secure workspace<br/><small>Access controlled by permissions</small></span></div><button className="nav-item" onClick={() => setModal("connection")}><Settings2 size={17}/>Connection settings</button></div>
-      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || (token ? "ASAA Administrator" : "Preview visitor")}</b><small>{token ? "Founder · CEO · Director · Current responsibilities" : "Unauthenticated UI preview"}</small></div><button className="icon-btn" title="Sign out" onClick={() => { setToken(""); setTokenInput(""); setConnected(false); setData(EMPTY_DATA); }}><LogOut size={16}/></button></div>
+      <div className="sidebar-user"><div className="user-avatar">AD</div><div><b>{claims.name || (token ? "ASAA Administrator" : "Preview visitor")}</b><small>{token ? "Founder · CEO · Director · Current responsibilities" : "Unauthenticated UI preview"}</small></div><button className="icon-btn" title="Sign out" onClick={() => { clearSsoSession(); setToken(""); setTokenInput(""); setConnected(false); setData(EMPTY_DATA); }}><LogOut size={16}/></button></div>
     </aside>
 
     <main className="main-area">

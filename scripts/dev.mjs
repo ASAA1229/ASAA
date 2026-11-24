@@ -9,7 +9,7 @@
 //      API is ready, and stops both together.
 //
 // Loopback only: the identity server is used only when it is on 127.0.0.1/localhost. No secret is read or printed.
-// Opt-outs: ASAA_DEV_SKIP_SETUP=1, ASAA_DEV_SKIP_MIGRATE=1, ASAA_DEV_NO_IDENTITY=1.
+// Opt-outs: ASAA_DEV_SKIP_SETUP=1, ASAA_DEV_SKIP_MIGRATE=1, ASAA_DEV_SKIP_SEED=1, ASAA_DEV_NO_IDENTITY=1.
 
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -112,6 +112,14 @@ try {
   if (process.env.ASAA_DEV_SKIP_MIGRATE !== "1") {
     log("Applying database migrations (alembic upgrade head).");
     await runOnce("Migrations", venvPython, ["-m", "alembic", "upgrade", "head"], apiDir);
+  }
+
+  // 2b. Demo data (development only): the idempotent fictional-organization seed, labelled TEMPORARY / TEST DATA. It refuses to run
+  //     unless ASAA_AP_ENVIRONMENT is development or test, so a misconfigured environment is never seeded.
+  if (process.env.ASAA_DEV_SKIP_SEED !== "1") {
+    log("Loading the fictional demo organization (TEMPORARY / TEST DATA; safe to re-run). Opt out with ASAA_DEV_SKIP_SEED=1.");
+    try { await runOnce("Demo seed", venvPython, [join("scripts", "seed_identity_fixtures.py")], apiDir); }
+    catch (error) { log(`Demo data was not loaded (${error.message}); the API still starts.`); }
   }
 
   // 3. Identity wiring (only values you have not set yourself)
