@@ -12,6 +12,7 @@ exactly that department unit (departments are organization units, employment rec
 Project scope matches an engagement id or its project_reference. Record scope is the id of the record itself.
 Detail lookups outside scope must answer 404 (never 403), lists are filtered in SQL, writes and approvals check scope too.
 """
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from types import FunctionType
@@ -21,12 +22,17 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy import false, or_, select, true
 from sqlalchemy.orm import Session
 
+from asaa_ap.config import get_settings
 from asaa_ap.database import get_db
 from asaa_ap.security import Principal, require_permission
 from asaa_governance.administration import OrganizationUnit
 from asaa_governance.authorization import (
     DEFAULT_SCOPE_MODE, SCOPE_MODES, AuthorizationAssignment, AuthorizationRoleTemplate, AuthorizationScopeSetting,
 )
+
+
+logger = logging.getLogger(__name__)
+FIXTURE_ROLE_PREFIX = "fixture."  # TEMPORARY / TEST DATA role templates (seed_identity_fixtures.py, E3:D3.19)
 
 
 def _aware(value: datetime | None):
@@ -122,12 +128,19 @@ def active_assignments(db: Session, org_id: str, subject: str, now: datetime | N
         AuthorizationAssignment.status == "Approved", AuthorizationRoleTemplate.status == "Active",
         AuthorizationRoleTemplate.organization_id == org_id)).all()
     out = []
+    production = get_settings().environment == "production"
+    ignored = 0
     for assignment, role in rows:
+        if production and (role.role_code or "").startswith(FIXTURE_ROLE_PREFIX):
+            ignored += 1  # test roles can never grant or narrow anything in production
+            continue
         if _aware(assignment.effective_from) > now or (assignment.effective_to and _aware(assignment.effective_to) <= now):
             continue
         if permission is not None and permission not in (role.permissions or []):
             continue
         out.append((assignment, role))
+    if ignored:
+        logger.warning("Ignored %d TEMPORARY / TEST DATA fixture role assignment(s) in production", ignored)
     return out
 
 

@@ -247,3 +247,251 @@ def test_sensitive_templates_still_need_independent_review_and_are_flagged(clien
 
 def test_demo_org_defaults_to_the_realm_org_claim():
     assert load_seed().DEFAULT_DEMO_ORG == "asaa"
+
+
+# ---- E3:D3.19 TEMPORARY / TEST DATA labels and production guard ----------------------------------------------------
+
+def test_seed_labels_everything_and_relabels_an_old_seed(client, seeded):
+    from sqlalchemy import select
+    from asaa_ap.models import ARCustomer, Supplier
+    from asaa_delivery.models import Engagement, Milestone, WorkOrder
+    from asaa_governance.administration import OrganizationProfile, OrganizationUnit
+    from asaa_governance.authorization import AuthorizationRoleTemplate
+    from asaa_people.models import Employee
+    seed, db = seeded["seed"], seeded["db"]
+
+    def check():
+        names = [db.scalar(select(OrganizationProfile.display_name).where(OrganizationProfile.organization_id == ORG))]
+        names += db.scalars(select(OrganizationUnit.name).where(OrganizationUnit.organization_id == ORG)).all()
+        names += db.scalars(select(ARCustomer.legal_name).where(ARCustomer.organization_id == ORG)).all()
+        names += db.scalars(select(Supplier.legal_name).where(Supplier.organization_id == ORG)).all()
+        names += db.scalars(select(Employee.preferred_name).where(Employee.organization_id == ORG)).all()
+        names += db.scalars(select(Engagement.title).where(Engagement.organization_id == ORG)).all()
+        names += db.scalars(select(Milestone.title).where(Milestone.organization_id == ORG)).all()
+        names += db.scalars(select(WorkOrder.title).where(WorkOrder.organization_id == ORG)).all()
+        names += db.scalars(select(AuthorizationRoleTemplate.name).where(AuthorizationRoleTemplate.organization_id == ORG)).all()
+        assert len(names) > 30 and all(n.startswith("TEMPORARY / TEST DATA – ") for n in names), [n for n in names if not (n or "").startswith("TEMPORARY")]
+        for role in db.scalars(select(AuthorizationRoleTemplate).where(AuthorizationRoleTemplate.organization_id == ORG)):
+            assert "TEMPORARY_TEST_DATA" in role.description and role.role_code.startswith("fixture.")
+        assert all("TEMPORARY_TEST_DATA" in (s.notes or "") for s in db.scalars(select(Supplier)))
+    check()
+    # simulate an older unlabelled seed, then re-run: the labels come back without duplicating rows
+    for unit in db.scalars(select(OrganizationUnit)):
+        unit.name = unit.name.removeprefix(seed.TEST_PREFIX)
+    for m in db.scalars(select(Milestone)):
+        m.title = m.title.removeprefix(seed.TEST_PREFIX)
+    db.commit()
+    count = len(db.scalars(select(Milestone.id)).all())
+    seed.seed_fixtures(db, ORG)
+    check()
+    assert len(db.scalars(select(Milestone.id)).all()) == count
+    assert len(seed.label("x" * 500, 160)) == 160 and seed.label(seed.label("A")) == seed.label("A")
+
+
+def test_fixture_roles_are_ignored_in_production(client, seeded, monkeypatch, caplog):
+    from datetime import datetime, timezone
+    from asaa_governance import scope
+    db = seeded["db"]
+    now = datetime.now(timezone.utc)
+    assert scope.active_assignments(db, ORG, "fx-org-admin", now)
+    monkeypatch.setattr(scope, "get_settings", lambda: type("S", (), {"environment": "production"})())
+    with caplog.at_level("WARNING"):
+        assert scope.active_assignments(db, ORG, "fx-org-admin", now) == []
+        assert scope.active_assignments(db, ORG, "fx-unit-lead", now, "hr:employee:read") == []
+    assert "fixture role assignment" in caplog.text and "fx-" not in caplog.text
+    monkeypatch.setattr(scope, "get_settings", lambda: type("S", (), {"environment": "development"})())
+    assert scope.active_assignments(db, ORG, "fx-org-admin", now)
+
+
+# ---- E3:D3.21 data-scope gaps: AR adjustments, receipt allocation, reports, payroll run-level routes ----------------------------
+
+AR_ADJ = {"ar:debit:write", "ar:debit:read", "ar:debit:approve", "ar:refund:write", "ar:refund:read", "ar:refund:approve", "ar:refund:record",
+          "ar:dispute:write", "ar:dispute:read", "ar:dispute:resolve", "ar:receipt:allocate"}
+PAY_RUN = {"payroll:run:submit", "payroll:run:approve", "payroll:run:close", "payroll:period:close", "payroll:accounting:read", "payroll:rules:write"}
+REPORT_EXTRA = {"supplier:read", "expense:claim:read:all", "report:lineage:read", "report:analytics:read", "hr:leave:read", "ar:credit:read"}
+
+
+def only_token(client, subject, permissions):
+    """A principal whose token carries exactly these permissions (the assignments still list more)."""
+    client.app.dependency_overrides[get_principal] = lambda: Principal(subject, ORG, frozenset(permissions))
+
+
+def widen_fixture_roles(seeded, permissions):
+    """The fixture roles only grant the base permissions; give them the ones under test (an assignment narrows only permissions its role grants)."""
+    from sqlalchemy import select
+    from asaa_governance.authorization import AuthorizationRoleTemplate
+    db = seeded["db"]
+    for role in db.scalars(select(AuthorizationRoleTemplate)):
+        role.permissions = sorted(set(role.permissions) | set(permissions))
+    db.commit()
+
+
+def ar_world(client, seeded):
+    """Debit note, dispute, receipt and refund for customers FXC-001 (in the customer-manager scope) and FXC-002 (outside it)."""
+    widen_fixture_roles(seeded, AR_ADJ)
+    c, inv = seeded["customers"], seeded["invoices"]
+    act(client, seeded, "fx-org-admin", extra=AR_ADJ)
+    world = {}
+    for code in ("FXC-001", "FXC-002"):
+        debit = client.post("/api/v1/ar/debit-notes", json={"invoice_id": inv[code], "amount": "5.00", "reason": "fixture debit"})
+        dispute = client.post("/api/v1/ar/disputes", json={"invoice_id": inv[code], "disputed_amount": "5.00", "reason": "fixture dispute"})
+        receipt = client.post("/api/v1/ar/receipts", json={"customer_id": c[code], "currency": "USD", "amount": "50.00", "received_date": "2026-01-01"})
+        assert debit.status_code == dispute.status_code == receipt.status_code == 201, (debit.text, dispute.text, receipt.text)
+        refund = client.post("/api/v1/ar/refunds", json={"receipt_id": receipt.json()["id"], "amount": "10.00", "reason": "fixture refund"})
+        assert refund.status_code == 201, refund.text
+        world[code] = {"debit": debit.json()["id"], "dispute": dispute.json()["id"], "receipt": receipt.json()["id"], "refund": refund.json()["id"]}
+    return world
+
+
+def test_ar_adjustments_follow_the_customer_scope(client, seeded):
+    world = ar_world(client, seeded)
+    inv = seeded["invoices"]
+    act(client, seeded, "fx-customer-manager", extra=AR_ADJ)  # customer FXC-001 only
+    assert ids(client.get("/api/v1/ar/debit-notes")) == {world["FXC-001"]["debit"]}
+    assert ids(client.get("/api/v1/ar/refunds")) == {world["FXC-001"]["refund"]}
+    assert ids(client.get("/api/v1/ar/disputes")) == {world["FXC-001"]["dispute"]}
+    # creating against another customer's invoice or receipt is 404, in scope still works
+    other = world["FXC-002"]
+    assert client.post("/api/v1/ar/debit-notes", json={"invoice_id": inv["FXC-002"], "amount": "1.00", "reason": "out of scope"}).status_code == 404
+    assert client.post("/api/v1/ar/disputes", json={"invoice_id": inv["FXC-002"], "disputed_amount": "1.00", "reason": "out of scope"}).status_code == 404
+    assert client.post("/api/v1/ar/refunds", json={"receipt_id": other["receipt"], "amount": "1.00", "reason": "out of scope"}).status_code == 404
+    assert client.post("/api/v1/ar/debit-notes", json={"invoice_id": inv["FXC-001"], "amount": "1.00", "reason": "in scope"}).status_code == 201
+    # acting on another customer's records is 404 (never 403, never a state change)
+    review = {"decision": "approve", "reason": "looks fine"}
+    assert client.post(f"/api/v1/ar/debit-notes/{other['debit']}/review", json=review).status_code == 404
+    assert client.post(f"/api/v1/ar/refunds/{other['refund']}/review", json=review).status_code == 404
+    assert client.post(f"/api/v1/ar/refunds/{other['refund']}/record-payment", json={"payment_reference": "ref-1"}).status_code == 404
+    assert client.post(f"/api/v1/ar/disputes/{other['dispute']}/resolve", json={"outcome": "Rejected", "note": "no grounds"}).status_code == 404
+    assert client.post(f"/api/v1/ar/disputes/{other['dispute']}/withdraw").status_code == 404
+    assert client.post(f"/api/v1/ar/debit-notes/{world['FXC-001']['debit']}/review", json=review).status_code == 200
+    assert client.post(f"/api/v1/ar/refunds/{world['FXC-001']['refund']}/review", json=review).status_code == 200
+    act(client, seeded, "fx-org-admin", extra=AR_ADJ)  # the out-of-scope records were left untouched
+    assert {r["id"]: r["status"] for r in client.get("/api/v1/ar/debit-notes").json()}[other["debit"]] == "Pending Approval"
+    assert {r["id"]: r["status"] for r in client.get("/api/v1/ar/refunds").json()}[other["refund"]] == "Pending Approval"
+
+
+def test_ar_adjustments_narrowing_versus_token(client, seeded):
+    world = ar_world(client, seeded)
+    both = {world[c]["debit"] for c in world}
+    act(client, seeded, "fx-org-admin", extra=AR_ADJ)
+    assert ids(client.get("/api/v1/ar/debit-notes")) >= both
+    act(client, seeded, "someone-without-assignments", extra=AR_ADJ)  # no assignment: organization-wide through the token, as before
+    assert ids(client.get("/api/v1/ar/debit-notes")) >= both
+    # an assignment never widens the token: a token without the permission is refused whatever the role says
+    only_token(client, "fx-org-admin", {"ar:invoice:read"})
+    assert client.get("/api/v1/ar/debit-notes").status_code == 403 and client.get("/api/v1/ar/refunds").status_code == 403
+    # a record scope narrows too: invoice FXC-002 is the only record, so no debit note (a different entity) is listed
+    act(client, seeded, "fx-record-reader", extra=AR_ADJ)
+    assert ids(client.get("/api/v1/ar/debit-notes")) == set()
+
+
+def test_receipt_allocation_invoice_lookup_is_scoped(client, seeded):
+    from datetime import datetime, timedelta, timezone
+    from asaa_governance.authorization import AuthorizationAssignment
+    world = ar_world(client, seeded)
+    inv, db = seeded["invoices"], seeded["db"]
+    template = db.get(AuthorizationAssignment, seeded["assignments"]["fx-record-reader"]).role_template_id
+    db.add(AuthorizationAssignment(organization_id=ORG, role_template_id=template, subject="fx-receipt-record", scope_reference=f"record:{world['FXC-001']['receipt']}",
+                                   effective_from=datetime.now(timezone.utc) - timedelta(days=1), reason="fixture", status="Approved", created_by="seed"))
+    db.commit()
+    act(client, seeded, "fx-receipt-record", extra=AR_ADJ)  # the receipt record is in scope, its invoice (another record) is not
+    body = {"invoice_id": inv["FXC-001"], "amount": "10.00"}
+    refused = client.post(f"/api/v1/ar/receipts/{world['FXC-001']['receipt']}/allocations", json=body)
+    assert refused.status_code == 404 and refused.json()["detail"]["code"] == "invoice_not_found"
+    act(client, seeded, "fx-customer-manager", extra=AR_ADJ)  # customer scope covers receipt and invoice
+    assert client.post(f"/api/v1/ar/receipts/{world['FXC-001']['receipt']}/allocations", json=body).status_code == 200
+    assert client.post(f"/api/v1/ar/receipts/{world['FXC-002']['receipt']}/allocations", json={"invoice_id": inv["FXC-002"], "amount": "10.00"}).status_code == 404
+
+
+def test_reports_summary_is_narrowed_to_the_callers_scope(client, seeded):
+    from sqlalchemy import select
+    from asaa_people.models import PayrollRun
+    widen_fixture_roles(seeded, AR_ADJ | PAY_RUN | REPORT_EXTRA)
+    seeded["db"].scalar(select(PayrollRun)).status = "Closed"
+    seeded["db"].commit()
+    extra = REPORT_EXTRA | PAY_RUN
+    act(client, seeded, "fx-org-admin", extra=extra)
+    full = client.get("/api/v1/reports/summary").json()["sections"]
+    assert full["receivables"]["data"]["invoices_by_status"] == {"Issued": 3} and full["customers"]["data"]["customers_by_status"] == {"Active": 3}
+    assert full["workforce"]["data"]["employees_by_status"] == {"Active": 10}
+    assert full["payroll_accounting"]["data"]["closed_run_totals_by_currency"]["USD"]["gross"] == "10000.00" and "suppliers" in full
+    act(client, seeded, "fx-customer-manager", extra=extra)  # customer FXC-001
+    narrow = client.get("/api/v1/reports/summary").json()["sections"]
+    assert narrow["receivables"]["data"]["invoices_by_status"] == {"Issued": 1} and narrow["customers"]["data"]["customers_by_status"] == {"Active": 1}
+    assert "suppliers" not in narrow and "expenses" not in narrow  # no customer or unit dimension: withheld from a restricted caller
+    assert narrow["workforce"]["data"]["employees_by_status"] == {}  # customer scope has no employee dimension
+    assert narrow["payroll_accounting"]["data"]["closed_run_totals_by_currency"] == {}
+    act(client, seeded, "fx-unit-lead", extra=extra)  # unit OPS: FX-002, FX-003, FX-004, FX-009
+    unit = client.get("/api/v1/reports/summary").json()["sections"]
+    assert unit["workforce"]["data"]["employees_by_status"] == {"Active": 4}
+    assert unit["payroll_accounting"]["data"]["closed_run_totals_by_currency"]["USD"] == {"runs": 1, "gross": "4000.00", "deductions": "400.00", "net": "3600.00"}
+    assert unit["receivables"]["data"]["invoices_by_status"] == {} and "suppliers" not in unit
+    act(client, seeded, "fx-record-reader", extra=extra)  # record = invoice FXC-002
+    assert client.get("/api/v1/reports/summary").json()["sections"]["receivables"]["data"]["invoices_by_status"] == {"Issued": 1}
+
+
+def test_reports_narrowing_versus_token_and_strict_mode(client, seeded):
+    widen_fixture_roles(seeded, REPORT_EXTRA)
+    act(client, seeded, "someone-without-assignments", extra=REPORT_EXTRA)  # unassigned: organization-wide through the token
+    sections = client.get("/api/v1/reports/summary").json()["sections"]
+    assert sections["receivables"]["data"]["invoices_by_status"] == {"Issued": 3} and "suppliers" in sections
+    only_token(client, "fx-customer-manager", {"ar:invoice:read"})  # an assignment cannot add what the token lacks
+    only = client.get("/api/v1/reports/summary").json()["sections"]
+    assert set(only) == {"receivables"} and only["receivables"]["data"]["invoices_by_status"] == {"Issued": 1}
+    act(client, seeded, "admin", extra={"authorization:scope-mode:write"})
+    assert client.put("/api/v1/authorization/scope-mode", json={"mode": "strict", "reason": "tightening"}).status_code == 200
+    act(client, seeded, "nobody", extra=REPORT_EXTRA)  # strict: no assignment, the sections are withheld instead of failing the report
+    assert client.get("/api/v1/reports/summary").json()["sections"] == {}
+
+
+def test_report_analytics_and_lineage_follow_the_scope(client, seeded):
+    widen_fixture_roles(seeded, REPORT_EXTRA)
+    act(client, seeded, "fx-org-admin", extra=REPORT_EXTRA)
+    org_wide = {d["dataset"]: d["record_count"] for d in client.get("/api/v1/reports/freshness").json()["datasets"]}
+    assert org_wide["ar_invoices"] == 3 and org_wide["hr_employees"] == 10 and "ap_suppliers" in org_wide
+    full = client.get("/api/v1/reports/analytics/working-capital-position").json()["by_currency"]["USD"]["receivables_outstanding"]
+    act(client, seeded, "fx-customer-manager", extra=REPORT_EXTRA)
+    scoped = {d["dataset"]: d["record_count"] for d in client.get("/api/v1/reports/freshness").json()["datasets"]}
+    assert scoped["ar_invoices"] == 1 and scoped["hr_employees"] == 0 and "ap_suppliers" not in scoped
+    trend = client.get("/api/v1/reports/analytics/trends", params={"dataset": "ar_invoices"}).json()
+    assert sum(row["records"] for row in trend["series"]) == 1
+    assert client.get("/api/v1/reports/analytics/trends", params={"dataset": "ap_suppliers"}).status_code == 403  # cannot be narrowed to a customer
+    mine = client.get("/api/v1/reports/analytics/working-capital-position").json()["by_currency"]["USD"]["receivables_outstanding"]
+    assert 0 < float(mine) < float(full)
+    lineage = client.get("/api/v1/reports/lineage").json()
+    assert "ap_suppliers" not in {d["name"] for d in lineage["datasets"]} and "ar_invoices" in {d["name"] for d in lineage["datasets"]}
+
+
+def test_payroll_run_level_routes_follow_the_employee_scope(client, seeded):
+    widen_fixture_roles(seeded, PAY_RUN)
+    run, pe, e = seeded["payroll_run"], seeded["payroll_entries"], seeded["employees"]
+    act(client, seeded, "fx-org-admin", extra=PAY_RUN)
+    assert [r["id"] for r in client.get("/api/v1/payroll/runs").json()] == [run]
+    assert client.get(f"/api/v1/payroll/runs/{run}/summary").json()["entry_count"] == 10
+    act(client, seeded, "fx-unit-lead", extra=PAY_RUN)  # four of the ten entries
+    summary = client.get(f"/api/v1/payroll/runs/{run}/summary").json()
+    assert summary["entry_count"] == 4 and summary["gross_total"] == "4000.00" and summary["net_total"] == "3600.00"
+    assert [r["id"] for r in client.get("/api/v1/payroll/runs").json()] == [run]  # visible through its in-scope entries
+    assert client.get(f"/api/v1/payroll/runs/{run}/entries/{pe['FX-005']}/lines").status_code == 404  # another unit's entry
+    assert client.get(f"/api/v1/payroll/runs/{run}/entries/{pe['FX-002']}/lines").status_code == 200
+    # a run-level action touches every entry, so a restricted caller may not run it; the run itself is not hidden from them
+    for call in (client.post(f"/api/v1/payroll/runs/{run}/submit", json={"review_note": "ready"}), client.post(f"/api/v1/payroll/runs/{run}/calculate")):
+        assert call.status_code == 403 and call.json()["detail"]["code"] == "authorization_out_of_scope"
+    body = {"currency": "USD", "gross_amount": "5.00", "deduction_total": "0.00", "net_amount": "5.00"}
+    assert client.patch(f"/api/v1/payroll/entries/{pe['FX-005']}", json=body).status_code == 404
+    act(client, seeded, "fx-record-reader", extra=PAY_RUN)  # record scope: no entry matches, so the run is invisible
+    assert client.get("/api/v1/payroll/runs").json() == []
+    assert client.get(f"/api/v1/payroll/runs/{run}/summary").status_code == 404
+    assert client.post(f"/api/v1/payroll/runs/{run}/close").status_code == 404
+    act(client, seeded, "fx-unit-lead", extra=PAY_RUN)
+    assert client.post("/api/v1/payroll/periods/anything/close").status_code == 403  # period close needs the whole organization
+
+
+def test_payroll_run_level_narrowing_versus_token(client, seeded):
+    widen_fixture_roles(seeded, PAY_RUN)
+    run = seeded["payroll_run"]
+    act(client, seeded, "someone-without-assignments", extra=PAY_RUN)  # no assignment: organization-wide through the token
+    assert client.get(f"/api/v1/payroll/runs/{run}/summary").json()["entry_count"] == 10
+    assert client.post(f"/api/v1/payroll/runs/{run}/submit", json={"review_note": "ready"}).status_code == 200
+    only_token(client, "fx-org-admin", {"ar:invoice:read"})  # token without the permission is still refused
+    assert client.get("/api/v1/payroll/runs").status_code == 403

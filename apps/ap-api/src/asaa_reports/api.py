@@ -1,7 +1,8 @@
 """GET /api/v1/reports/summary: counts and totals by status over existing records.
 
 Each section is returned only when the caller holds the read permission of its source records, so a report never reveals more than
-the record APIs would. Money is aggregated per currency (never summed across currencies). Payroll amounts and salaries are NEVER
+the record APIs would. Sections are also narrowed to the caller's data scope for that permission (customer, unit/department or record, the
+same mechanism as the record APIs); a dataset that cannot be scoped is withheld from a caller whose scope for it is restricted. Money is aggregated per currency (never summed across currencies). Payroll amounts and salaries are NEVER
 included. Every section carries lineage (source tables) and the generation time so freshness is visible.
 """
 import calendar
@@ -10,15 +11,18 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func, select, true
 from sqlalchemy.orm import Session
 
 from asaa_ap.database import get_db
+from asaa_ap.ar_service import customer_clause, invoice_clause, receipt_clause
 from asaa_ap.org_time import org_today_or_none
 from asaa_ap.models import ARCreditNote, ARCustomer, ARDebitNote, ARInvoice, ARReceipt, ARReceiptAllocation, Supplier
 from asaa_ap.procurement_models import PurchaseRequest
 from asaa_ap.security import Principal, get_principal
+from asaa_governance.scope import build_scope
+from asaa_people.scoping import employee_clause, payroll_entry_clause
 from asaa_governance.authority import AuthorityDelegation, GovernanceDecision
 from asaa_identity.models import IdentitySyncJob
 from asaa_notifications.models import NotificationMessage
@@ -48,9 +52,9 @@ def period_bounds(label: str):
     return date(year, first_month, 1), date(year, last_month, last_day)
 
 
-def by_status(db: Session, model, org: str, column=None) -> dict:
+def by_status(db: Session, model, org: str, column=None, scoped=None) -> dict:
     column = column or model.status
-    return {status: count for status, count in db.execute(select(column, func.count()).where(model.organization_id == org).group_by(column)).all()}
+    return {status: count for status, count in db.execute(select(column, func.count()).where(model.organization_id == org, scoped if scoped is not None else true()).group_by(column)).all()}
 
 
 def money_by_currency(rows) -> dict:
@@ -66,27 +70,47 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
     def section(key, label, sources, data):
         out["sections"][key] = {"label": label, "sources": sources, "data": data}
 
-    if "ar:invoice:read" in perms:
+    memo: dict = {}
+
+    def scope_of(permission):
+        """The caller's data scope for one permission, or None when the token lacks it (or strict mode has no assignment): the section is then withheld."""
+        if permission not in perms:
+            return None
+        if permission not in memo:
+            try:
+                memo[permission] = build_scope(db, org, principal.subject, permission)
+            except HTTPException:
+                memo[permission] = None
+        return memo[permission]
+
+    def whole(permission):
+        """True only for an organization-wide grant. Datasets without a customer or unit dimension are reported only on this condition."""
+        scope = scope_of(permission)
+        return scope is not None and scope.unrestricted
+
+    inv, rcpt, cust = scope_of("ar:invoice:read"), scope_of("ar:receipt:read"), scope_of("ar:customer:read")
+    if inv is not None:
+        inv_where = invoice_clause(inv)
         issued = ARInvoice.status.in_(["Issued", "Partially Paid"])
-        billed = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARInvoice.total)).where(ARInvoice.organization_id == org, issued).group_by(ARInvoice.currency)).all())
+        billed = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARInvoice.total)).where(ARInvoice.organization_id == org, issued, inv_where).group_by(ARInvoice.currency)).all())
         paid = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARReceiptAllocation.amount)).join(ARInvoice, ARInvoice.id == ARReceiptAllocation.invoice_id)
-                                            .where(ARInvoice.organization_id == org, issued).group_by(ARInvoice.currency)).all())
+                                            .where(ARInvoice.organization_id == org, issued, inv_where).group_by(ARInvoice.currency)).all())
         credited = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARCreditNote.amount)).join(ARInvoice, ARInvoice.id == ARCreditNote.invoice_id)
-                                                .where(ARInvoice.organization_id == org, issued, ARCreditNote.status == "Approved").group_by(ARInvoice.currency)).all())
+                                                .where(ARInvoice.organization_id == org, issued, inv_where, ARCreditNote.status == "Approved").group_by(ARInvoice.currency)).all())
         debited = money_by_currency(db.execute(select(ARInvoice.currency, func.sum(ARDebitNote.amount)).join(ARInvoice, ARInvoice.id == ARDebitNote.invoice_id)
-                                               .where(ARInvoice.organization_id == org, issued, ARDebitNote.status == "Approved").group_by(ARInvoice.currency)).all())
+                                               .where(ARInvoice.organization_id == org, issued, inv_where, ARDebitNote.status == "Approved").group_by(ARInvoice.currency)).all())
         outstanding = {c: str(Decimal(billed[c]) - Decimal(paid.get(c, "0")) - Decimal(credited.get(c, "0")) + Decimal(debited.get(c, "0"))) for c in billed}
         today = org_today_or_none(db, org)  # None = organization time zone not configured: overdue is not judged
-        overdue = (db.scalar(select(func.count()).where(ARInvoice.organization_id == org, issued, ARInvoice.due_date < today)) or 0) if today is not None else None
+        overdue = (db.scalar(select(func.count()).where(ARInvoice.organization_id == org, issued, inv_where, ARInvoice.due_date < today)) or 0) if today is not None else None
         section("receivables", "Receivables", ["ar_invoices", "ar_receipt_allocations"],
-                {"invoices_by_status": by_status(db, ARInvoice, org), "outstanding_by_currency": outstanding, "overdue_invoices": overdue})
-    if "ar:invoice:read" in perms and "expense:claim:read:all" in perms:
+                {"invoices_by_status": by_status(db, ARInvoice, org, scoped=inv_where), "outstanding_by_currency": outstanding, "overdue_invoices": overdue})
+    if inv is not None and whole("expense:claim:read:all"):
         issued = ARInvoice.status.in_(["Issued", "Partially Paid"])
         paid_by_invoice = select(ARReceiptAllocation.invoice_id, func.sum(ARReceiptAllocation.amount).label("paid")).group_by(ARReceiptAllocation.invoice_id).subquery()
         credit_by_invoice = select(ARCreditNote.invoice_id, func.sum(ARCreditNote.amount).label("credited")).where(ARCreditNote.status == "Approved").group_by(ARCreditNote.invoice_id).subquery()
         open_rows = db.execute(select(ARInvoice.currency, ARInvoice.due_date, ARInvoice.total - func.coalesce(paid_by_invoice.c.paid, 0) - func.coalesce(credit_by_invoice.c.credited, 0))
                                .outerjoin(paid_by_invoice, paid_by_invoice.c.invoice_id == ARInvoice.id).outerjoin(credit_by_invoice, credit_by_invoice.c.invoice_id == ARInvoice.id)
-                               .where(ARInvoice.organization_id == org, issued)).all()
+                               .where(ARInvoice.organization_id == org, issued, invoice_clause(inv))).all()
         inflow: dict = {}
         for currency, due_date, amount in open_rows:  # grouped in Python so the report is identical on SQLite and PostgreSQL
             month = due_date.strftime("%Y-%m")
@@ -97,10 +121,10 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         section("cash_outlook", "Cash outlook (derived)", ["ar_invoices", "ar_receipt_allocations", "expense_claims"],
                 {"expected_receipts_by_currency_and_due_month": inflow, "approved_expenses_awaiting_reimbursement_by_currency": owed,
                  "note": "Derived from receivable due dates and approved expense claims. This is NOT a bank balance and includes no supplier payments or payroll."})
-    if "ar:receipt:read" in perms and "ar:invoice:read" in perms:
+    if rcpt is not None and inv is not None:
         allocated_by_receipt = select(ARReceiptAllocation.receipt_id, func.sum(ARReceiptAllocation.amount).label("allocated")).group_by(ARReceiptAllocation.receipt_id).subquery()
         receipt_rows = db.execute(select(ARReceipt.id, ARReceipt.currency, ARReceipt.amount, func.coalesce(allocated_by_receipt.c.allocated, 0))
-                                  .outerjoin(allocated_by_receipt, allocated_by_receipt.c.receipt_id == ARReceipt.id).where(ARReceipt.organization_id == org)).all()
+                                  .outerjoin(allocated_by_receipt, allocated_by_receipt.c.receipt_id == ARReceipt.id).where(ARReceipt.organization_id == org, receipt_clause(rcpt))).all()
         unallocated: dict = {}
         exceptions = []
         for rid, currency, amount, allocated in receipt_rows:
@@ -109,10 +133,11 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
                 unallocated[currency] = unallocated.get(currency, Decimal(0)) + gap
                 exceptions.append({"type": "receipt_not_fully_allocated" if gap > 0 else "receipt_over_allocated", "reference": rid, "currency": currency, "difference": str(gap)})
         paid_per_invoice = dict(db.execute(select(ARReceiptAllocation.invoice_id, func.sum(ARReceiptAllocation.amount)).join(ARInvoice, ARInvoice.id == ARReceiptAllocation.invoice_id)
-                                           .where(ARInvoice.organization_id == org).group_by(ARReceiptAllocation.invoice_id)).all())
-        credit_per_invoice = dict(db.execute(select(ARCreditNote.invoice_id, func.sum(ARCreditNote.amount)).where(ARCreditNote.organization_id == org, ARCreditNote.status == "Approved")
+                                           .where(ARInvoice.organization_id == org, invoice_clause(inv)).group_by(ARReceiptAllocation.invoice_id)).all())
+        credit_per_invoice = dict(db.execute(select(ARCreditNote.invoice_id, func.sum(ARCreditNote.amount)).where(ARCreditNote.organization_id == org, ARCreditNote.status == "Approved",
+                                                    ARCreditNote.invoice_id.in_(select(ARInvoice.id).where(ARInvoice.organization_id == org, invoice_clause(inv))))
                                              .group_by(ARCreditNote.invoice_id)).all())
-        for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.status.in_(["Issued", "Partially Paid", "Paid"]))).all():
+        for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, invoice_clause(inv), ARInvoice.status.in_(["Issued", "Partially Paid", "Paid"]))).all():
             paid = Decimal(paid_per_invoice.get(inv.id, 0))
             credit = Decimal(credit_per_invoice.get(inv.id, 0))
             if inv.status == "Paid" and paid + credit != Decimal(inv.total):
@@ -124,13 +149,15 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         section("reconciliation", "Receivables reconciliation", ["ar_receipts", "ar_receipt_allocations", "ar_invoices"],
                 {"unallocated_receipts_by_currency": {c: str(v.quantize(Decimal("0.01"))) for c, v in unallocated.items()}, "exception_count": len(exceptions), "exceptions": exceptions[:100],
                  "note": "Internal consistency checks between receipts, allocations and invoices. Not a bank reconciliation: no bank statement is compared."})
-    if "payroll:accounting:read" in perms:
+    pay = scope_of("payroll:accounting:read")
+    if pay is not None:
         closed = db.execute(select(PayrollRun.currency, func.count(func.distinct(PayrollRun.id)), func.sum(PayrollEntry.gross_amount), func.sum(PayrollEntry.deduction_total), func.sum(PayrollEntry.net_amount))
-                            .join(PayrollEntry, PayrollEntry.run_id == PayrollRun.id).where(PayrollRun.organization_id == org, PayrollRun.status == "Closed").group_by(PayrollRun.currency)).all()
+                            .join(PayrollEntry, PayrollEntry.run_id == PayrollRun.id).where(PayrollRun.organization_id == org, PayrollRun.status == "Closed",
+                                                                                   payroll_entry_clause(pay, org)).group_by(PayrollRun.currency)).all()
         section("payroll_accounting", "Payroll accounting totals (closed runs)", ["payroll_runs", "payroll_entries"],
                 {"closed_run_totals_by_currency": {c: {"runs": n, "gross": str(Decimal(g or 0)), "deductions": str(Decimal(d or 0)), "net": str(Decimal(nt or 0))} for c, n, g, d, nt in closed},
                  "note": "Totals only, for approved finance exports. No journal posting, tax or statutory calculation is performed (pending owner accounting policy)."})
-    if "register:budget:read" in perms and "expense:claim:read:all" in perms:
+    if whole("register:budget:read") and whole("expense:claim:read:all"):
         budgets = db.scalars(select(GovernedRecord).where(GovernedRecord.organization_id == org, GovernedRecord.register_type == "budget", GovernedRecord.status == "Approved")).all()
         planned: dict = {}
         not_comparable = []
@@ -152,31 +179,35 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         section("budget_variance", "Budget versus expense actuals (derived)", ["governed_records", "expense_claims"],
                 {"lines": lines, "not_comparable": not_comparable,
                  "note": "Approved budget lines per currency and calendar-aligned period against approved or reimbursed expense claims only. Supplier invoices, payroll and cost-centre mapping are not included and approval thresholds are pending owner policy. Not a forecast."})
-    if "ar:customer:read" in perms:
-        section("customers", "Customers", ["ar_customers"], {"customers_by_status": by_status(db, ARCustomer, org)})
-    if "ar:receipt:read" in perms:
-        section("receipts", "Receipts", ["ar_receipts"], {"receipts_by_status": by_status(db, ARReceipt, org),
-                "recorded_by_currency": money_by_currency(db.execute(select(ARReceipt.currency, func.sum(ARReceipt.amount)).where(ARReceipt.organization_id == org).group_by(ARReceipt.currency)).all()),
+    if cust is not None:
+        section("customers", "Customers", ["ar_customers"], {"customers_by_status": by_status(db, ARCustomer, org, scoped=customer_clause(cust))})
+    if rcpt is not None:
+        section("receipts", "Receipts", ["ar_receipts"], {"receipts_by_status": by_status(db, ARReceipt, org, scoped=receipt_clause(rcpt)),
+                "recorded_by_currency": money_by_currency(db.execute(select(ARReceipt.currency, func.sum(ARReceipt.amount)).where(ARReceipt.organization_id == org, receipt_clause(rcpt)).group_by(ARReceipt.currency)).all()),
                 "note": "Recording a receipt is not bank settlement."})
-    if "supplier:read" in perms:
+    if whole("supplier:read"):
         section("suppliers", "Suppliers", ["ap_suppliers"], {"suppliers_by_status": by_status(db, Supplier, org)})
-    if "procurement:request:read:all" in perms:
+    if whole("procurement:request:read:all"):
         section("procurement", "Purchase requests", ["ap_purchase_requests"], {"requests_by_status": by_status(db, PurchaseRequest, org)})
-    if "expense:claim:read:all" in perms:
+    if whole("expense:claim:read:all"):
         section("expenses", "Expense claims", ["expense_claims"], {"claims_by_status": by_status(db, ExpenseClaim, org),
                 "claimed_by_currency": money_by_currency(db.execute(select(ExpenseClaim.currency, func.sum(ExpenseClaim.amount)).where(ExpenseClaim.organization_id == org).group_by(ExpenseClaim.currency)).all())})
-    if "tms:timesheet:read:all" in perms:
+    if whole("tms:timesheet:read:all"):
         section("timesheets", "Timesheets", ["work_timesheets"], {"timesheets_by_status": by_status(db, Timesheet, org)})
-    if "hr:employee:read" in perms:
-        section("workforce", "Workforce", ["hr_employees"], {"employees_by_status": by_status(db, Employee, org), "employees_by_type": by_status(db, Employee, org, Employee.employment_type),
+    emp = scope_of("hr:employee:read")
+    if emp is not None:
+        emp_where = employee_clause(emp, org)
+        section("workforce", "Workforce", ["hr_employees"], {"employees_by_status": by_status(db, Employee, org, scoped=emp_where), "employees_by_type": by_status(db, Employee, org, Employee.employment_type, scoped=emp_where),
                 "note": "Headcount only. Compensation and payroll are intentionally excluded."})
-    if "hr:leave:read" in perms:
-        section("leave", "Leave requests", ["hr_leave_requests"], {"requests_by_status": by_status(db, LeaveRequest, org)})
-    if "governance:delegation:read" in perms:
+    leave = scope_of("hr:leave:read")
+    if leave is not None:  # leave follows the employee's unit/department
+        section("leave", "Leave requests", ["hr_leave_requests"], {"requests_by_status": by_status(
+            db, LeaveRequest, org, scoped=LeaveRequest.employee_id.in_(select(Employee.id).where(Employee.organization_id == org, employee_clause(leave, org))))})
+    if whole("governance:delegation:read"):
         section("delegations", "Authority delegations", ["authority_delegations"], {"delegations_by_status": by_status(db, AuthorityDelegation, org)})
-    if "governance:decision:read" in perms:
+    if whole("governance:decision:read"):
         section("decisions", "Decision register", ["governance_decisions"], {"decisions_by_status": by_status(db, GovernanceDecision, org)})
-    readable = [t for t in TYPES if f"register:{t}:read" in perms]
+    readable = [t for t in TYPES if whole(f"register:{t}:read")]
     if readable:
         rows = db.execute(select(GovernedRecord.register_type, GovernedRecord.status, func.count()).where(
             GovernedRecord.organization_id == org, GovernedRecord.register_type.in_(readable)).group_by(GovernedRecord.register_type, GovernedRecord.status)).all()
@@ -184,8 +215,8 @@ def summary(db: Annotated[Session, Depends(get_db)], principal: Annotated[Princi
         for rtype, status, count in rows:
             data[rtype][status] = count
         section("registers", "Governed registers", ["governed_records"], {"by_register": data})
-    if "notification:outbox:read" in perms:
+    if whole("notification:outbox:read"):
         section("notifications", "Notification delivery", ["notification_messages"], {"messages_by_status": by_status(db, NotificationMessage, org)})
-    if "identity:sync:read" in perms:
+    if whole("identity:sync:read"):
         section("identity_sync", "Identity synchronisation", ["identity_sync_jobs"], {"jobs_by_status": by_status(db, IdentitySyncJob, org)})
     return out

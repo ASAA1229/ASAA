@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 """Development-only fictional organization for scoped-authorization tests and the owner's demo dataset (E3:D3.15, D3.17).
 
+Owner rule (E3:D3.19): every record this seed creates is labelled TEMPORARY / TEST DATA (visible name/title prefix and, where the model has a
+notes/description field, a "data_class: TEMPORARY_TEST_DATA" marker). Re-running refreshes the labels of an older unlabelled seed.
+The role codes start with "fixture." and are ignored by authorization scope resolution when ASAA_AP_ENVIRONMENT is production.
+
 Creates, idempotently: organization profile, units/departments, about ten fictional people (example.invalid emails) with employment
 records and manager links, a payroll run with fictional entries, customers with invoices, suppliers, two engagements with a milestone and
 work orders, one active role template per scope type and approved assignments with mixed scopes. Nothing here is real personal data.
 
-  DEMO_ORG_ID=asaa python scripts/seed_identity_fixtures.py          (DEMO_ORG_ID unset: defaults to "asaa", the realm's org_id claim)
+  DEMO_ORG_ID=asaa python scripts/seed_identity_fixtures.py          (also runs scripts/seed_demo_workspace.py; DEMO_ORG_ID unset: defaults to "asaa", the realm's org_id claim)
   DEMO_USER_EMAIL=<owner email> DEMO_USER_SUBJECT=<token sub> python scripts/seed_identity_fixtures.py
 
 DEMO_USER_EMAIL / DEMO_USER_SUBJECT are read from the environment only (never committed): the HR record is matched by work email and
@@ -27,6 +31,9 @@ DEFAULT_DEMO_ORG = "asaa"
 SEED_ACTOR = "seed:fixtures"
 REVIEWER = "seed:reviewer"
 EXAMPLE_DOMAIN = "example.invalid"
+TEST_LABEL = "TEMPORARY / TEST DATA"
+TEST_PREFIX = f"{TEST_LABEL} – "
+DATA_CLASS_MARKER = "data_class: TEMPORARY_TEST_DATA"
 
 FIXTURE_PERMISSIONS = [
     "hr:employee:read", "hr:employee:write", "hr:employment:write", "payroll:read", "payroll:entry:write",
@@ -68,11 +75,28 @@ def refuse_unless_dev(settings) -> None:
         raise SystemExit(f"Refusing to seed fictional data: ASAA_AP_ENVIRONMENT is {settings.environment!r} (only development or test).")
 
 
-def _get_or_create(db, model, where: dict, create: dict):
+def label(text: str, limit: int | None = None) -> str:
+    """Prefix `text` with the TEMPORARY / TEST DATA label (once), cut to the column length `limit` (the label itself is always kept)."""
+    out = text if text.startswith(TEST_PREFIX) else TEST_PREFIX + text
+    return out[:limit] if limit else out
+
+
+def marked(note: str = "") -> str:
+    """A notes/description value carrying the data_class marker (idempotent)."""
+    return f"{DATA_CLASS_MARKER}. {note}".strip() if note else DATA_CLASS_MARKER
+
+
+def _get_or_create(db, model, where: dict, create: dict, refresh: dict | None = None):
+    """Match by the stable identifiers in `where`; `refresh` values (labels) are also applied to an already existing row."""
     row = db.scalar(select(model).filter_by(**where))
     if row is None:
-        row = model(**where, **create)
+        row = model(**where, **create, **(refresh or {}))
         db.add(row)
+        db.flush()
+    else:
+        for key, value in (refresh or {}).items():
+            if getattr(row, key) != value:
+                setattr(row, key, value)
         db.flush()
     return row
 
@@ -89,19 +113,21 @@ def seed_fixtures(db, org_id: str, owner_email: str | None = None, owner_subject
     today = date.today()
     out: dict = {"org": org_id, "units": {}, "employees": {}, "customers": {}, "invoices": {}, "engagements": {}, "roles": {}, "assignments": {}}
 
-    _get_or_create(db, OrganizationProfile, {"organization_id": org_id}, {"display_name": "Example Holdings (fictional demo)", "lifecycle_status": "Active",
-                                                                        "country_code": "ZZ", "updated_by": SEED_ACTOR})
+    _get_or_create(db, OrganizationProfile, {"organization_id": org_id}, {"lifecycle_status": "Active", "country_code": "ZZ", "updated_by": SEED_ACTOR},
+                  {"display_name": label("Example Holdings (fictional demo)", 200)})
     for code, unit_type, name, parent in UNITS:
         unit = _get_or_create(db, OrganizationUnit, {"organization_id": org_id, "unit_code": code},
-                              {"unit_type": unit_type, "name": name, "parent_id": out["units"][parent] if parent else None, "status": "Active",
-                               "created_by": SEED_ACTOR, "updated_by": SEED_ACTOR, "reviewed_by": REVIEWER, "reviewed_at": now, "effective_from": today})
+                              {"unit_type": unit_type, "parent_id": out["units"][parent] if parent else None, "status": "Active",
+                               "created_by": SEED_ACTOR, "updated_by": SEED_ACTOR, "reviewed_by": REVIEWER, "reviewed_at": now, "effective_from": today},
+                              {"name": label(name, 180), "description": marked()})
         out["units"][code] = unit.id
 
     for code, first, last, unit_code, title, manager in PEOPLE:
         email = f"{first}.{last}@{EXAMPLE_DOMAIN}".lower()
         emp = _get_or_create(db, Employee, {"organization_id": org_id, "employee_code": code},
                              {"first_name": first, "last_name": last, "work_email": email, "employment_type": "Employee", "status": "Active",
-                              "hire_date": today - timedelta(days=400), "created_by": SEED_ACTOR})
+                              "hire_date": today - timedelta(days=400), "created_by": SEED_ACTOR},
+                             {"preferred_name": label(f"{first} {last}", 120)})
         out["employees"][code] = emp.id
         if db.scalar(select(EmploymentRecord.id).where(EmploymentRecord.organization_id == org_id, EmploymentRecord.employee_id == emp.id)) is None:
             db.add(EmploymentRecord(organization_id=org_id, employee_id=emp.id, department_id=out["units"][unit_code], position_title=title,
@@ -114,7 +140,8 @@ def seed_fixtures(db, org_id: str, owner_email: str | None = None, owner_subject
         if owner is None:
             owner = _get_or_create(db, Employee, {"organization_id": org_id, "employee_code": "FX-OWNER"},
                                    {"first_name": "Demo", "last_name": "Owner", "work_email": owner_email, "employment_type": "Employee", "status": "Active",
-                                    "hire_date": today - timedelta(days=30), "created_by": SEED_ACTOR})
+                                    "hire_date": today - timedelta(days=30), "created_by": SEED_ACTOR},
+                                   {"preferred_name": label("Demo Owner", 120)})
         out["employees"]["owner"] = owner.id
         if owner_subject:
             link = db.scalar(select(IdentitySubjectLink).where(IdentitySubjectLink.organization_id == org_id, IdentitySubjectLink.employee_id == owner.id))
@@ -135,33 +162,46 @@ def seed_fixtures(db, org_id: str, owner_email: str | None = None, owner_subject
 
     for code, name in CUSTOMERS:
         customer = _get_or_create(db, ARCustomer, {"organization_id": org_id, "customer_code": code},
-                                  {"legal_name": name, "email": f"accounts@{code.lower()}.{EXAMPLE_DOMAIN}", "status": "Active", "created_by": SEED_ACTOR})
+                                  {"email": f"accounts@{code.lower()}.{EXAMPLE_DOMAIN}", "status": "Active", "created_by": SEED_ACTOR},
+                                  {"legal_name": label(name, 240)})
         out["customers"][code] = customer.id
         invoice = _get_or_create(db, ARInvoice, {"organization_id": org_id, "invoice_number": f"FX-INV-{code[-3:]}"},
                                  {"customer_id": customer.id, "currency": "USD", "issue_date": today, "due_date": today + timedelta(days=30), "status": "Issued",
-                                  "subtotal": Decimal("500.00"), "tax_total": Decimal("0.00"), "total": Decimal("500.00"), "created_by": SEED_ACTOR})
+                                  "subtotal": Decimal("500.00"), "tax_total": Decimal("0.00"), "total": Decimal("500.00"), "created_by": SEED_ACTOR},
+                                 {"notes": marked()})
         out["invoices"][code] = invoice.id
     for code, name in SUPPLIERS:
         _get_or_create(db, Supplier, {"organization_id": org_id, "supplier_code": code},
-                       {"legal_name": name, "normalized_legal_name": " ".join(name.casefold().split()), "email": f"ap@{code.lower()}.{EXAMPLE_DOMAIN}",
-                        "normalized_email": f"ap@{code.lower()}.{EXAMPLE_DOMAIN}", "status": "Active", "created_by": SEED_ACTOR, "updated_by": SEED_ACTOR})
+                       {"email": f"ap@{code.lower()}.{EXAMPLE_DOMAIN}", "normalized_email": f"ap@{code.lower()}.{EXAMPLE_DOMAIN}", "status": "Active",
+                        "created_by": SEED_ACTOR, "updated_by": SEED_ACTOR},
+                       {"legal_name": label(name, 240), "normalized_legal_name": " ".join(label(name, 240).casefold().split()), "notes": marked()})
 
     for index, (code, ccode) in enumerate((("FX-ENG-1", "FXC-001"), ("FX-ENG-2", "FXC-002")), start=1):
         engagement = _get_or_create(db, Engagement, {"organization_id": org_id, "code": code},
-                                    {"title": f"Fictional engagement {index}", "customer_id": out["customers"][ccode], "project_reference": f"FX-PROJECT-{index}",
-                                     "owner_subject": "fx-project-lead", "start_date": today, "currency": "USD", "status": "Active", "created_by": SEED_ACTOR})
+                                    {"customer_id": out["customers"][ccode], "project_reference": f"FX-PROJECT-{index}",
+                                     "owner_subject": "fx-project-lead", "start_date": today, "currency": "USD", "status": "Active", "created_by": SEED_ACTOR},
+                                    {"title": label(f"Fictional engagement {index}", 200)})
         out["engagements"][code] = engagement.id
-        if db.scalar(select(Milestone.id).where(Milestone.engagement_id == engagement.id)) is None:
-            db.add(Milestone(organization_id=org_id, engagement_id=engagement.id, title=f"Milestone {index}", due_date=today + timedelta(days=30),
-                             status="Planned", created_by=SEED_ACTOR))
-        if db.scalar(select(WorkOrder.id).where(WorkOrder.engagement_id == engagement.id)) is None:
-            db.add(WorkOrder(organization_id=org_id, engagement_id=engagement.id, title=f"Work order {index}", status="Open", created_by=SEED_ACTOR))
+        milestone = db.scalar(select(Milestone).where(Milestone.engagement_id == engagement.id).order_by(Milestone.id))
+        if milestone is None:
+            db.add(Milestone(organization_id=org_id, engagement_id=engagement.id, title=label(f"Milestone {index}", 200), deliverable=marked(),
+                             due_date=today + timedelta(days=30), status="Planned", created_by=SEED_ACTOR))
+        else:  # an older unlabelled seed: relabel the seed's own (first) milestone
+            milestone.title, milestone.deliverable = label(milestone.title, 200), milestone.deliverable or marked()
+        work_order = db.scalar(select(WorkOrder).where(WorkOrder.engagement_id == engagement.id).order_by(WorkOrder.id))
+        if work_order is None:
+            db.add(WorkOrder(organization_id=org_id, engagement_id=engagement.id, title=label(f"Work order {index}", 200), description=marked(),
+                             status="Open", created_by=SEED_ACTOR))
+        else:
+            work_order.title, work_order.description = label(work_order.title, 200), work_order.description or marked()
     db.flush()
 
     for scope_type, role_code in ROLE_SCOPES.items():
         role = _get_or_create(db, AuthorizationRoleTemplate, {"organization_id": org_id, "role_code": role_code},
-                              {"name": f"{scope_type} scope fixture role", "scope_type": scope_type, "permissions": FIXTURE_PERMISSIONS, "status": "Active",
-                               "created_by": SEED_ACTOR, "reviewed_by": REVIEWER, "reviewed_at": now, "review_reason": "Fictional fixture"})
+                              {"scope_type": scope_type, "permissions": FIXTURE_PERMISSIONS, "status": "Active",
+                               "created_by": SEED_ACTOR, "reviewed_by": REVIEWER, "reviewed_at": now, "review_reason": "Fictional fixture"},
+                              {"name": label(f"{scope_type} scope fixture role", 160),
+                               "description": marked("Fixture role; ignored by authorization in production.")})
         out["roles"][scope_type] = role.id
     mixed = [  # subject, scope type, scope reference
         ("fx-org-admin", "Organization", f"organization:{org_id}"),
@@ -198,8 +238,10 @@ def main() -> int:
     Base.metadata.create_all(engine)
     with SessionLocal() as db:
         result = seed_fixtures(db, org_id, owner_email, owner_subject)
+        import seed_demo_workspace  # same directory (E3:D3.23): demo records for the remaining workspaces
+        demo = seed_demo_workspace.seed_demo(db, org_id, result, owner_subject)
     print(f"Seeded fictional organization {org_id!r}: {len(result['employees'])} people, {len(result['customers'])} customers, "
-          f"{len(result['units'])} units, {len(result['assignments'])} approved assignments. Safe to re-run.")
+          f"{len(result['units'])} units, {len(result['assignments'])} approved assignments; demo workspace: {sum(demo.values())} rows across {len(demo)} tables. Safe to re-run.")
     return 0
 
 

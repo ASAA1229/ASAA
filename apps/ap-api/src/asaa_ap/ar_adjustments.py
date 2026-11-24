@@ -10,10 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from asaa_ap.ar_service import audit, money, receipt_unapplied
+from asaa_ap.ar_service import audit, invoice_clause, money, receipt_clause, receipt_unapplied
 from asaa_ap.database import get_db
 from asaa_ap.models import ARCreditNote, ARDebitNote, ARDispute, ARInvoice, ARReceipt, ARRefund
 from asaa_ap.security import Principal, require_permission
+from asaa_governance.scope import AccessScope, require_scoped_permission
 
 router = APIRouter(prefix="/api/v1/ar", tags=["Accounts Receivable"])
 Db = Annotated[Session, Depends(get_db)]
@@ -71,19 +72,34 @@ def plain(row) -> dict:
     return out
 
 
-def invoice_or_404(db: Session, invoice_id: str, org: str, lock: bool = False) -> ARInvoice:
+def invoice_or_404(db: Session, invoice_id: str, org: str, lock: bool = False, scope: AccessScope | None = None) -> ARInvoice:
+    """An invoice outside the caller's data scope is reported as not found."""
     stmt = select(ARInvoice).where(ARInvoice.id == invoice_id, ARInvoice.organization_id == org)
+    if scope is not None:
+        stmt = stmt.where(invoice_clause(scope))
     row = db.scalar(stmt.with_for_update() if lock else stmt)
     if not row:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return row
 
 
+def debit_clause(scope: AccessScope):
+    return scope.clause(customer=ARDebitNote.customer_id, record=ARDebitNote.id)
+
+
+def refund_clause(scope: AccessScope):
+    return scope.clause(customer=ARRefund.customer_id, record=ARRefund.id)
+
+
+def dispute_clause(scope: AccessScope):
+    return scope.clause(customer=ARDispute.customer_id, record=ARDispute.id)
+
+
 # ---- debit notes -------------------------------------------------------------------------------------------------------
 
 @router.post("/debit-notes", status_code=201)
-def create_debit_note(payload: DebitCreate, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:debit:write"))], x_correlation_id: Corr = None):
-    invoice = invoice_or_404(db, payload.invoice_id, principal.organization_id, lock=True)
+def create_debit_note(payload: DebitCreate, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:debit:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:debit:write"))], x_correlation_id: Corr = None):
+    invoice = invoice_or_404(db, payload.invoice_id, principal.organization_id, lock=True, scope=scope)
     if invoice.status not in OPEN:
         raise HTTPException(status_code=409, detail={"code": "invoice_not_debitable", "status": invoice.status})
     row = ARDebitNote(organization_id=principal.organization_id, customer_id=invoice.customer_id, invoice_id=invoice.id, currency=invoice.currency,
@@ -96,9 +112,9 @@ def create_debit_note(payload: DebitCreate, db: Db, principal: Annotated[Princip
 
 
 @router.get("/debit-notes")
-def list_debit_notes(db: Db, principal: Annotated[Principal, Depends(require_permission("ar:debit:read"))], status: str | None = None, invoice_id: str | None = None,
+def list_debit_notes(db: Db, principal: Annotated[Principal, Depends(require_permission("ar:debit:read"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:debit:read"))], status: str | None = None, invoice_id: str | None = None,
                      limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0)):
-    stmt = select(ARDebitNote).where(ARDebitNote.organization_id == principal.organization_id)
+    stmt = select(ARDebitNote).where(ARDebitNote.organization_id == principal.organization_id, debit_clause(scope))
     if status:
         stmt = stmt.where(ARDebitNote.status == status)
     if invoice_id:
@@ -107,8 +123,8 @@ def list_debit_notes(db: Db, principal: Annotated[Principal, Depends(require_per
 
 
 @router.post("/debit-notes/{note_id}/review")
-def review_debit_note(note_id: str, payload: Review, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:debit:approve"))], x_correlation_id: Corr = None):
-    note = db.scalar(select(ARDebitNote).where(ARDebitNote.id == note_id, ARDebitNote.organization_id == principal.organization_id).with_for_update())
+def review_debit_note(note_id: str, payload: Review, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:debit:approve"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:debit:approve"))], x_correlation_id: Corr = None):
+    note = db.scalar(select(ARDebitNote).where(ARDebitNote.id == note_id, ARDebitNote.organization_id == principal.organization_id, debit_clause(scope)).with_for_update())
     if not note:
         raise HTTPException(status_code=404, detail="Debit note not found")
     if note.created_by == principal.subject:
@@ -131,8 +147,8 @@ def review_debit_note(note_id: str, payload: Review, db: Db, principal: Annotate
 # ---- refunds -----------------------------------------------------------------------------------------------------------
 
 @router.post("/refunds", status_code=201)
-def create_refund(payload: RefundCreate, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:write"))], x_correlation_id: Corr = None):
-    receipt = db.scalar(select(ARReceipt).where(ARReceipt.id == payload.receipt_id, ARReceipt.organization_id == principal.organization_id).with_for_update())
+def create_refund(payload: RefundCreate, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:refund:write"))], x_correlation_id: Corr = None):
+    receipt = db.scalar(select(ARReceipt).where(ARReceipt.id == payload.receipt_id, ARReceipt.organization_id == principal.organization_id, receipt_clause(scope)).with_for_update())
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
     if receipt.status != "Recorded":
@@ -150,9 +166,9 @@ def create_refund(payload: RefundCreate, db: Db, principal: Annotated[Principal,
 
 
 @router.get("/refunds")
-def list_refunds(db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:read"))], status: str | None = None, receipt_id: str | None = None,
+def list_refunds(db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:read"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:refund:read"))], status: str | None = None, receipt_id: str | None = None,
                  limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0)):
-    stmt = select(ARRefund).where(ARRefund.organization_id == principal.organization_id)
+    stmt = select(ARRefund).where(ARRefund.organization_id == principal.organization_id, refund_clause(scope))
     if status:
         stmt = stmt.where(ARRefund.status == status)
     if receipt_id:
@@ -160,16 +176,16 @@ def list_refunds(db: Db, principal: Annotated[Principal, Depends(require_permiss
     return [plain(r) for r in db.scalars(stmt.order_by(ARRefund.created_at.desc()).offset(offset).limit(limit)).all()]
 
 
-def locked_refund(db: Session, refund_id: str, org: str) -> ARRefund:
-    row = db.scalar(select(ARRefund).where(ARRefund.id == refund_id, ARRefund.organization_id == org).with_for_update())
+def locked_refund(db: Session, refund_id: str, org: str, scope: AccessScope) -> ARRefund:
+    row = db.scalar(select(ARRefund).where(ARRefund.id == refund_id, ARRefund.organization_id == org, refund_clause(scope)).with_for_update())
     if not row:
         raise HTTPException(status_code=404, detail="Refund not found")
     return row
 
 
 @router.post("/refunds/{refund_id}/review")
-def review_refund(refund_id: str, payload: Review, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:approve"))], x_correlation_id: Corr = None):
-    row = locked_refund(db, refund_id, principal.organization_id)
+def review_refund(refund_id: str, payload: Review, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:approve"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:refund:approve"))], x_correlation_id: Corr = None):
+    row = locked_refund(db, refund_id, principal.organization_id, scope)
     if row.created_by == principal.subject:
         raise HTTPException(status_code=403, detail="The maker of a refund cannot approve it")
     if row.status != "Pending Approval":
@@ -182,9 +198,9 @@ def review_refund(refund_id: str, payload: Review, db: Db, principal: Annotated[
 
 
 @router.post("/refunds/{refund_id}/record-payment")
-def record_refund_payment(refund_id: str, payload: RefundRecord, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:record"))], x_correlation_id: Corr = None):
+def record_refund_payment(refund_id: str, payload: RefundRecord, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:refund:record"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:refund:record"))], x_correlation_id: Corr = None):
     """Record that an approved refund was paid out through the bank or provider (outside ASAA). Separate permission and a person other than the approver."""
-    row = locked_refund(db, refund_id, principal.organization_id)
+    row = locked_refund(db, refund_id, principal.organization_id, scope)
     if row.status != "Approved":
         raise HTTPException(status_code=409, detail={"code": "refund_not_approved"})
     if principal.subject in {row.created_by, row.reviewed_by}:
@@ -198,8 +214,8 @@ def record_refund_payment(refund_id: str, payload: RefundRecord, db: Db, princip
 # ---- disputes ----------------------------------------------------------------------------------------------------------
 
 @router.post("/disputes", status_code=201)
-def raise_dispute(payload: DisputeCreate, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:write"))], x_correlation_id: Corr = None):
-    invoice = invoice_or_404(db, payload.invoice_id, principal.organization_id)
+def raise_dispute(payload: DisputeCreate, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:dispute:write"))], x_correlation_id: Corr = None):
+    invoice = invoice_or_404(db, payload.invoice_id, principal.organization_id, scope=scope)
     if invoice.status in {"Draft", "Void"}:
         raise HTTPException(status_code=409, detail={"code": "invoice_not_disputable", "status": invoice.status})
     if money(payload.disputed_amount) > invoice.total:
@@ -214,9 +230,9 @@ def raise_dispute(payload: DisputeCreate, db: Db, principal: Annotated[Principal
 
 
 @router.get("/disputes")
-def list_disputes(db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:read"))], status: str | None = None, invoice_id: str | None = None,
+def list_disputes(db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:read"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:dispute:read"))], status: str | None = None, invoice_id: str | None = None,
                   limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0)):
-    stmt = select(ARDispute).where(ARDispute.organization_id == principal.organization_id)
+    stmt = select(ARDispute).where(ARDispute.organization_id == principal.organization_id, dispute_clause(scope))
     if status:
         stmt = stmt.where(ARDispute.status == status)
     if invoice_id:
@@ -225,8 +241,8 @@ def list_disputes(db: Db, principal: Annotated[Principal, Depends(require_permis
 
 
 @router.post("/disputes/{dispute_id}/resolve")
-def resolve_dispute(dispute_id: str, payload: DisputeResolve, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:resolve"))], x_correlation_id: Corr = None):
-    row = db.scalar(select(ARDispute).where(ARDispute.id == dispute_id, ARDispute.organization_id == principal.organization_id).with_for_update())
+def resolve_dispute(dispute_id: str, payload: DisputeResolve, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:resolve"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:dispute:resolve"))], x_correlation_id: Corr = None):
+    row = db.scalar(select(ARDispute).where(ARDispute.id == dispute_id, ARDispute.organization_id == principal.organization_id, dispute_clause(scope)).with_for_update())
     if not row:
         raise HTTPException(status_code=404, detail="Dispute not found")
     if row.created_by == principal.subject:
@@ -245,8 +261,8 @@ def resolve_dispute(dispute_id: str, payload: DisputeResolve, db: Db, principal:
 
 
 @router.post("/disputes/{dispute_id}/withdraw")
-def withdraw_dispute(dispute_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:write"))], x_correlation_id: Corr = None):
-    row = db.scalar(select(ARDispute).where(ARDispute.id == dispute_id, ARDispute.organization_id == principal.organization_id).with_for_update())
+def withdraw_dispute(dispute_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:dispute:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:dispute:write"))], x_correlation_id: Corr = None):
+    row = db.scalar(select(ARDispute).where(ARDispute.id == dispute_id, ARDispute.organization_id == principal.organization_id, dispute_clause(scope)).with_for_update())
     if not row:
         raise HTTPException(status_code=404, detail="Dispute not found")
     if row.status != "Open":
