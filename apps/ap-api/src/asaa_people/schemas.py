@@ -143,7 +143,7 @@ class EmployeeDocumentCreate(StrictModel):
         if "://" in lowered:
             from urllib.parse import urlparse
             parsed = urlparse(value)
-            if parsed.scheme not in {"https", "s3", "gs", "az"} or parsed.username or parsed.password or parsed.query or parsed.fragment:
+            if parsed.scheme not in {"private-object", "https", "s3", "gs", "az"} or parsed.username or parsed.password or parsed.query or parsed.fragment:
                 raise ValueError("storage_reference must not be a link carrying credentials, a signed query string or an insecure scheme")
         return value
 
