@@ -128,3 +128,20 @@ def test_hr_document_storage_reference_plain_key_is_accepted(client):
     for reference in ("hr/contracts/2026/doc-001.pdf", "s3://approved-bucket/hr/doc-001.pdf"):
         response = client.post(f"/api/v1/hr/employees/{employee['id']}/documents", json={"document_type": "Contract", "title": "Doc", "storage_reference": reference})
         assert response.status_code == 201, response.text
+
+
+def test_hr_document_private_object_reference_is_accepted(client):
+    from tests.test_people import create_employee
+    employee = create_employee(client)
+    for reference in ("private-object://hr/employee/document-001", "private-object://hr/contracts/2026/doc-002.pdf"):
+        response = client.post(f"/api/v1/hr/employees/{employee['id']}/documents", json={"document_type": "Contract", "title": "Doc", "storage_reference": reference})
+        assert response.status_code == 201, response.text
+
+
+@pytest.mark.parametrize("reference", ["private-object://user:pw@hr/doc-001", "private-object://hr/doc-001?sig=abc", "private-object://hr/doc-001?token=x#frag",
+                                       "private-object://tok@hr/doc-001"])
+def test_hr_document_private_object_reference_rejects_credentials_and_query(client, reference):
+    from tests.test_people import create_employee
+    employee = create_employee(client)
+    response = client.post(f"/api/v1/hr/employees/{employee['id']}/documents", json={"document_type": "Contract", "title": "Doc", "storage_reference": reference})
+    assert response.status_code == 422
