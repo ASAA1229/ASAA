@@ -18,6 +18,7 @@ from asaa_ap.database import get_db
 from asaa_ap.models import ARCreditNote, ARDebitNote, ARInvoice, ARReceipt, ARRefund
 from asaa_ap.org_time import org_today
 from asaa_ap.security import Principal, require_permission
+from asaa_governance.scope import AccessScope, require_scoped_permission
 
 router = APIRouter(prefix="/api/v1/ar", tags=["Accounts Receivable"])
 Db = Annotated[Session, Depends(get_db)]
@@ -147,10 +148,11 @@ def receivables_aging(db: Db, principal: Annotated[Principal, Depends(require_pe
 
 
 @router.get("/customers/{customer_id}/statement")
-def customer_statement(customer_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:invoice:read"))], date_from: date | None = None, date_to: date | None = None):
+def customer_statement(customer_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("ar:invoice:read"))],
+                       scope: Annotated[AccessScope, Depends(require_scoped_permission("ar:invoice:read"))], date_from: date | None = None, date_to: date | None = None):
     """Chronological invoices, receipts and approved credits with a running balance per currency."""
     org = principal.organization_id
-    get_customer(db, customer_id, org)
+    get_customer(db, customer_id, org, scope)
     entries: list[dict] = []
     for inv in db.scalars(select(ARInvoice).where(ARInvoice.organization_id == org, ARInvoice.customer_id == customer_id, ARInvoice.status.in_(["Issued", "Partially Paid", "Paid", "Credited"]))):
         entries.append({"date": inv.issue_date, "type": "invoice", "reference": inv.invoice_number or inv.id, "currency": inv.currency, "amount": inv.total})
