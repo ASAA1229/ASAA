@@ -105,6 +105,10 @@ class Settings(BaseSettings):
     integration_clock_skew_seconds: int = Field(default=86400, ge=0, le=31536000)
     # Supplier-invoice match tolerance (absolute amount, invoice currency). Owner policy value (BLOCKED - OWNER). Unset = policy not configured:
     # matching is refused rather than assuming a tolerance. Set 0 explicitly for exact-match-only.
+    # Swagger UI sign-in (/docs, never in production). Unset = bearer token paste only. The client is a public PKCE client: no secret exists here.
+    docs_oidc_authorization_url: str | None = None
+    docs_oidc_token_url: str | None = None
+    docs_oidc_client_id: str | None = None
     ap_match_tolerance_amount: Decimal | None = Field(default=None, ge=0, le=Decimal("1000000"))
 
 
@@ -117,6 +121,22 @@ class Settings(BaseSettings):
             values = [getattr(m, field) for m in self.integration_producers.values()]
             if len(values) != len(set(values)):
                 raise ValueError(f"ASAA_AP_INTEGRATION_PRODUCERS: two clients share the same {field}; each producer needs its own credential")
+        return self
+
+    @model_validator(mode="after")
+    def cors_wildcard_only_in_development(self):
+        if "*" in self.cors_origins and self.environment in {"staging", "production"}:
+            raise ValueError("ASAA_AP_CORS_ORIGINS must list explicit origins in staging and production")
+        return self
+
+    @model_validator(mode="after")
+    def docs_oidc_urls_must_be_https_off_loopback(self):
+        from urllib.parse import urlparse
+        for value in (self.docs_oidc_authorization_url, self.docs_oidc_token_url):
+            if value:
+                parsed = urlparse(value)
+                if parsed.scheme != "https" and not (parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"}):
+                    raise ValueError("ASAA_AP_DOCS_OIDC_*_URL must use https (plain http only on localhost / 127.0.0.1)")
         return self
 
     @model_validator(mode="after")

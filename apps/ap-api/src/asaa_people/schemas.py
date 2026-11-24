@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class StrictModel(BaseModel):
@@ -131,6 +131,21 @@ class EmployeeDocumentCreate(StrictModel):
     classification: str = Field(default="Confidential", pattern="^(Internal|Confidential|Restricted)$")
     issued_on: date | None = None
     expires_on: date | None = None
+
+    @field_validator("storage_reference")
+    @classmethod
+    def storage_reference_is_a_plain_key(cls, value: str):
+        """A name/key in approved storage: no traversal, no control characters, no URL carrying credentials or a signed query string."""
+        import re
+        lowered = value.lower()
+        if ".." in value.replace("\\", "/").split("/") or re.search(r"[\x00-\x1f\x7f\\]", value):
+            raise ValueError("storage_reference must be a plain storage key (no path traversal or control characters)")
+        if "://" in lowered:
+            from urllib.parse import urlparse
+            parsed = urlparse(value)
+            if parsed.scheme not in {"private-object", "https", "s3", "gs", "az"} or parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError("storage_reference must not be a link carrying credentials, a signed query string or an insecure scheme")
+        return value
 
     @model_validator(mode="after")
     def document_dates_valid(self):

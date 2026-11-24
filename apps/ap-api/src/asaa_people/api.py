@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
+from asaa_governance.scope import AccessScope, require_scoped_permission
+from asaa_people.scoping import employee_clause, payroll_entry_clause
 from asaa_people.models import (
     Employee, EmploymentRecord, OnboardingTemplate, OnboardingTaskTemplate,
     OnboardingAssignment, OnboardingTask, CompensationRecord, PayrollPeriod,
@@ -40,10 +42,12 @@ def view(row):
     return {key: value for key, value in row.__dict__.items() if not key.startswith("_")}
 
 
-def employee_or_404(db: Session, employee_id: str, org_id: str):
-    row = db.scalar(select(Employee).where(
-        Employee.id == employee_id, Employee.organization_id == org_id
-    ))
+def employee_or_404(db: Session, employee_id: str, org_id: str, scope: AccessScope | None = None):
+    """Org-scoped lookup; with a data scope, an employee outside it is reported as not found (existence does not leak)."""
+    stmt = select(Employee).where(Employee.id == employee_id, Employee.organization_id == org_id)
+    if scope is not None:
+        stmt = stmt.where(employee_clause(scope, org_id))
+    row = db.scalar(stmt)
     if not row:
         raise HTTPException(status_code=404, detail="Employee not found")
     return row
@@ -52,7 +56,9 @@ def employee_or_404(db: Session, employee_id: str, org_id: str):
 @hr_router.post("/employees", status_code=201)
 def create_employee(payload: EmployeeCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("hr:employee:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
+    scope.require_unrestricted()  # a new employee has no unit yet, so it cannot be placed inside a restricted scope
     if payload.employee_code:
         duplicate = db.scalar(select(Employee.id).where(
             Employee.organization_id == principal.organization_id,
@@ -76,9 +82,10 @@ def create_employee(payload: EmployeeCreate, db: Db,
 @hr_router.get("/employees")
 def list_employees(db: Db,
     principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:read"))],
     status: str | None = None, limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0)):
-    stmt = select(Employee).where(Employee.organization_id == principal.organization_id)
+    stmt = select(Employee).where(Employee.organization_id == principal.organization_id, employee_clause(scope, principal.organization_id))
     if status:
         stmt = stmt.where(Employee.status == status)
     rows = db.scalars(stmt.order_by(Employee.created_at.desc()).offset(offset).limit(limit)).all()
@@ -87,16 +94,20 @@ def list_employees(db: Db,
 
 @hr_router.get("/employees/{employee_id}")
 def get_employee(employee_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))]):
-    return view(employee_or_404(db, employee_id, principal.organization_id))
+    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:read"))]):
+    return view(employee_or_404(db, employee_id, principal.organization_id, scope))
 
 
 @hr_router.post("/employees/{employee_id}/employment-records", status_code=201)
 def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("hr:employment:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employment:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
-    employee = employee_or_404(db, employee_id, principal.organization_id)
+    employee = employee_or_404(db, employee_id, principal.organization_id, scope)
     require_department(db, principal.organization_id, payload.department_id)
+    if payload.department_id is not None and not scope.allows_unit(payload.department_id):
+        raise HTTPException(status_code=403, detail={"code": "authorization_out_of_scope"})  # cannot move someone into a unit outside your scope
     if payload.manager_employee_id:
         if payload.manager_employee_id == employee_id:
             raise HTTPException(status_code=422, detail={"code": "employee_cannot_manage_self"})
@@ -138,8 +149,9 @@ def add_employment_record(employee_id: str, payload: EmploymentRecordCreate, db:
 
 @hr_router.get("/employees/{employee_id}/employment-records")
 def employment_history(employee_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))]):
-    employee_or_404(db, employee_id, principal.organization_id)
+    principal: Annotated[Principal, Depends(require_permission("hr:employee:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("hr:employee:read"))]):
+    employee_or_404(db, employee_id, principal.organization_id, scope)
     rows = db.scalars(select(EmploymentRecord).where(
         EmploymentRecord.organization_id == principal.organization_id,
         EmploymentRecord.employee_id == employee_id
@@ -516,6 +528,7 @@ def validate_source_references(db: Session, org: str, employee_id: str, refs) ->
 @payroll_router.post("/runs/{run_id}/entries", status_code=201)
 def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:entry:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
@@ -524,7 +537,7 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
         raise HTTPException(status_code=404, detail="Payroll run not found")
     if run.status not in {"Draft", "Changes Requested"}:
         raise HTTPException(status_code=409, detail={"code": "payroll_run_not_editable"})
-    employee_or_404(db, payload.employee_id, principal.organization_id)
+    employee_or_404(db, payload.employee_id, principal.organization_id, scope)
     if payload.currency != run.currency:
         raise HTTPException(status_code=409, detail={"code": "payroll_currency_mismatch"})
     duplicate = db.scalar(select(PayrollEntry.id).where(
@@ -554,7 +567,8 @@ def add_payroll_entry(run_id: str, payload: PayrollEntryCreate, db: Db,
 
 @payroll_router.get("/runs/{run_id}/entries")
 def list_payroll_entries(run_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("payroll:read"))]):
+    principal: Annotated[Principal, Depends(require_permission("payroll:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:read"))]):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
     ))
@@ -562,6 +576,7 @@ def list_payroll_entries(run_id: str, db: Db,
         raise HTTPException(status_code=404, detail="Payroll run not found")
     rows = db.scalars(select(PayrollEntry).where(
         PayrollEntry.organization_id == principal.organization_id,
-        PayrollEntry.run_id == run_id
+        PayrollEntry.run_id == run_id,
+        payroll_entry_clause(scope, principal.organization_id),
     )).all()
     return [view(row) for row in rows]

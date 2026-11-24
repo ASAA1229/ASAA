@@ -27,6 +27,7 @@ from asaa_governance.api import router as master_data_router
 from asaa_governance.authority import router as governance_router
 from asaa_governance.administration import router as administration_router
 from asaa_governance.authorization import router as authorization_router
+from asaa_governance.scope import router as authorization_scope_router
 from asaa_workforce_finance.api import router as workforce_finance_router
 from asaa_identity.api import router as identity_sync_router
 from asaa_notifications.api import router as notifications_router
@@ -47,9 +48,12 @@ configure_logging(settings.log_level)
 logger = logging.getLogger("asaa.api")
 # Interactive API docs and the OpenAPI document are disabled in production (docs/SECURITY.md section 8).
 _production = settings.environment == "production"
+# Swagger sign-in: a public PKCE client (no secret) when the docs OIDC settings are present; otherwise the Authorize dialog takes a pasted bearer token.
+_docs_oauth = ({"clientId": settings.docs_oidc_client_id, "usePkceWithAuthorizationCodeGrant": True, "scopes": "openid"}
+               if settings.docs_oidc_client_id and settings.docs_oidc_authorization_url and settings.docs_oidc_token_url and not _production else None)
 app = FastAPI(title=settings.app_name, version="0.4.0",
               docs_url=None if _production else "/docs", redoc_url=None if _production else "/redoc",
-              openapi_url=None if _production else "/openapi.json")
+              openapi_url=None if _production else "/openapi.json", swagger_ui_init_oauth=_docs_oauth)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -78,6 +82,7 @@ app.include_router(master_data_router)
 app.include_router(governance_router)
 app.include_router(administration_router)
 app.include_router(authorization_router)
+app.include_router(authorization_scope_router)
 app.include_router(workforce_finance_router)
 app.include_router(identity_sync_router)
 app.include_router(notifications_router)

@@ -11,7 +11,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,7 @@ from asaa_ap.database import get_db
 from asaa_ap.models import ARCustomer, ARInvoice, AuditEvent
 from asaa_ap.org_time import org_today_or_none
 from asaa_ap.security import Principal, require_permission
+from asaa_governance.scope import AccessScope, require_scoped_permission, not_found
 from asaa_integration.emitter import emit_for_audit
 from asaa_delivery.models import Engagement, Milestone, ServiceDefinition, WorkOrder
 from asaa_people.models import Employee
@@ -44,6 +45,28 @@ def owned(db: Session, model, row_id: str, org: str, label: str, lock: bool = Tr
     row = db.scalar(stmt.with_for_update() if lock else stmt)
     if not row:
         raise HTTPException(status_code=404, detail=f"{label} not found")
+    return row
+
+
+def engagement_clause(scope: AccessScope):
+    """Engagements in scope: by customer, by project (engagement id or project_reference) or the engagement record itself."""
+    return scope.clause(customer=Engagement.customer_id, project=lambda ids: or_(Engagement.id.in_(ids), Engagement.project_reference.in_(ids)), record=Engagement.id)
+
+
+def milestone_clause(scope: AccessScope):
+    return or_(scope.clause(record=Milestone.id), Milestone.engagement_id.in_(select(Engagement.id).where(engagement_clause(scope))))
+
+
+def work_order_clause(scope: AccessScope):
+    return or_(scope.clause(record=WorkOrder.id), WorkOrder.engagement_id.in_(select(Engagement.id).where(engagement_clause(scope))))
+
+
+def scoped(db: Session, model, row_id: str, org: str, label: str, clause, lock: bool = True):
+    """owned() restricted to a data scope; outside the scope the answer is 404."""
+    stmt = select(model).where(model.id == row_id, model.organization_id == org, clause)
+    row = db.scalar(stmt.with_for_update() if lock else stmt)
+    if not row:
+        raise not_found(label)
     return row
 
 
@@ -224,8 +247,10 @@ def retire_service(service_id: str, db: Db, principal: Annotated[Principal, Depe
 # ---- engagements --------------------------------------------------------------------------------------------------------
 
 @router.post("/engagements", status_code=201)
-def create_engagement(payload: EngagementIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:write"))], x_correlation_id: Corr = None):
+def create_engagement(payload: EngagementIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:engagement:write"))], x_correlation_id: Corr = None):
     org = principal.organization_id
+    if not scope.allows_customer(payload.customer_id):
+        raise HTTPException(status_code=403, detail={"code": "authorization_out_of_scope"})
     customer = db.scalar(select(ARCustomer).where(ARCustomer.id == payload.customer_id, ARCustomer.organization_id == org))
     if not customer or customer.status != "Active":
         raise HTTPException(status_code=409, detail={"code": "customer_not_active_or_missing"})
@@ -244,9 +269,9 @@ def create_engagement(payload: EngagementIn, db: Db, principal: Annotated[Princi
 
 
 @router.get("/engagements")
-def list_engagements(db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:read"))], status: str | None = None, customer_id: str | None = None,
+def list_engagements(db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:read"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:engagement:read"))], status: str | None = None, customer_id: str | None = None,
                      limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0)):
-    stmt = select(Engagement).where(Engagement.organization_id == principal.organization_id)
+    stmt = select(Engagement).where(Engagement.organization_id == principal.organization_id, engagement_clause(scope))
     if status:
         stmt = stmt.where(Engagement.status == status)
     if customer_id:
@@ -255,16 +280,16 @@ def list_engagements(db: Db, principal: Annotated[Principal, Depends(require_per
 
 
 @router.get("/engagements/{engagement_id}")
-def get_engagement(engagement_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:read"))]):
-    row = owned(db, Engagement, engagement_id, principal.organization_id, "Engagement", lock=False)
+def get_engagement(engagement_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:read"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:engagement:read"))]):
+    row = scoped(db, Engagement, engagement_id, principal.organization_id, "Engagement", engagement_clause(scope), lock=False)
     milestones = db.scalars(select(Milestone).where(Milestone.engagement_id == row.id).order_by(Milestone.due_date)).all()
     return dump_engagement(row, db, list(milestones))
 
 
 @router.post("/engagements/{engagement_id}/status")
-def change_engagement_status(engagement_id: str, payload: StatusIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:manage"))], x_correlation_id: Corr = None):
+def change_engagement_status(engagement_id: str, payload: StatusIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:manage"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:engagement:manage"))], x_correlation_id: Corr = None):
     org = principal.organization_id
-    row = owned(db, Engagement, engagement_id, org, "Engagement")
+    row = scoped(db, Engagement, engagement_id, org, "Engagement", engagement_clause(scope))
     if payload.status not in ENGAGEMENT_TRANSITIONS[row.status]:
         raise HTTPException(status_code=409, detail={"code": "invalid_transition", "from": row.status, "to": payload.status})
     if payload.status == "Active" and row.status == "Draft":
@@ -286,8 +311,8 @@ def change_engagement_status(engagement_id: str, payload: StatusIn, db: Db, prin
 # ---- milestones -----------------------------------------------------------------------------------------------------------
 
 @router.post("/engagements/{engagement_id}/milestones", status_code=201)
-def add_milestone(engagement_id: str, payload: MilestoneIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:write"))], x_correlation_id: Corr = None):
-    eng = owned(db, Engagement, engagement_id, principal.organization_id, "Engagement")
+def add_milestone(engagement_id: str, payload: MilestoneIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:engagement:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:engagement:write"))], x_correlation_id: Corr = None):
+    eng = scoped(db, Engagement, engagement_id, principal.organization_id, "Engagement", engagement_clause(scope))
     if eng.status in {"Completed", "Cancelled"}:
         raise HTTPException(status_code=409, detail={"code": "engagement_closed"})
     if payload.billable_amount is not None and not eng.currency:
@@ -301,8 +326,8 @@ def add_milestone(engagement_id: str, payload: MilestoneIn, db: Db, principal: A
 
 
 @router.post("/milestones/{milestone_id}/deliver")
-def deliver_milestone(milestone_id: str, payload: EvidenceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:milestone:deliver"))], x_correlation_id: Corr = None):
-    row = owned(db, Milestone, milestone_id, principal.organization_id, "Milestone")
+def deliver_milestone(milestone_id: str, payload: EvidenceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:milestone:deliver"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:milestone:deliver"))], x_correlation_id: Corr = None):
+    row = scoped(db, Milestone, milestone_id, principal.organization_id, "Milestone", milestone_clause(scope))
     eng = db.get(Engagement, row.engagement_id)
     if eng.status != "Active":
         raise HTTPException(status_code=409, detail={"code": "engagement_not_active"})
@@ -316,8 +341,8 @@ def deliver_milestone(milestone_id: str, payload: EvidenceIn, db: Db, principal:
 
 
 @router.post("/milestones/{milestone_id}/acceptance")
-def accept_milestone(milestone_id: str, payload: AcceptIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:milestone:accept"))], x_correlation_id: Corr = None):
-    row = owned(db, Milestone, milestone_id, principal.organization_id, "Milestone")
+def accept_milestone(milestone_id: str, payload: AcceptIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:milestone:accept"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:milestone:accept"))], x_correlation_id: Corr = None):
+    row = scoped(db, Milestone, milestone_id, principal.organization_id, "Milestone", milestone_clause(scope))
     if row.status != "Delivered":
         raise HTTPException(status_code=409, detail={"code": "milestone_not_delivered"})
     if row.delivered_by == principal.subject:
@@ -330,9 +355,9 @@ def accept_milestone(milestone_id: str, payload: AcceptIn, db: Db, principal: An
 
 
 @router.post("/milestones/{milestone_id}/link-invoice")
-def link_invoice(milestone_id: str, payload: LinkInvoiceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:milestone:bill"))], x_correlation_id: Corr = None):
+def link_invoice(milestone_id: str, payload: LinkInvoiceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:milestone:bill"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:milestone:bill"))], x_correlation_id: Corr = None):
     org = principal.organization_id
-    row = owned(db, Milestone, milestone_id, org, "Milestone")
+    row = scoped(db, Milestone, milestone_id, org, "Milestone", milestone_clause(scope))
     if row.status != "Accepted" or row.billable_amount is None:
         raise HTTPException(status_code=409, detail={"code": "milestone_not_billable"})
     if row.invoice_id:
@@ -352,9 +377,11 @@ def link_invoice(milestone_id: str, payload: LinkInvoiceIn, db: Db, principal: A
 # ---- work orders -----------------------------------------------------------------------------------------------------------
 
 @router.post("/work-orders", status_code=201)
-def create_work_order(payload: WorkOrderIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:write"))], x_correlation_id: Corr = None):
+def create_work_order(payload: WorkOrderIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:workorder:write"))], x_correlation_id: Corr = None):
+    if not payload.engagement_id:
+        scope.require_unrestricted()  # a work order without an engagement cannot be placed inside a restricted scope
     if payload.engagement_id:
-        eng = owned(db, Engagement, payload.engagement_id, principal.organization_id, "Engagement", lock=False)
+        eng = scoped(db, Engagement, payload.engagement_id, principal.organization_id, "Engagement", engagement_clause(scope), lock=False)
         if eng.status in {"Completed", "Cancelled"}:
             raise HTTPException(status_code=409, detail={"code": "engagement_closed"})
     row = WorkOrder(organization_id=principal.organization_id, created_by=principal.subject, status="Open", **payload.model_dump())
@@ -366,9 +393,9 @@ def create_work_order(payload: WorkOrderIn, db: Db, principal: Annotated[Princip
 
 
 @router.get("/work-orders")
-def list_work_orders(db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:read"))], status: str | None = None, engagement_id: str | None = None,
+def list_work_orders(db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:read"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:workorder:read"))], status: str | None = None, engagement_id: str | None = None,
                      assignee_employee_id: str | None = None, limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0)):
-    stmt = select(WorkOrder).where(WorkOrder.organization_id == principal.organization_id)
+    stmt = select(WorkOrder).where(WorkOrder.organization_id == principal.organization_id, work_order_clause(scope))
     for column, value in ((WorkOrder.status, status), (WorkOrder.engagement_id, engagement_id), (WorkOrder.assignee_employee_id, assignee_employee_id)):
         if value:
             stmt = stmt.where(column == value)
@@ -376,9 +403,9 @@ def list_work_orders(db: Db, principal: Annotated[Principal, Depends(require_per
 
 
 @router.post("/work-orders/{order_id}/assign")
-def assign_work_order(order_id: str, payload: AssignIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:assign"))], x_correlation_id: Corr = None):
+def assign_work_order(order_id: str, payload: AssignIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:assign"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:workorder:assign"))], x_correlation_id: Corr = None):
     org = principal.organization_id
-    row = owned(db, WorkOrder, order_id, org, "Work order")
+    row = scoped(db, WorkOrder, order_id, org, "Work order", work_order_clause(scope))
     if row.status not in {"Open", "Assigned"}:
         raise HTTPException(status_code=409, detail={"code": "work_order_not_assignable", "status": row.status})
     employee = db.scalar(select(Employee).where(Employee.id == payload.employee_id, Employee.organization_id == org))
@@ -391,8 +418,8 @@ def assign_work_order(order_id: str, payload: AssignIn, db: Db, principal: Annot
 
 
 @router.post("/work-orders/{order_id}/start")
-def start_work_order(order_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:execute"))], x_correlation_id: Corr = None):
-    row = owned(db, WorkOrder, order_id, principal.organization_id, "Work order")
+def start_work_order(order_id: str, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:execute"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:workorder:execute"))], x_correlation_id: Corr = None):
+    row = scoped(db, WorkOrder, order_id, principal.organization_id, "Work order", work_order_clause(scope))
     if row.status != "Assigned":
         raise HTTPException(status_code=409, detail={"code": "work_order_not_assigned", "status": row.status})
     row.status = "In Progress"
@@ -402,8 +429,8 @@ def start_work_order(order_id: str, db: Db, principal: Annotated[Principal, Depe
 
 
 @router.post("/work-orders/{order_id}/complete")
-def complete_work_order(order_id: str, payload: EvidenceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:execute"))], x_correlation_id: Corr = None):
-    row = owned(db, WorkOrder, order_id, principal.organization_id, "Work order")
+def complete_work_order(order_id: str, payload: EvidenceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:execute"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:workorder:execute"))], x_correlation_id: Corr = None):
+    row = scoped(db, WorkOrder, order_id, principal.organization_id, "Work order", work_order_clause(scope))
     if row.status != "In Progress":
         raise HTTPException(status_code=409, detail={"code": "work_order_not_in_progress", "status": row.status})
     row.status, row.completed_by, row.completed_at, row.completion_evidence = "Completed", principal.subject, now(), payload.evidence
@@ -413,8 +440,8 @@ def complete_work_order(order_id: str, payload: EvidenceIn, db: Db, principal: A
 
 
 @router.post("/work-orders/{order_id}/verify")
-def verify_work_order(order_id: str, payload: ReviewIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:verify"))], x_correlation_id: Corr = None):
-    row = owned(db, WorkOrder, order_id, principal.organization_id, "Work order")
+def verify_work_order(order_id: str, payload: ReviewIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:verify"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:workorder:verify"))], x_correlation_id: Corr = None):
+    row = scoped(db, WorkOrder, order_id, principal.organization_id, "Work order", work_order_clause(scope))
     if row.status != "Completed":
         raise HTTPException(status_code=409, detail={"code": "work_order_not_completed", "status": row.status})
     if row.completed_by == principal.subject:
@@ -429,8 +456,8 @@ def verify_work_order(order_id: str, payload: ReviewIn, db: Db, principal: Annot
 
 
 @router.post("/work-orders/{order_id}/cancel")
-def cancel_work_order(order_id: str, payload: EvidenceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:write"))], x_correlation_id: Corr = None):
-    row = owned(db, WorkOrder, order_id, principal.organization_id, "Work order")
+def cancel_work_order(order_id: str, payload: EvidenceIn, db: Db, principal: Annotated[Principal, Depends(require_permission("delivery:workorder:write"))], scope: Annotated[AccessScope, Depends(require_scoped_permission("delivery:workorder:write"))], x_correlation_id: Corr = None):
+    row = scoped(db, WorkOrder, order_id, principal.organization_id, "Work order", work_order_clause(scope))
     if row.status in {"Verified", "Cancelled"}:
         raise HTTPException(status_code=409, detail={"code": "work_order_closed"})
     row.status = "Cancelled"
