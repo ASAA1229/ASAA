@@ -243,3 +243,7 @@ def test_sensitive_templates_still_need_independent_review_and_are_flagged(clien
     from asaa_ap.models import AuditEvent
     event = seeded["db"].scalar(select(AuditEvent).where(AuditEvent.action == "authorization_role.proposed"))
     assert event.details["sensitive_permissions"] == ["audit:read", "payroll:read"]
+
+
+def test_demo_org_defaults_to_the_realm_org_claim():
+    assert load_seed().DEFAULT_DEMO_ORG == "asaa"
