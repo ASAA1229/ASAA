@@ -124,6 +124,12 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def cors_wildcard_only_in_development(self):
+        if "*" in self.cors_origins and self.environment in {"staging", "production"}:
+            raise ValueError("ASAA_AP_CORS_ORIGINS must list explicit origins in staging and production")
+        return self
+
+    @model_validator(mode="after")
     def docs_oidc_urls_must_be_https_off_loopback(self):
         from urllib.parse import urlparse
         for value in (self.docs_oidc_authorization_url, self.docs_oidc_token_url):

@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from typing import Literal
 
 class TimeEntryCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     work_date: date
     project_reference: str | None = Field(default=None, max_length=160)
     task_reference: str | None = Field(default=None, max_length=160)
@@ -12,6 +13,7 @@ class TimeEntryCreate(BaseModel):
     billable: bool = False
 
 class TimesheetCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     employee_reference: str | None = Field(default=None, max_length=128)
     period_start: date
     period_end: date
@@ -28,6 +30,7 @@ class TimesheetCreate(BaseModel):
         return self
 
 class TimesheetReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     decision: Literal["approve", "reject"] | None = None
     reason: str = Field(min_length=3, max_length=1000)
     expected_version: int = Field(ge=1)
@@ -50,6 +53,7 @@ class TimesheetRead(BaseModel):
     review_reason: str | None
 
 class ExpenseCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     expense_date: date
     category_code: str = Field(min_length=2, max_length=80)
     merchant: str | None = Field(default=None, max_length=200)
@@ -68,11 +72,13 @@ class ExpenseCreate(BaseModel):
         return value
 
 class ExpenseReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     decision: Literal["approve", "reject"] | None = None
     reason: str = Field(min_length=3, max_length=1000)
     expected_version: int = Field(ge=1)
 
 class ExpenseReimbursement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     reimbursement_reference: str = Field(min_length=2, max_length=200)
     expected_version: int = Field(ge=1)
 
@@ -103,6 +109,7 @@ class ExpenseRead(BaseModel):
 
 
 class ExpenseUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     """Replacement of a Draft or Rejected claim's content by its owner (resubmission after rejection)."""
     expense_date: date
     category_code: str = Field(min_length=2, max_length=80)
@@ -114,6 +121,7 @@ class ExpenseUpdate(BaseModel):
     expected_version: int = Field(ge=1)
 
 class TimesheetUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     period_start: date
     period_end: date
     entries: list[TimeEntryCreate] = Field(min_length=1, max_length=500)
@@ -128,6 +136,7 @@ class TimesheetUpdate(BaseModel):
         return self
 
 class PolicyRuleWrite(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     currency: str = Field(min_length=3, max_length=3)
     max_amount: Decimal | None = Field(default=None, gt=0, max_digits=18, decimal_places=2)
     receipt_required_above: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)

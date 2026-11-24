@@ -80,6 +80,8 @@ def get_principal(authorization: Annotated[str | None, Depends(authorization_hea
         raise
     except (jwt.PyJWTError, ValueError):
         raise HTTPException(status_code=401, detail="Invalid or expired access token", headers={"WWW-Authenticate": "Bearer"}) from None
+    if not all(isinstance(claims.get(key), str) and claims[key].strip() for key in ("sub", "org_id")):
+        raise HTTPException(status_code=401, detail="Invalid or expired access token", headers={"WWW-Authenticate": "Bearer"})
     permissions = claims.get("permissions", [])
     if not isinstance(permissions, list) or not all(isinstance(p, str) for p in permissions):
         raise HTTPException(status_code=401, detail="Invalid permission claims")
