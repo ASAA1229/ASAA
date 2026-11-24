@@ -247,3 +247,57 @@ def test_sensitive_templates_still_need_independent_review_and_are_flagged(clien
 
 def test_demo_org_defaults_to_the_realm_org_claim():
     assert load_seed().DEFAULT_DEMO_ORG == "asaa"
+
+
+# ---- E3:D3.19 TEMPORARY / TEST DATA labels and production guard ----------------------------------------------------
+
+def test_seed_labels_everything_and_relabels_an_old_seed(client, seeded):
+    from sqlalchemy import select
+    from asaa_ap.models import ARCustomer, Supplier
+    from asaa_delivery.models import Engagement, Milestone, WorkOrder
+    from asaa_governance.administration import OrganizationProfile, OrganizationUnit
+    from asaa_governance.authorization import AuthorizationRoleTemplate
+    from asaa_people.models import Employee
+    seed, db = seeded["seed"], seeded["db"]
+
+    def check():
+        names = [db.scalar(select(OrganizationProfile.display_name).where(OrganizationProfile.organization_id == ORG))]
+        names += db.scalars(select(OrganizationUnit.name).where(OrganizationUnit.organization_id == ORG)).all()
+        names += db.scalars(select(ARCustomer.legal_name).where(ARCustomer.organization_id == ORG)).all()
+        names += db.scalars(select(Supplier.legal_name).where(Supplier.organization_id == ORG)).all()
+        names += db.scalars(select(Employee.preferred_name).where(Employee.organization_id == ORG)).all()
+        names += db.scalars(select(Engagement.title).where(Engagement.organization_id == ORG)).all()
+        names += db.scalars(select(Milestone.title).where(Milestone.organization_id == ORG)).all()
+        names += db.scalars(select(WorkOrder.title).where(WorkOrder.organization_id == ORG)).all()
+        names += db.scalars(select(AuthorizationRoleTemplate.name).where(AuthorizationRoleTemplate.organization_id == ORG)).all()
+        assert len(names) > 30 and all(n.startswith("TEMPORARY / TEST DATA – ") for n in names), [n for n in names if not (n or "").startswith("TEMPORARY")]
+        for role in db.scalars(select(AuthorizationRoleTemplate).where(AuthorizationRoleTemplate.organization_id == ORG)):
+            assert "TEMPORARY_TEST_DATA" in role.description and role.role_code.startswith("fixture.")
+        assert all("TEMPORARY_TEST_DATA" in (s.notes or "") for s in db.scalars(select(Supplier)))
+    check()
+    # simulate an older unlabelled seed, then re-run: the labels come back without duplicating rows
+    for unit in db.scalars(select(OrganizationUnit)):
+        unit.name = unit.name.removeprefix(seed.TEST_PREFIX)
+    for m in db.scalars(select(Milestone)):
+        m.title = m.title.removeprefix(seed.TEST_PREFIX)
+    db.commit()
+    count = len(db.scalars(select(Milestone.id)).all())
+    seed.seed_fixtures(db, ORG)
+    check()
+    assert len(db.scalars(select(Milestone.id)).all()) == count
+    assert len(seed.label("x" * 500, 160)) == 160 and seed.label(seed.label("A")) == seed.label("A")
+
+
+def test_fixture_roles_are_ignored_in_production(client, seeded, monkeypatch, caplog):
+    from datetime import datetime, timezone
+    from asaa_governance import scope
+    db = seeded["db"]
+    now = datetime.now(timezone.utc)
+    assert scope.active_assignments(db, ORG, "fx-org-admin", now)
+    monkeypatch.setattr(scope, "get_settings", lambda: type("S", (), {"environment": "production"})())
+    with caplog.at_level("WARNING"):
+        assert scope.active_assignments(db, ORG, "fx-org-admin", now) == []
+        assert scope.active_assignments(db, ORG, "fx-unit-lead", now, "hr:employee:read") == []
+    assert "fixture role assignment" in caplog.text and "fx-" not in caplog.text
+    monkeypatch.setattr(scope, "get_settings", lambda: type("S", (), {"environment": "development"})())
+    assert scope.active_assignments(db, ORG, "fx-org-admin", now)
