@@ -8,18 +8,21 @@ Payroll and compensation datasets are deliberately not listed.
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select, true
 from sqlalchemy.orm import Session
 
 from asaa_attendance.models import AttendanceRecord
+from asaa_ap.ar_service import invoice_clause, receipt_clause
 from asaa_ap.database import get_db
 from asaa_ap.models import ARCreditNote, ARInvoice, ARReceipt, Supplier
 from asaa_ap.procurement_models import PurchaseRequest
 from asaa_ap.security import Principal, require_permission
 from asaa_delivery.models import Engagement
+from asaa_governance.scope import build_scope
 from asaa_payables.models import PaymentBatch, PurchaseOrder, SupplierInvoice
 from asaa_people.models import Employee, LeaveRequest
+from asaa_people.scoping import employee_clause
 from asaa_workforce_finance.models import ExpenseClaim, Timesheet
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
@@ -52,14 +55,44 @@ REPORT_LINEAGE: dict[str, list[str]] = {
 }
 
 
+def scoped_filter(db: Session, principal: Principal, name: str):
+    """SQL predicate narrowing dataset `name` to the caller's data scope for its read permission (organization-wide grants give `true()`).
+    Returns None when the dataset must be withheld: the token lacks the permission, strict mode has no assignment, or the scope is restricted
+    and the dataset has no customer, unit or record dimension to filter by. Narrowing only: never broader than the permission alone."""
+    model, _, _, perm = SOURCES[name]
+    if perm not in principal.permissions:
+        return None
+    try:
+        scope = build_scope(db, principal.organization_id, principal.subject, perm)
+    except HTTPException:
+        return None
+    if scope.unrestricted:
+        return true()
+    org = principal.organization_id
+    if name == "ar_invoices":
+        return invoice_clause(scope)
+    if name == "ar_receipts":
+        return receipt_clause(scope)
+    if name == "ar_credit_notes":
+        return scope.clause(customer=ARCreditNote.customer_id, record=ARCreditNote.id)
+    if name == "hr_employees":
+        return employee_clause(scope, org)
+    if name == "hr_leave_requests":
+        return LeaveRequest.employee_id.in_(select(Employee.id).where(Employee.organization_id == org, employee_clause(scope, org)))
+    if name == "dlv_engagements":
+        from asaa_delivery.api import engagement_clause
+        return engagement_clause(scope)
+    return None
+
+
 def aware(value: datetime | None) -> datetime | None:
     return value.replace(tzinfo=timezone.utc) if value and value.tzinfo is None else value
 
 
 @router.get("/lineage")
-def lineage(principal: Annotated[Principal, Depends(require_permission("report:lineage:read"))]):
+def lineage(db: Annotated[Session, Depends(get_db)], principal: Annotated[Principal, Depends(require_permission("report:lineage:read"))]):
     """Declared dataset registry and which reports read which datasets, limited to datasets the caller may read. Requires report:lineage:read."""
-    visible = {name for name, (_, _, _, perm) in SOURCES.items() if perm in principal.permissions}
+    visible = {name for name in SOURCES if scoped_filter(db, principal, name) is not None}
     return {"datasets": [{"name": n, "owner_module": SOURCES[n][2], "required_permission": SOURCES[n][3]} for n in sorted(visible)],
             "reports": {r: {"datasets": [d for d in ds if d in visible], "hidden_dataset_count": len([d for d in ds if d not in visible])} for r, ds in REPORT_LINEAGE.items()}}
 
@@ -70,9 +103,10 @@ def freshness(db: Annotated[Session, Depends(get_db)], principal: Annotated[Prin
     now = datetime.now(timezone.utc)
     out = []
     for name, (model, column, owner, perm) in sorted(SOURCES.items()):
-        if perm not in principal.permissions:
+        narrowed = scoped_filter(db, principal, name)
+        if narrowed is None:
             continue
-        count, newest = db.execute(select(func.count(), func.max(column)).where(model.organization_id == principal.organization_id)).one()
+        count, newest = db.execute(select(func.count(), func.max(column)).where(model.organization_id == principal.organization_id, narrowed)).one()
         newest = aware(newest)
         age = round((now - newest).total_seconds() / 3600, 2) if newest else None
         entry = {"dataset": name, "owner_module": owner, "record_count": count, "newest_record_at": newest.isoformat() if newest else None, "age_hours": age}

@@ -10,6 +10,8 @@ from asaa_ap.database import get_db
 from asaa_ap.models import AuditEvent
 from asaa_ap.security import Principal, require_permission
 from asaa_integration.emitter import emit_for_audit
+from asaa_governance.scope import AccessScope, require_scoped_permission
+from asaa_people.scoping import check_payroll_run_scope, payroll_entry_clause
 from asaa_people.models import (
     Employee, EmploymentRecord, EmployeeDocument, EmployeeAsset, LeaveRequest,
     EmployeeExitCase, OnboardingTemplate, OnboardingTask, OnboardingAssignment,
@@ -432,14 +434,17 @@ def assign_onboarding_task(task_id: str, payload: OnboardingTaskAssignment, db: 
 
 @router.get("/api/v1/payroll/runs/{run_id}/summary")
 def payroll_run_summary(run_id: str, db: Db,
-    principal: Annotated[Principal, Depends(require_permission("payroll:read"))]):
+    principal: Annotated[Principal, Depends(require_permission("payroll:read"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:read"))]):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
     ))
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
+    check_payroll_run_scope(db, run, principal.organization_id, scope)  # totals below cover the in-scope entries only
     rows = db.scalars(select(PayrollEntry).where(
-        PayrollEntry.organization_id == principal.organization_id, PayrollEntry.run_id == run_id
+        PayrollEntry.organization_id == principal.organization_id, PayrollEntry.run_id == run_id,
+        payroll_entry_clause(scope, principal.organization_id)
     )).all()
     return {
         "run_id": run.id, "run_code": run.run_code, "status": run.status,
@@ -482,12 +487,14 @@ def cancel_leave_request(request_id: str, payload: LeaveRequestCancel, db: Db,
 @router.post("/api/v1/payroll/runs/{run_id}/submit")
 def submit_payroll_run(run_id: str, payload: PayrollRunReview, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:run:submit"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:run:submit"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
     ))
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
+    check_payroll_run_scope(db, run, principal.organization_id, scope, whole=True)  # a run-level action needs every entry in scope
     if run.status not in {"Draft", "Changes Requested"}:
         raise HTTPException(status_code=409, detail={"code": "payroll_run_not_submittable"})
     count = db.scalar(select(func.count(PayrollEntry.id)).where(
@@ -508,12 +515,14 @@ def submit_payroll_run(run_id: str, payload: PayrollRunReview, db: Db,
 @router.post("/api/v1/payroll/runs/{run_id}/decision")
 def decide_payroll_run(run_id: str, payload: CompensationDecision, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:run:approve"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:run:approve"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
     ))
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
+    check_payroll_run_scope(db, run, principal.organization_id, scope, whole=True)  # a run-level action needs every entry in scope
     if run.status != "In Review":
         raise HTTPException(status_code=409, detail={"code": "payroll_run_not_in_review"})
     if run.created_by == principal.subject:
@@ -537,12 +546,14 @@ def decide_payroll_run(run_id: str, payload: CompensationDecision, db: Db,
 @router.post("/api/v1/payroll/runs/{run_id}/close")
 def close_payroll_run(run_id: str, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:run:close"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:run:close"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     run = db.scalar(select(PayrollRun).where(
         PayrollRun.id == run_id, PayrollRun.organization_id == principal.organization_id
     ))
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
+    check_payroll_run_scope(db, run, principal.organization_id, scope, whole=True)  # a run-level action needs every entry in scope
     if run.status != "Approved":
         raise HTTPException(status_code=409, detail={"code": "payroll_run_not_approved"})
     run.status = "Closed"
@@ -608,7 +619,9 @@ def replace_onboarding_template(template_id: str, payload: OnboardingTemplateRep
 @router.post("/api/v1/payroll/periods/{period_id}/close")
 def close_payroll_period(period_id: str, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:period:close"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:period:close"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
+    scope.require_unrestricted()  # closing a period depends on every run of the organization
     period = db.scalar(select(PayrollPeriod).where(
         PayrollPeriod.id == period_id,
         PayrollPeriod.organization_id == principal.organization_id,
@@ -638,10 +651,12 @@ def close_payroll_period(period_id: str, db: Db,
 @router.patch("/api/v1/payroll/entries/{entry_id}")
 def update_payroll_entry(entry_id: str, payload: PayrollEntryUpdate, db: Db,
     principal: Annotated[Principal, Depends(require_permission("payroll:entry:write"))],
+    scope: Annotated[AccessScope, Depends(require_scoped_permission("payroll:entry:write"))],
     x_correlation_id: Annotated[str | None, Header()] = None):
     row = db.scalar(select(PayrollEntry).where(
         PayrollEntry.id == entry_id,
         PayrollEntry.organization_id == principal.organization_id,
+        payroll_entry_clause(scope, principal.organization_id),
     ))
     if not row:
         raise HTTPException(status_code=404, detail="Payroll entry not found")

@@ -337,10 +337,13 @@ def allocate_unapplied_receipt(db: Session, receipt_id: str, invoice_id: str, am
         raise HTTPException(status_code=404, detail="Receipt not found")
     if receipt.status != "Recorded":
         raise HTTPException(status_code=409, detail={"code": "receipt_not_allocatable"})
-    invoice = db.scalar(select(ARInvoice).where(
+    invoice_stmt = select(ARInvoice).where(
         ARInvoice.id == invoice_id, ARInvoice.organization_id == principal.organization_id,
         ARInvoice.customer_id == receipt.customer_id,
-    ).with_for_update())
+    )
+    if scope is not None:
+        invoice_stmt = invoice_stmt.where(invoice_clause(scope))  # an invoice outside the data scope is not found
+    invoice = db.scalar(invoice_stmt.with_for_update())
     if not invoice:
         raise HTTPException(status_code=404, detail={"code": "invoice_not_found"})
     if invoice.currency != receipt.currency:
