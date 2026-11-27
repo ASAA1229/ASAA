@@ -274,3 +274,15 @@ Post-fix PostgreSQL integration run **44524049465** completed successfully on ex
 
 ### Current release decision
 **NO-GO.** Green workflows on `new` do not close production database, identity-provider/MFA, full authorization/tenant-isolation assurance, independent security review, approved backup/restore objectives, business UAT, operational ownership, or production deployment gates. See [Release Readiness](RELEASE_READINESS.md) and [Pending Work](PENDING_WORK_REGISTER.md).
+
+
+## Owner requirements reconciliation — 2026-11-27
+
+The owner has confirmed the HR/workforce, supplier/procurement/banking, identity, data architecture, deployment, cost and integration decisions now recorded in [REQUIREMENTS.md](REQUIREMENTS.md). The decisions are requirements baseline updates only; no code, test, CI, business acceptance or production status is inferred.
+
+Current operating constraints:
+- Local deployment until the business is ready for production; ₹0 operating cost until investment.
+- Dummy/local supplier and banking workflows by default; real provider adapters may be prepared but live connections and real transactions remain disabled pending investment and explicit owner activation.
+- Jenkins is in use; paid Nexus integration is intentionally paused and is not a blocker.
+- The owner controls branch promotion timing; branch promotion is not tracked as an engineering blocker.
+- Continue to distinguish implementation, tests, integration, owner acceptance and production readiness. Refresh exact-commit evidence before changing any delivery status.

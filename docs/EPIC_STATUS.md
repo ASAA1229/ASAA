@@ -44,3 +44,15 @@ Verify and close external identity-provider activation; complete workforce, payr
 ## Epic status evidence note — 2026-11-20
 
 The latest organization audit confirms the `new` API quality, Web CI and PostgreSQL integration runs passed (44732168373, 44732168216, 44732168210), while API quality and PostgreSQL integration failed on observed `dev` and `main` runs. Treat epic implementation states as distinct from branch CI and release acceptance. Production database, identity-provider/MFA, independent security, backup/recovery objectives, business UAT and operations remain release blockers. See [Project Status](PROJECT_STATUS.md).
+
+
+## Owner decision update — 2026-11-27
+
+Owner decisions for HR, finance, supplier management, identity, data architecture, cost and deployment are now captured in [REQUIREMENTS.md](REQUIREMENTS.md). This closes the requirements-decision questions listed in this update; it does **not** upgrade development, testing, integration, acceptance or release status.
+
+Status handling corrections:
+- Branch promotion is owner-controlled scheduling, not a blocker.
+- Nexus integration is intentionally paused because it is paid, not a blocker under the ₹0 constraint. Jenkins remains in use.
+- Owner-controlled salary and recruitment decisions are policy rules, not pending implementation blockers.
+- Dummy/local finance workflows can be developed and tested without real banking credentials. Real integrations remain disabled until owner activation after investment.
+- Preserve all existing evidence and statuses until a fresh exact-commit verification is recorded.

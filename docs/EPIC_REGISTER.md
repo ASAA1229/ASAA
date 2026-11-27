@@ -45,3 +45,18 @@ Reconciliation rules:
 
 
 Project epic coverage: ASAA-E01–E12. Apply the candidate domains as cross-cutting sub-epics/features where applicable; do not create duplicate epics or change existing development/testing/integration/acceptance values without new evidence.
+
+
+## Owner decision alignment — 2026-11-27
+
+The following requirement scope is confirmed. Existing epic IDs and implementation evidence remain unchanged; map these requirements into the corresponding existing epics rather than creating duplicate epics.
+
+- **ASAA-E02 Identity and access:** centralized cross-project identity; local login plus optional SSO; HR-driven joiner/mover/leaver lifecycle; immediate revocation and audit.
+- **ASAA-E03 People and workforce:** five-day week, annual 12-holiday calendar, two sick days/month, nine-hour shifts including one-hour lunch, two-month probation, quarterly reviews, 15-day default notice, owner-decided salary and recruitment authority.
+- **ASAA-E04 Payroll, leave and expenses:** owner-controlled compensation decisions; approved overtime with case-by-case owner compensation; configurable jurisdiction and employee-category rules.
+- **ASAA-E05 Supplier, procurement and AP / ASAA-E06 AR and finance:** complete local/dummy workflows and real-provider adapters built but disabled; strict dummy/real separation; explicit owner activation and transaction safeguards.
+- **ASAA-E09 Security and audit:** MFA, role controls, immutable audit trail, transaction limits, duplicate prevention, anomaly detection, emergency disable/lockout and encrypted backup/recovery requirements.
+- **ASAA-E10 CI/CD and operations:** local-first operation and ₹0 cost; Jenkins in use; paid Nexus intentionally paused.
+- **ASAA-E12 Shared ecosystem/data integration:** hybrid centralized data architecture and centralized identity APIs.
+
+No branch promotion, paid integration activation, production release or implementation status change is implied by this requirements update.

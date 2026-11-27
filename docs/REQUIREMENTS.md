@@ -609,3 +609,42 @@ No requirement was removed or weakened. The following requirement areas gained i
 
 ### Addendum 2026-11-14 (second follow-up)
 SCIM 2.0 provisioning, encrypted/rotated/scheduled backups with staleness monitoring, Prometheus alert rules, a JSON log schema, a provisional PostgreSQL performance budget gate, container rehearsal assets, and cross-browser/mobile/reflow accessibility tests now exist. They advance, but do not close, the identity lifecycle, recovery, observability, performance, deployment and accessibility requirements: real provider validation, approved objectives and SLOs, live alert routing, a executed rehearsal and physical-device/screen-reader testing remain required.
+
+
+## Owner decision update — 2026-11-27
+
+This section supersedes conflicting earlier assumptions where the owner has now made an explicit decision. It updates requirements only; it does not claim implementation or verification.
+
+### HR and workforce
+- Workweek: five working days per week.
+- Annual holiday calendar: 12 holidays each year.
+- Sick leave: two days per month.
+- Shifts: shift-based scheduling; each shift is nine hours including a one-hour lunch break.
+- Overtime requires management authorization; the owner decides compensation case by case.
+- Recruitment: HR and department managers jointly recommend candidates; the owner has final approval and may delegate hiring authority to selected managers within defined limits.
+- Probation: two months.
+- Performance reviews: quarterly, with additional reviews when management or the owner requires them.
+- Resignation notice: 15 days as the standard, customizable by role/employment category and finalized in the employment agreement.
+- Salary is decided by the owner at recruitment based on role, department, experience, knowledge and employee category. No generic formula overrides the owner's decision.
+- Workforce categories include employees, contractors, interns, temporary staff, consultants, freelancers and external agency/vendor personnel, with appropriate HR/access rules.
+- India is the initial jurisdiction; country-specific rules must be configurable for future jurisdictions.
+
+### Supplier, procurement and banking
+- Implement complete supplier-management, procurement, finance and banking workflows using free/local tooling and dummy data by default.
+- Build provider adapters, scripts, APIs, background functions and automated tests now. Real banking connections and real financial operations remain disabled until investment and explicit owner activation.
+- Keep dummy and real data environments strictly separate. Provide generated and manually managed dummy data, reset/cleanup and end-to-end simulation.
+- Real-mode activation requires owner authentication, MFA, separate transaction approval, emergency disable, and complete audit logging. Apply transaction limits, duplicate-payment prevention, anomaly/fraud detection and account lockout safeguards.
+- Support modular adapters for Indian and international banks, payment gateways, accounting systems and reconciliation providers; do not activate live connections while disabled.
+
+### Organization-wide identity and data
+- Use a centralized ASAA identity service across projects, with local login and optional external SSO providers enabled individually when configured.
+- Employee onboarding, role changes and offboarding follow HR records with approval controls, immediate revocation, session/device invalidation, periodic access reviews and audit history.
+- Use a hybrid centralized data architecture: central ASAA data services and separate schemas by domain by default; isolate selected modules in separate databases only where security, workload or scale justifies it; connect independent stores through controlled APIs.
+- Local access is the default; remote access uses secure VPN, with public exposure limited to specifically approved services.
+- Keep systems locally deployed until the business is ready for production.
+- Support configurable legal-entity profiles. Legal details remain pending verification; contracts and statutory documents stay in draft until verified.
+
+### Cost and integrations
+- Operating cost remains ₹0 until the owner authorizes investment.
+- Jenkins is in use. Nexus is paid and intentionally paused; it is not a blocker.
+- Branch promotion timing is entirely the owner's choice and is not a project blocker.
